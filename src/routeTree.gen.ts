@@ -9,50 +9,371 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as PortalRouteRouteImport } from './routes/portal/route'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthRegistrerenRouteImport } from './routes/_auth/registreren'
+import { Route as AuthWachtwoordVergetenRouteImport } from './routes/_auth/wachtwoord-vergeten'
+import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as PublicVerbodenGoederenRouteImport } from './routes/_public/verboden-goederen'
+import { Route as PublicVoorwaardenRouteImport } from './routes/_public/voorwaarden'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as PortalIndexRouteImport } from './routes/portal/index'
+import { Route as PortalProfielRouteImport } from './routes/portal/profiel'
+import { Route as AuthAuthConfirmRouteImport } from './routes/_auth/auth/confirm'
+import { Route as AuthAuthSetPasswordRouteImport } from './routes/_auth/auth/set-password'
 
-const IndexRoute = IndexRouteImport.update({
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRouteRoute = PortalRouteRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthRegistrerenRoute = AuthRegistrerenRouteImport.update({
+  id: '/registreren',
+  path: '/registreren',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthWachtwoordVergetenRoute = AuthWachtwoordVergetenRouteImport.update({
+  id: '/wachtwoord-vergeten',
+  path: '/wachtwoord-vergeten',
+  getParentRoute: () => AuthRoute,
+} as any)
+const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicVerbodenGoederenRoute = PublicVerbodenGoederenRouteImport.update({
+  id: '/verboden-goederen',
+  path: '/verboden-goederen',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicVoorwaardenRoute = PublicVoorwaardenRouteImport.update({
+  id: '/voorwaarden',
+  path: '/voorwaarden',
+  getParentRoute: () => PublicRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalProfielRoute = PortalProfielRouteImport.update({
+  id: '/profiel',
+  path: '/profiel',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const AuthAuthConfirmRoute = AuthAuthConfirmRouteImport.update({
+  id: '/auth/confirm',
+  path: '/auth/confirm',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAuthSetPasswordRoute = AuthAuthSetPasswordRouteImport.update({
+  id: '/auth/set-password',
+  path: '/auth/set-password',
+  getParentRoute: () => AuthRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/portal': typeof PortalRouteRouteWithChildren
+  '/': typeof PublicIndexRoute
+  '/login': typeof AuthLoginRoute
+  '/registreren': typeof AuthRegistrerenRoute
+  '/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
+  '/verboden-goederen': typeof PublicVerbodenGoederenRoute
+  '/voorwaarden': typeof PublicVoorwaardenRoute
+  '/portal/profiel': typeof PortalProfielRoute
+  '/admin/': typeof AdminIndexRoute
+  '/portal/': typeof PortalIndexRoute
+  '/auth/confirm': typeof AuthAuthConfirmRoute
+  '/auth/set-password': typeof AuthAuthSetPasswordRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof PublicIndexRoute
+  '/login': typeof AuthLoginRoute
+  '/registreren': typeof AuthRegistrerenRoute
+  '/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
+  '/verboden-goederen': typeof PublicVerbodenGoederenRoute
+  '/voorwaarden': typeof PublicVoorwaardenRoute
+  '/portal/profiel': typeof PortalProfielRoute
+  '/admin': typeof AdminIndexRoute
+  '/portal': typeof PortalIndexRoute
+  '/auth/confirm': typeof AuthAuthConfirmRoute
+  '/auth/set-password': typeof AuthAuthSetPasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/portal': typeof PortalRouteRouteWithChildren
+  '/_auth': typeof AuthRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
+  '/_auth/login': typeof AuthLoginRoute
+  '/_auth/registreren': typeof AuthRegistrerenRoute
+  '/_auth/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
+  '/_public/verboden-goederen': typeof PublicVerbodenGoederenRoute
+  '/_public/voorwaarden': typeof PublicVoorwaardenRoute
+  '/portal/profiel': typeof PortalProfielRoute
+  '/_public/': typeof PublicIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/portal/': typeof PortalIndexRoute
+  '/_auth/auth/confirm': typeof AuthAuthConfirmRoute
+  '/_auth/auth/set-password': typeof AuthAuthSetPasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/admin'
+    | '/portal'
+    | '/'
+    | '/login'
+    | '/registreren'
+    | '/wachtwoord-vergeten'
+    | '/verboden-goederen'
+    | '/voorwaarden'
+    | '/portal/profiel'
+    | '/admin/'
+    | '/portal/'
+    | '/auth/confirm'
+    | '/auth/set-password'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/registreren'
+    | '/wachtwoord-vergeten'
+    | '/verboden-goederen'
+    | '/voorwaarden'
+    | '/portal/profiel'
+    | '/admin'
+    | '/portal'
+    | '/auth/confirm'
+    | '/auth/set-password'
+  id:
+    | '__root__'
+    | '/admin'
+    | '/portal'
+    | '/_auth'
+    | '/_public'
+    | '/_auth/login'
+    | '/_auth/registreren'
+    | '/_auth/wachtwoord-vergeten'
+    | '/_public/verboden-goederen'
+    | '/_public/voorwaarden'
+    | '/portal/profiel'
+    | '/_public/'
+    | '/admin/'
+    | '/portal/'
+    | '/_auth/auth/confirm'
+    | '/_auth/auth/set-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  PortalRouteRoute: typeof PortalRouteRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/registreren': {
+      id: '/_auth/registreren'
+      path: '/registreren'
+      fullPath: '/registreren'
+      preLoaderRoute: typeof AuthRegistrerenRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/wachtwoord-vergeten': {
+      id: '/_auth/wachtwoord-vergeten'
+      path: '/wachtwoord-vergeten'
+      fullPath: '/wachtwoord-vergeten'
+      preLoaderRoute: typeof AuthWachtwoordVergetenRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_public/': {
+      id: '/_public/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/verboden-goederen': {
+      id: '/_public/verboden-goederen'
+      path: '/verboden-goederen'
+      fullPath: '/verboden-goederen'
+      preLoaderRoute: typeof PublicVerbodenGoederenRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/voorwaarden': {
+      id: '/_public/voorwaarden'
+      path: '/voorwaarden'
+      fullPath: '/voorwaarden'
+      preLoaderRoute: typeof PublicVoorwaardenRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/profiel': {
+      id: '/portal/profiel'
+      path: '/profiel'
+      fullPath: '/portal/profiel'
+      preLoaderRoute: typeof PortalProfielRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/_auth/auth/confirm': {
+      id: '/_auth/auth/confirm'
+      path: '/auth/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthAuthConfirmRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/auth/set-password': {
+      id: '/_auth/auth/set-password'
+      path: '/auth/set-password'
+      fullPath: '/auth/set-password'
+      preLoaderRoute: typeof AuthAuthSetPasswordRouteImport
+      parentRoute: typeof AuthRoute
     }
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
+interface PortalRouteRouteChildren {
+  PortalProfielRoute: typeof PortalProfielRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteRouteChildren: PortalRouteRouteChildren = {
+  PortalProfielRoute: PortalProfielRoute,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(
+  PortalRouteRouteChildren,
+)
+
+interface AuthRouteChildren {
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegistrerenRoute: typeof AuthRegistrerenRoute
+  AuthWachtwoordVergetenRoute: typeof AuthWachtwoordVergetenRoute
+  AuthAuthConfirmRoute: typeof AuthAuthConfirmRoute
+  AuthAuthSetPasswordRoute: typeof AuthAuthSetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegistrerenRoute: AuthRegistrerenRoute,
+  AuthWachtwoordVergetenRoute: AuthWachtwoordVergetenRoute,
+  AuthAuthConfirmRoute: AuthAuthConfirmRoute,
+  AuthAuthSetPasswordRoute: AuthAuthSetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface PublicRouteChildren {
+  PublicVerbodenGoederenRoute: typeof PublicVerbodenGoederenRoute
+  PublicVoorwaardenRoute: typeof PublicVoorwaardenRoute
+  PublicIndexRoute: typeof PublicIndexRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicVerbodenGoederenRoute: PublicVerbodenGoederenRoute,
+  PublicVoorwaardenRoute: PublicVoorwaardenRoute,
+  PublicIndexRoute: PublicIndexRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  PortalRouteRoute: PortalRouteRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

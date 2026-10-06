@@ -7,11 +7,34 @@ import { routeTree } from "@/routeTree.gen";
 // Match routes without running loaders or rendering: loaders may need a server or
 // network the test run lacks, and jsdom never loads the stylesheets React waits on.
 describe("App routing", () => {
+  const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+  const leaf = (path: string) => router.matchRoutes(path).at(-1)?.routeId;
+
   it("matches a page for / instead of falling back to not found", () => {
-    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    expect(leaf("/")).not.toBe(rootRouteId);
+  });
 
-    const matches = router.matchRoutes("/");
+  it.each([
+    ["/login", "/_auth/login"],
+    ["/registreren", "/_auth/registreren"],
+    ["/wachtwoord-vergeten", "/_auth/wachtwoord-vergeten"],
+    ["/auth/confirm", "/_auth/auth/confirm"],
+    ["/auth/set-password", "/_auth/auth/set-password"],
+    ["/portal", "/portal/"],
+    ["/portal/profiel", "/portal/profiel"],
+    ["/admin", "/admin/"],
+  ])("serves %s", (path, routeId) => {
+    expect(leaf(path)).toBe(routeId);
+  });
 
-    expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
+  it("renders the signed-in areas in the browser only (SPEC §35.2)", () => {
+    for (const id of [
+      "/portal",
+      "/admin",
+      "/_auth/auth/confirm",
+      "/_auth/auth/set-password",
+    ] as const) {
+      expect(router.routesById[id].options.ssr, id).toBe(false);
+    }
   });
 });

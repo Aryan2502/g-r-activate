@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- Supabase → Authentication → Emails → "Confirm signup". Onderwerp: Bevestig uw e-mailadres – G&R Solutions -->
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>Bevestig uw e-mailadres</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#FAF8F4; color:#2B2724; font-family:Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:#FAF8F4;">Bevestig uw e-mailadres om uw account bij G&amp;R Activate te activeren.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FAF8F4;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background-color:#FFFFFF; border:1px solid #D8D2C9; border-radius:6px;">
+            <tr>
+              <td align="center" style="background-color:#EEEBE4; border-radius:6px 6px 0 0; padding:20px 24px;">
+                <img src="{{ .SiteURL }}/brand/gr-logo-banner.jpg" width="240" alt="G&amp;R Solutions N.V. – Customs Brokerage &amp; Logistics" style="display:block; width:240px; max-width:100%; height:auto; border:0;" />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <h1 style="margin:0 0 16px 0; font-family:Montserrat, Inter, Arial, sans-serif; font-size:22px; line-height:1.3; font-weight:700; color:#713A28;">Bevestig uw e-mailadres</h1>
+                <p style="margin:0 0 14px 0; font-size:15px; line-height:1.6; color:#2B2724;">Welkom bij G&amp;R Solutions N.V. Bedankt voor uw registratie in het klantportaal G&amp;R Activate.</p>
+                <p style="margin:0 0 14px 0; font-size:15px; line-height:1.6; color:#2B2724;">Bevestig uw e-mailadres om uw account te activeren. Daarna kunt u inloggen en ziet u uw persoonlijke klantcode.</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="padding:16px 32px 8px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#713A28" style="border-radius:6px;">
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email" style="display:inline-block; padding:12px 24px; font-size:15px; font-weight:600; line-height:1.2; color:#FFFFFF; text-decoration:none; border-radius:6px;">E-mailadres bevestigen</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 32px 32px;">
+                <p style="margin:0 0 6px 0; font-size:13px; line-height:1.6; color:#6B645C;">Werkt de knop niet? Kopieer deze link en plak hem in uw browser:</p>
+                <p style="margin:0 0 20px 0; font-size:13px; line-height:1.6; word-break:break-all;"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email" style="color:#713A28;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email</a></p>
+                <p style="margin:0; font-size:13px; line-height:1.6; color:#6B645C;">Deze link werkt één keer en is beperkt geldig. Heeft u zich niet aangemeld? Dan kunt u deze e-mail negeren.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top:1px solid #D8D2C9; padding:16px 32px; font-size:12px; line-height:1.6; color:#54514C;">
+                <strong style="color:#713A28;">G&amp;R SOLUTIONS N.V.</strong> &nbsp;|&nbsp; CUSTOMS BROKERAGE &amp; LOGISTICS<br />
+                Deze e-mail is verstuurd naar {{ .Email }} via het klantportaal G&amp;R Activate.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
