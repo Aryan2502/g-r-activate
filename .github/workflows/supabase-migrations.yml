@@ -1,0 +1,69 @@
+# Applies supabase/migrations to the G&R Activate Supabase project on every push to main
+# that touches a migration, then regenerates the TypeScript types and commits them.
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  personal access token of the Supabase account that owns the project
+#   SUPABASE_DB_PASSWORD   database password of the project
+name: Supabase migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: blbazidqlesjokshfhiy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Show pending migrations
+        run: supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Apply migrations
+        run: supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Regenerate types
+        run: supabase gen types typescript --project-id "$PROJECT_REF" --schema public > src/integrations/supabase/types.ts
+
+      - name: Commit types
+        run: |
+          if git diff --quiet -- src/integrations/supabase/types.ts; then
+            echo "Types unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/integrations/supabase/types.ts
+          git commit -m "Regenerate Supabase types"
+          git pull --rebase origin main
+          git push origin HEAD:main
