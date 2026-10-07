@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import {
@@ -49,7 +49,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { adminKeys } from "@/lib/admin/keys";
 import {
@@ -69,6 +71,7 @@ import {
   type CancellationTask,
   type OrderInvoiceRow,
 } from "@/lib/admin/orders";
+import { KEEP_ORDER_MESSAGE_MAX, keepOrderAfterCancellation } from "@/lib/admin/order-actions";
 import { removeOrdersFromShipment } from "@/lib/admin/shipments";
 import {
   B2B_CUSTOMS_DOCUMENT_KINDS,
@@ -255,7 +258,13 @@ function OrderView({
         {customer ? (
           <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-foreground">
             <UserRound className="size-4 text-primary" aria-hidden />
-            <span className="font-semibold">{customerDisplayName(customer)}</span>
+            <Link
+              to="/admin/klanten/$id"
+              params={{ id: customer.id }}
+              className="font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              {customerDisplayName(customer)}
+            </Link>
             <span className="font-heading font-bold text-primary tabular-nums">
               {customer.customer_code}
             </span>
@@ -401,8 +410,10 @@ function Banners({
     !isClosedStage(stage);
   const message = history ? currentStatusMessage(history, order.status) : null;
   const openRequest = cancellation && !cancellation.resolved_at && stage !== "cancelled";
-  const keptRequest =
-    cancellation?.resolved_at && order.cancellation_requested_at && stage !== "cancelled";
+  // The request time is the task's (keeping the order clears the order's own
+  // cancellation_requested_at since the P5 migration).
+  const requestedAt = order.cancellation_requested_at ?? cancellation?.created_at ?? null;
+  const keptRequest = cancellation?.resolved_at && requestedAt && stage !== "cancelled";
 
   return (
     <div className="mb-6 space-y-4 empty:hidden">
@@ -433,17 +444,17 @@ function Banners({
           </p>
         </Callout>
       ) : null}
-      {keptRequest && cancellation?.resolved_at && order.cancellation_requested_at ? (
+      {keptRequest && cancellation?.resolved_at && requestedAt ? (
         <Callout tone="neutral" icon={CheckCircle2} title={t("admin.order.cancellation.title")}>
           <p>
             {cancellation.resolved_by
               ? t("admin.order.cancellation.decidedBy", {
-                  date: formatDateTime(order.cancellation_requested_at),
+                  date: formatDateTime(requestedAt),
                   resolvedAt: formatDateTime(cancellation.resolved_at),
                   name: personName(cancellation.resolved_by, people, null),
                 })
               : t("admin.order.cancellation.decided", {
-                  date: formatDateTime(order.cancellation_requested_at),
+                  date: formatDateTime(requestedAt),
                   resolvedAt: formatDateTime(cancellation.resolved_at),
                 })}
           </p>
@@ -531,9 +542,10 @@ function Banners({
 }
 
 /**
- * "Order behouden": the cancellation request is decided against; its staff
- * task is resolved (the database records who and when). The order keeps its
- * cancellation_requested_at: no client may clear it (PROGRESS.md).
+ * "Order behouden": the cancellation request is decided against.
+ * keep_order_after_cancellation_request (P5 migration) clears the order's
+ * cancellation_requested_at and resolves the task (who and when) in one
+ * transaction; before that migration is applied only the task is resolved.
  */
 function KeepOrderButton({
   userId,
@@ -547,17 +559,16 @@ function KeepOrderButton({
   const t = useT();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const messageId = useId();
+  const [message, setMessage] = useState(() => t("admin.order.cancellation.messageDefault"));
+  const tooLong = message.trim().length > KEEP_ORDER_MESSAGE_MAX;
   const keep = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("staff_tasks")
-        .update({ resolved_at: new Date().toISOString() })
-        .eq("id", task.id)
-        .is("resolved_at", null)
-        .select("id")
-        .single();
-      if (error) throw error;
-    },
+    mutationFn: () =>
+      keepOrderAfterCancellation(supabase, {
+        orderId: order.id,
+        taskId: task.id,
+        customerMessage: message,
+      }),
     onSuccess: async () => {
       setOpen(false);
       toast.success(t("admin.order.cancellation.kept"));
@@ -583,12 +594,32 @@ function KeepOrderButton({
             {t("admin.order.cancellation.keepText", { reference: order.reference })}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor={messageId}>{t("admin.order.cancellation.messageLabel")}</Label>
+          <Textarea
+            id={messageId}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={4}
+            aria-invalid={tooLong || undefined}
+            aria-describedby={`${messageId}-hint`}
+            disabled={keep.isPending}
+          />
+          <p
+            id={`${messageId}-hint`}
+            className={cn("text-sm", tooLong ? "text-destructive" : "text-muted-foreground")}
+          >
+            {tooLong
+              ? t("admin.order.cancellation.messageTooLong", { max: KEEP_ORDER_MESSAGE_MAX })
+              : t("admin.order.cancellation.messageHint")}
+          </p>
+        </div>
         <AlertDialogFooter className="gap-2">
           <AlertDialogCancel disabled={keep.isPending}>
             {t("admin.status.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
-            disabled={keep.isPending}
+            disabled={keep.isPending || tooLong}
             onClick={(e) => {
               e.preventDefault();
               keep.mutate();
@@ -626,8 +657,13 @@ function CustomerSection({ order }: { order: AdminOrderDetail }) {
     <Section title={t("admin.order.sections.customer")} icon={UserRound} id="order-customer">
       <DetailList>
         <DetailItem label={t("admin.order.fields.customerName")}>
-          {/* /admin/klanten/$id arrives in P5; until then the name is plain text. */}
-          <span className="font-semibold">{customer.full_name}</span>
+          <Link
+            to="/admin/klanten/$id"
+            params={{ id: customer.id }}
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {customer.full_name}
+          </Link>
         </DetailItem>
         <DetailItem label={t("admin.order.fields.customerCode")}>
           <span className="font-heading font-bold text-primary tabular-nums">

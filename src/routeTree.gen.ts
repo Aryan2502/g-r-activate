@@ -20,11 +20,16 @@ import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as PublicVerbodenGoederenRouteImport } from './routes/_public/verboden-goederen'
 import { Route as PublicVoorwaardenRouteImport } from './routes/_public/voorwaarden'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminInstellingenRouteImport } from './routes/admin/instellingen'
 import { Route as AdminStatussenRouteImport } from './routes/admin/statussen'
+import { Route as AdminTeamRouteImport } from './routes/admin/team'
 import { Route as PortalIndexRouteImport } from './routes/portal/index'
 import { Route as PortalProfielRouteImport } from './routes/portal/profiel'
 import { Route as AuthAuthConfirmRouteImport } from './routes/_auth/auth/confirm'
 import { Route as AuthAuthSetPasswordRouteImport } from './routes/_auth/auth/set-password'
+import { Route as AuthInviteTokenRouteImport } from './routes/_auth/invite/$token'
+import { Route as AdminKlantenIndexRouteImport } from './routes/admin/klanten/index'
+import { Route as AdminKlantenIdRouteImport } from './routes/admin/klanten/$id'
 import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
 import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders/$id'
 import { Route as AdminOrdersNieuwRouteImport } from './routes/admin/orders/nieuw'
@@ -87,9 +92,19 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminInstellingenRoute = AdminInstellingenRouteImport.update({
+  id: '/instellingen',
+  path: '/instellingen',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminStatussenRoute = AdminStatussenRouteImport.update({
   id: '/statussen',
   path: '/statussen',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminTeamRoute = AdminTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const PortalIndexRoute = PortalIndexRouteImport.update({
@@ -111,6 +126,21 @@ const AuthAuthSetPasswordRoute = AuthAuthSetPasswordRouteImport.update({
   id: '/auth/set-password',
   path: '/auth/set-password',
   getParentRoute: () => AuthRoute,
+} as any)
+const AuthInviteTokenRoute = AuthInviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AdminKlantenIndexRoute = AdminKlantenIndexRouteImport.update({
+  id: '/klanten/',
+  path: '/klanten/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminKlantenIdRoute = AdminKlantenIdRouteImport.update({
+  id: '/klanten/$id',
+  path: '/klanten/$id',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
   id: '/orders/',
@@ -162,17 +192,22 @@ export interface FileRoutesByFullPath {
   '/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
   '/verboden-goederen': typeof PublicVerbodenGoederenRoute
   '/voorwaarden': typeof PublicVoorwaardenRoute
+  '/admin/instellingen': typeof AdminInstellingenRoute
   '/admin/statussen': typeof AdminStatussenRoute
+  '/admin/team': typeof AdminTeamRoute
   '/portal/profiel': typeof PortalProfielRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/auth/confirm': typeof AuthAuthConfirmRoute
   '/auth/set-password': typeof AuthAuthSetPasswordRoute
+  '/invite/$token': typeof AuthInviteTokenRoute
+  '/admin/klanten/$id': typeof AdminKlantenIdRoute
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/admin/klanten/': typeof AdminKlantenIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/zendingen/': typeof AdminZendingenIndexRoute
   '/portal/orders/': typeof PortalOrdersIndexRoute
@@ -184,17 +219,22 @@ export interface FileRoutesByTo {
   '/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
   '/verboden-goederen': typeof PublicVerbodenGoederenRoute
   '/voorwaarden': typeof PublicVoorwaardenRoute
+  '/admin/instellingen': typeof AdminInstellingenRoute
   '/admin/statussen': typeof AdminStatussenRoute
+  '/admin/team': typeof AdminTeamRoute
   '/portal/profiel': typeof PortalProfielRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
   '/auth/confirm': typeof AuthAuthConfirmRoute
   '/auth/set-password': typeof AuthAuthSetPasswordRoute
+  '/invite/$token': typeof AuthInviteTokenRoute
+  '/admin/klanten/$id': typeof AdminKlantenIdRoute
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/admin/klanten': typeof AdminKlantenIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/zendingen': typeof AdminZendingenIndexRoute
   '/portal/orders': typeof PortalOrdersIndexRoute
@@ -210,18 +250,23 @@ export interface FileRoutesById {
   '/_auth/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
   '/_public/verboden-goederen': typeof PublicVerbodenGoederenRoute
   '/_public/voorwaarden': typeof PublicVoorwaardenRoute
+  '/admin/instellingen': typeof AdminInstellingenRoute
   '/admin/statussen': typeof AdminStatussenRoute
+  '/admin/team': typeof AdminTeamRoute
   '/portal/profiel': typeof PortalProfielRoute
   '/_public/': typeof PublicIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/_auth/auth/confirm': typeof AuthAuthConfirmRoute
   '/_auth/auth/set-password': typeof AuthAuthSetPasswordRoute
+  '/_auth/invite/$token': typeof AuthInviteTokenRoute
+  '/admin/klanten/$id': typeof AdminKlantenIdRoute
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/admin/klanten/': typeof AdminKlantenIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/zendingen/': typeof AdminZendingenIndexRoute
   '/portal/orders/': typeof PortalOrdersIndexRoute
@@ -237,17 +282,22 @@ export interface FileRouteTypes {
     | '/wachtwoord-vergeten'
     | '/verboden-goederen'
     | '/voorwaarden'
+    | '/admin/instellingen'
     | '/admin/statussen'
+    | '/admin/team'
     | '/portal/profiel'
     | '/admin/'
     | '/portal/'
     | '/auth/confirm'
     | '/auth/set-password'
+    | '/invite/$token'
+    | '/admin/klanten/$id'
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
+    | '/admin/klanten/'
     | '/admin/orders/'
     | '/admin/zendingen/'
     | '/portal/orders/'
@@ -259,17 +309,22 @@ export interface FileRouteTypes {
     | '/wachtwoord-vergeten'
     | '/verboden-goederen'
     | '/voorwaarden'
+    | '/admin/instellingen'
     | '/admin/statussen'
+    | '/admin/team'
     | '/portal/profiel'
     | '/admin'
     | '/portal'
     | '/auth/confirm'
     | '/auth/set-password'
+    | '/invite/$token'
+    | '/admin/klanten/$id'
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
+    | '/admin/klanten'
     | '/admin/orders'
     | '/admin/zendingen'
     | '/portal/orders'
@@ -284,18 +339,23 @@ export interface FileRouteTypes {
     | '/_auth/wachtwoord-vergeten'
     | '/_public/verboden-goederen'
     | '/_public/voorwaarden'
+    | '/admin/instellingen'
     | '/admin/statussen'
+    | '/admin/team'
     | '/portal/profiel'
     | '/_public/'
     | '/admin/'
     | '/portal/'
     | '/_auth/auth/confirm'
     | '/_auth/auth/set-password'
+    | '/_auth/invite/$token'
+    | '/admin/klanten/$id'
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
+    | '/admin/klanten/'
     | '/admin/orders/'
     | '/admin/zendingen/'
     | '/portal/orders/'
@@ -387,11 +447,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/instellingen': {
+      id: '/admin/instellingen'
+      path: '/instellingen'
+      fullPath: '/admin/instellingen'
+      preLoaderRoute: typeof AdminInstellingenRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/statussen': {
       id: '/admin/statussen'
       path: '/statussen'
       fullPath: '/admin/statussen'
       preLoaderRoute: typeof AdminStatussenRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/team': {
+      id: '/admin/team'
+      path: '/team'
+      fullPath: '/admin/team'
+      preLoaderRoute: typeof AdminTeamRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/portal/': {
@@ -421,6 +495,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/set-password'
       preLoaderRoute: typeof AuthAuthSetPasswordRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/_auth/invite/$token': {
+      id: '/_auth/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof AuthInviteTokenRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/admin/klanten/': {
+      id: '/admin/klanten/'
+      path: '/klanten'
+      fullPath: '/admin/klanten/'
+      preLoaderRoute: typeof AdminKlantenIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/klanten/$id': {
+      id: '/admin/klanten/$id'
+      path: '/klanten/$id'
+      fullPath: '/admin/klanten/$id'
+      preLoaderRoute: typeof AdminKlantenIdRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/admin/orders/': {
       id: '/admin/orders/'
@@ -482,21 +577,29 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminInstellingenRoute: typeof AdminInstellingenRoute
   AdminStatussenRoute: typeof AdminStatussenRoute
+  AdminTeamRoute: typeof AdminTeamRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminKlantenIdRoute: typeof AdminKlantenIdRoute
   AdminOrdersIdRoute: typeof AdminOrdersIdRoute
   AdminOrdersNieuwRoute: typeof AdminOrdersNieuwRoute
   AdminZendingenIdRoute: typeof AdminZendingenIdRoute
+  AdminKlantenIndexRoute: typeof AdminKlantenIndexRoute
   AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   AdminZendingenIndexRoute: typeof AdminZendingenIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminInstellingenRoute: AdminInstellingenRoute,
   AdminStatussenRoute: AdminStatussenRoute,
+  AdminTeamRoute: AdminTeamRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminKlantenIdRoute: AdminKlantenIdRoute,
   AdminOrdersIdRoute: AdminOrdersIdRoute,
   AdminOrdersNieuwRoute: AdminOrdersNieuwRoute,
   AdminZendingenIdRoute: AdminZendingenIdRoute,
+  AdminKlantenIndexRoute: AdminKlantenIndexRoute,
   AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   AdminZendingenIndexRoute: AdminZendingenIndexRoute,
 }
@@ -531,6 +634,7 @@ interface AuthRouteChildren {
   AuthWachtwoordVergetenRoute: typeof AuthWachtwoordVergetenRoute
   AuthAuthConfirmRoute: typeof AuthAuthConfirmRoute
   AuthAuthSetPasswordRoute: typeof AuthAuthSetPasswordRoute
+  AuthInviteTokenRoute: typeof AuthInviteTokenRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -539,6 +643,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthWachtwoordVergetenRoute: AuthWachtwoordVergetenRoute,
   AuthAuthConfirmRoute: AuthAuthConfirmRoute,
   AuthAuthSetPasswordRoute: AuthAuthSetPasswordRoute,
+  AuthInviteTokenRoute: AuthInviteTokenRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

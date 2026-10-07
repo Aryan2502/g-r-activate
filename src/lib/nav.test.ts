@@ -35,10 +35,13 @@ describe("activeNavPath()", () => {
 describe("activeNavPath() in the admin area", () => {
   const adminNav = [
     { to: "/admin", exact: true },
+    { to: "/admin/klanten" },
     { to: "/admin/orders" },
     { to: "/admin/orders/nieuw" },
     { to: "/admin/zendingen" },
     { to: "/admin/statussen" },
+    { to: "/admin/team" },
+    { to: "/admin/instellingen" },
   ];
 
   it("highlights one item per page", () => {
@@ -51,5 +54,11 @@ describe("activeNavPath() in the admin area", () => {
       "/admin/zendingen",
     );
     expect(activeNavPath(adminNav, "/admin/statussen")).toBe("/admin/statussen");
+    expect(activeNavPath(adminNav, "/admin/klanten")).toBe("/admin/klanten");
+    expect(activeNavPath(adminNav, "/admin/klanten/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f")).toBe(
+      "/admin/klanten",
+    );
+    expect(activeNavPath(adminNav, "/admin/team")).toBe("/admin/team");
+    expect(activeNavPath(adminNav, "/admin/instellingen")).toBe("/admin/instellingen");
   });
 });

@@ -476,9 +476,11 @@ describe("sign-up trigger (private.handle_new_user)", () => {
     ).toHaveLength(1);
   });
 
-  it("creates nothing at all for an e-mail with an open staff invitation", async () => {
-    // The invitation link grants the role (SPEC §35.6 path b or c); a task
-    // asking staff to send a customer invitation would be wrong.
+  it("creates no customer for an e-mail with an open staff invitation; staff get a task", async () => {
+    // The invitation link grants the role (SPEC §35.6 path b or c). Since the
+    // P5 migration (20261007150000) staff hear about the login without a
+    // record: the task asks them to point the person to the invitation link
+    // (not to send a customer invitation), and redemption resolves it.
     await inviteAs(db, p.admin.id, {
       kind: "staff",
       staff_role: "staff",
@@ -486,9 +488,14 @@ describe("sign-up trigger (private.handle_new_user)", () => {
     });
     const u = await createAuthUser(db, { email: "future.staff@example.com" });
     expect(await customerOf(db, u.id)).toBeUndefined();
-    expect(
-      await rows(db, "select id from public.staff_tasks where email = 'future.staff@example.com'"),
-    ).toEqual([]);
+    const tasks = await rows<{ kind: string; customer_id: string | null; body: string }>(
+      db,
+      "select kind, customer_id, body from public.staff_tasks where email = 'future.staff@example.com'",
+    );
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ kind: "signup_email_conflict", customer_id: null });
+    expect(tasks[0]?.body).toMatch(/uitnodiging als medewerker/);
+    expect(tasks[0]?.body).not.toMatch(/Stuur de klant/);
     expect(await rows(db, "select id from public.profiles where id = $1", [u.id])).toHaveLength(1);
   });
 
@@ -528,7 +535,13 @@ describe("sign-up trigger (private.handle_new_user)", () => {
       expect(await rows(own, "select id from public.profiles where id = $1", [u.id])).toHaveLength(
         1,
       );
-      expect(await rows(own, "select id from public.staff_tasks")).toEqual([]);
+      // Since the P5 migration (20261007150000): staff see this login too.
+      const task = await one<{ kind: string; email: string; body: string }>(
+        own,
+        "select kind, email, body from public.staff_tasks",
+      );
+      expect(task).toMatchObject({ kind: "signup_customer_failed", email: "closed@example.com" });
+      expect(task.body).toMatch(/terwijl registreren uitstaat/);
 
       // Invitations keep working: redemption links the record itself.
       await own.query("update public.company_settings set public_signup_enabled = true");
@@ -1595,7 +1608,16 @@ describe("invitations", () => {
       ),
       /niet meer open/,
     );
-    // A new invitation is allowed once the old one is revoked.
+    // A new invitation is allowed once the old one is revoked, but the resend
+    // limits hold per address (P5): not within a minute of the last send.
+    await expectSqlError(
+      inviteAs(inv, ip.staff.id, { customer_id: c.id, email: "rita@example.com" }),
+      /Wacht een minuut: er is net al een uitnodiging naar rita@example.com verstuurd/,
+    );
+    await inv.query(
+      "update public.invitations set last_sent_at = last_sent_at - interval '2 minutes' where id = $1",
+      [id],
+    );
     await inviteAs(inv, ip.staff.id, { customer_id: c.id, email: "rita@example.com" });
   });
 
@@ -2059,7 +2081,12 @@ describe("invitations", () => {
         inv,
         "select kind, resolved_by from public.staff_tasks where email = 'kim.b@example.com' or body like '%kim.b@example.com%'",
       ),
-    ).toEqual([{ kind: "signup_email_conflict", resolved_by: kim.id }]);
+    ).toEqual([
+      // The earlier task, and since the P5 migration the one the confirmation
+      // raised for the open staff invitation: both resolved by the redemption.
+      { kind: "signup_email_conflict", resolved_by: kim.id },
+      { kind: "signup_email_conflict", resolved_by: kim.id },
+    ]);
   });
 
   it("admin_auth_user_by_email finds Auth users for the server", async () => {

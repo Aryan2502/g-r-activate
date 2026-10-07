@@ -12,6 +12,9 @@ import {
   Package,
   PackagePlus,
   RotateCw,
+  Settings,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 
 import { AppShell, type ShellNavItem } from "@/components/layout/AppShell";
@@ -41,13 +44,17 @@ export const Route = createFileRoute("/admin")({
 });
 
 // The most specific item is highlighted: /admin/orders/nieuw → "Order aanmaken",
-// an order's page → "Orders", a shipment's page → "Zendingen".
+// an order's page → "Orders", a shipment's page → "Zendingen", a customer's
+// page → "Klanten".
 const nav: ShellNavItem[] = [
   { to: paths.admin, label: t("admin.nav.dashboard"), icon: LayoutDashboard, exact: true },
+  { to: paths.adminCustomers, label: t("admin.nav.customers"), icon: Users },
   { to: paths.adminOrders, label: t("admin.nav.orders"), icon: Package },
   { to: paths.adminOrderNew, label: t("admin.nav.newOrder"), icon: PackagePlus },
   { to: paths.adminShipments, label: t("admin.nav.shipments"), icon: Container },
   { to: paths.adminStatuses, label: t("admin.nav.statuses"), icon: ListChecks },
+  { to: paths.adminTeam, label: t("admin.nav.team"), icon: ShieldCheck },
+  { to: paths.adminSettings, label: t("admin.nav.settings"), icon: Settings },
 ];
 
 function AdminLayout() {

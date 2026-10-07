@@ -8,6 +8,7 @@ import {
   changeStatusInputSchema,
   createOrderForCustomer,
   createOrderInputSchema,
+  keepOrderAfterCancellation,
   parseActionInput,
   pickUpOrders,
   pickupInputSchema,
@@ -430,5 +431,88 @@ describe("createOrderForCustomer()", () => {
       message: t("admin.newOrder.parentMismatch"),
     });
     expect(calls.some((c) => c.op === "insert")).toBe(false);
+  });
+});
+
+describe("keepOrderAfterCancellation() ('Order behouden')", () => {
+  function keepClient(rpcError: { code: string; message: string } | null) {
+    const updates: { table: string; values: Row; filters: [string, unknown][] }[] = [];
+    const client = {
+      rpc: vi.fn(() => Promise.resolve({ data: null, error: rpcError })),
+      from: vi.fn((table: string) => ({
+        update: (values: Row) => {
+          const entry = { table, values, filters: [] as [string, unknown][] };
+          updates.push(entry);
+          const chain = {
+            eq: (c: string, v: unknown) => (entry.filters.push([c, v]), chain),
+            is: (c: string, v: unknown) => (entry.filters.push([c, v]), chain),
+            select: () => ({ single: () => Promise.resolve({ data: { id: "t1" }, error: null }) }),
+          };
+          return chain;
+        },
+      })),
+    };
+    return {
+      client: client as unknown as Parameters<typeof keepOrderAfterCancellation>[0],
+      updates,
+      rpc: client.rpc,
+    };
+  }
+
+  it("calls the guarded RPC with the order only", async () => {
+    const { client, rpc, updates } = keepClient(null);
+    expect(await keepOrderAfterCancellation(client, { orderId: A, taskId: "t1" })).toEqual({
+      cleared: true,
+    });
+    expect(rpc).toHaveBeenCalledWith("keep_order_after_cancellation_request", { _order_id: A });
+    expect(updates).toEqual([]);
+  });
+
+  it("passes the message for the customer, trimmed; a blank one leaves the database's default", async () => {
+    const { client, rpc } = keepClient(null);
+    await keepOrderAfterCancellation(client, {
+      orderId: A,
+      taskId: "t1",
+      customerMessage: "  Het pakket is al onderweg.  ",
+    });
+    expect(rpc).toHaveBeenLastCalledWith("keep_order_after_cancellation_request", {
+      _order_id: A,
+      _customer_message: "Het pakket is al onderweg.",
+    });
+    await keepOrderAfterCancellation(client, { orderId: A, taskId: "t1", customerMessage: "  " });
+    expect(rpc).toHaveBeenLastCalledWith("keep_order_after_cancellation_request", {
+      _order_id: A,
+    });
+  });
+
+  it("before the P5 migration is applied (PGRST202) it only resolves the task, as in P4", async () => {
+    const { client, updates } = keepClient({
+      code: "PGRST202",
+      message: "Could not find the function",
+    });
+    expect(await keepOrderAfterCancellation(client, { orderId: A, taskId: "t1" })).toEqual({
+      cleared: false,
+    });
+    expect(updates).toEqual([
+      {
+        table: "staff_tasks",
+        values: { resolved_at: "2026-10-07T15:00:00.000Z" },
+        filters: [
+          ["id", "t1"],
+          ["resolved_at", null],
+        ],
+      },
+    ]);
+  });
+
+  it("passes the database's refusals on (42501, 55000)", async () => {
+    for (const code of ["42501", "55000"]) {
+      const { client, updates } = keepClient({ code, message: "Nee" });
+      const error = await keepOrderAfterCancellation(client, { orderId: A, taskId: "t1" }).catch(
+        (e: unknown) => e,
+      );
+      expect(toAppError(error).code).toBe(code);
+      expect(updates).toEqual([]);
+    }
   });
 });

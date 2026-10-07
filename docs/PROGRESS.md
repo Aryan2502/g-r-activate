@@ -4,7 +4,23 @@ Bron: `docs/SPEC.md` (§1–§35). §35 gaat voor bij verschillen.
 
 ## Status per sectie
 
-Laatst bijgewerkt: P4 reviewronde (2026-10-07): 26 reviewbevindingen nagelopen en opgelost,
+Laatst bijgewerkt: P5 reviewronde (2026-10-07): 23 reviewbevindingen nagelopen (21 opgelost,
+1 bewust anders opgelost, 1 dubbel), met wijzigingen in dezelfde, nog niet toegepaste migratie
+`20261007150000_p5_customers.sql` (geen teamlogin bannen vanaf een klantpagina, uitnodiging van
+een gedeactiveerde uitnodiger telt als ingetrokken, verstuurlimiet per e-mailadres, profielnaam
+uit de uitnodiging, klantbericht bij "Order behouden", notitie bij ingetrokken uitnodigingen;
+zie "Bewijs P5 reviewronde"). Daarvoor P5 deel B (2026-10-07): teampagina `/admin/team` (medewerkers uitnodigen,
+rollen, logins deactiveren/activeren, resetlinks), instellingen `/admin/instellingen` (alle
+secties van §35.8, bankrekeningen, US-adressen met live voorbeeld, tarieven, factuurteller en
+volgende klantcode), het volledige admin-dashboard (§12-KPI's per valuta, recente activiteit,
+"Nog in te stellen", Systeemstatus) en de navigatie; de P5-migratie kreeg een teamdeel
+(geblokkeerde login heeft geen rol, `team_members()`, `log_team_login_change()`; nog NIET live
+toegepast, zie "Bewijs P5 deel B"). P5 is daarmee klaar. Daarvoor P5 deel A (2026-10-07): klantbeheer `/admin/klanten` en
+`/admin/klanten/$id`, "Klant toevoegen" en "Klant uitnodigen", uitnodigingen opnieuw
+versturen/intrekken, deactiveren/activeren met login-ban, wachtwoord-resetlink, de publieke
+pagina `/invite/$token` (paden a, b en c, ook staff-uitnodigingen) en migratie
+`20261007150000_p5_customers.sql` met de twee carry-overs ("Order behouden" en staff-taken in
+`handle_new_user`; nog NIET live toegepast, zie "Bewijs P5 deel A"). Daarvoor P4 reviewronde (2026-10-07): 26 reviewbevindingen nagelopen en opgelost,
 met één nieuwe migratie `20261007120000_p4_order_guards.sql` (afgeven per klant, "Toch
 afgeven" alleen op onbetaalde orders, nieuw bericht bij "Actie vereist", zending en
 verzendwijze; nog NIET live toegepast, zie "Bewijs P4 reviewronde"). Daarvoor P4 deel B (2026-10-07): zendingen `/admin/zendingen` en
@@ -34,31 +50,376 @@ axe 0 overtredingen op alle publieke en auth-pagina's.
 | 1 | Bestaand project inspecteren | n.v.t. | vervangen door "Known facts" in §35.1 |
 | 2 | Branding & design | klaar (P2b) | tokens in `src/styles.css` (oklch, §35.14); `BrandLogo` banner/monogram/lockup; favicon, apple-touch-icon, icon-512 uit het logo; Montserrat/Inter via @fontsource |
 | 3 | Bedrijfsdoel | deels (P2b) | homepage-teksten in `nl.ts`; rest volgt met de functies (P3+) |
-| 4 | Klantaccount & GR-code | deels | DB + GR-nummering (P2a, `m1_identity.test.ts`); portal toont naam + GR-code uit `customers` (P2b); klantbeheer P5 |
-| 5 | Uitnodigingen / bestaande klanten | deels | alleen database (P2a); uitnodigingspagina's en beheer P5 |
+| 4 | Klantaccount & GR-code | klaar voor staff (P5-A) | DB + GR-nummering (P2a, `m1_identity.test.ts`); portal toont naam + GR-code (P2b); P5-A: klanten met en zonder login, "Klant toevoegen" (naam + telefoon verplicht, bestaande GR-code optioneel met live controle "GR00042 is al toegewezen aan Maria Pinas"), code wijzigen (beheerder, reden, alleen zonder orders/uitgegeven facturen, `change_customer_code`), deactiveren/activeren (beheerder, reden, login-ban); `customers_contract.test.ts` |
+| 5 | Uitnodigingen / bestaande klanten | klaar (P5-A; e-mail P8) | "Klant uitnodigen" (nieuw of bestaand dossier, nooit een tweede dossier voor een adres: conflicten "heeft al een login", "al uitgenodigd", "gedeactiveerd", "andere code", "geen e-mail" met de weg vooruit), link alleen één keer op het scherm (kopiëren, WhatsApp), "Opnieuw versturen" (nieuw token, 1×/minuut, 5×/Surinaamse dag) en "Intrekken"; `/invite/$token`: geldig/verlopen/ingetrokken/gebruikt/ongeldig, pad a (nieuwe login), b (onbevestigde registratie), c (bestaande login: eerst inloggen), staff-uitnodiging (naam → profiel, daarna `/admin`); tests `server/invitations.test.ts`, `customers_contract.test.ts`; P5-review: limieten 1×/minuut en 5×/dag per e-mailadres (ook intrekken + opnieuw uitnodigen), linkdialogen vragen vóór sluiten zolang de link niet gekopieerd/gedeeld is, volledig e-mailadres in de WhatsApp-tekst en na activeren, conflict laat het formulier staan |
 | 6 | Authenticatie | klaar (P2b), live niet geverifieerd | `/login`, `/registreren`, `/wachtwoord-vergeten`, `/auth/confirm`, `/auth/set-password`, uitloggen; guards `/portal` (klant) en `/admin` (staff/admin); tests `auth-errors`, `callback`, `guards`, `redirect`, `roles`, `schemas`; e-mailtemplates in `supabase/templates/` (`auth-templates.test.ts`) |
 | 7 | Homepage | basis (P2b) | `/` met hero, "Hoe het werkt", diensten, contact uit `public_company_info()`; definitieve versie P10 |
 | 8 | Klantdashboard | klaar (P3-A) | `/portal`: GR-code (kopiëren), eerste kaart "Uw persoonlijk US-verzendadres" (`warehouse_addresses`, `{FULL_NAME}`/`{GR_CODE}` ingevuld, kopieerknop per veld + "Kopieer volledig adres", leeg: "Ons US-adres wordt binnenkort hier getoond."), KPI's Orders ("Waarvan N nog niet ontvangen" linkt naar `?stage=registered`, "Alle orders bekijken") / Openstaande facturen (`invoice_overview` open+deels betaald, saldo per valuta, achterstallig, links naar de orders met een open factuur, achterstallige eerst) / Zendingen onderweg / Klaar voor afhalen (op `stage`; afhaaladres, -tijden en "Meenemen" elk los getoond; "Betaal eerst de openstaande factuur voordat u ophaalt" bij een klaarliggende order met open factuur, volgens `pay_before_pickup`), laatste order (met omschrijving), recente activiteit (orders + `shipment_status_history` + uitgegeven én geannuleerde facturen (op `cancelled_at`) + betalingen), CTA "Order aanmelden"; elke query filtert ook zelf op `customer_id` (RLS laat staff alles zien); tests `orders`, `invoices`, `warehouse`, `activity`, `scoping` |
 | 9 | Order aanmelden | klaar (P3-B) | `/portal/orders/nieuw`: stap 1 "Persoonlijke order" / "Zakelijke order (B2B)" met uitleg (`?type=` in de URL, terugknop werkt, ingevulde velden blijven staan); formulier: verzendwijze (alleen `service_rates.enabled`, standaard lucht), winkel, ordernummer, omschrijving, aantal, geschatte waarde + valuta (USD/EUR/SRD), aankoopdatum, verwachte leverdatum (optioneel; onder elk datumveld "Gekozen datum: dd-mm-jjjj", omdat de browser het veld in zijn eigen notatie toont), trackingnummer "Optioneel / indien bekend", vervoerder (lijst UPS/FedEx/USPS/DHL/Amazon Logistics/OnTrac + "Anders" + "Nog niet bekend"), gewicht lbs (optioneel), opmerking; B2B: leverancier, PO-nummer, inkoopwijze met uitleg (vóór "Aankoop"; bij "Inkoop door G&R" zijn winkel, waarde en aankoopdatum optioneel, mag de leverancier de winkel vervangen en mag de geplande aankoopdatum tot 1 jaar vooruit; dezelfde regels bij wijzigen); documenten (optioneel, soort per bestand, type/grootte vooraf gecontroleerd, max. 10); verplicht vinkje "Mijn zending bevat geen verboden goederen" met link naar `/verboden-goederen`. `registerOrderFn` (`lib/server-fns/orders.functions.ts`): `requireSupabaseAuth` + zod (zelfde schema als het formulier), klant via `rpc('current_customer_id')` (een staff-login met klantdossier wordt geweigerd, 42501), insert met de client van de gebruiker (RLS + `orders_before_insert`), geeft id + referentie; P8-haak `onOrderRegistered` in `src/server/order-notifications.ts`. Daarna uploadt de browser de documenten één voor één met status per bestand; mislukt er een, dan blijft de order bestaan, met melding, "Opnieuw proberen" en "Naar de order". Toast "Order succesvol aangemeld." en door naar de orderpagina. Bij een mislukte aanmelding gaat de focus naar de foutmelding, bij het uploadscherm naar de kop. `?parent=<id>`: extra pakket (soort order, winkel en ordernummer van de hoofdorder; `registerOrderFn` neemt ze over van de hoofdorder, maar de database controleert het niet: een directe API-insert kan afwijken, zie "Carry-over fixes"; link naar een extra pakket wordt gevolgd naar de hoofdorder; geannuleerde hoofdorder geweigerd). Tests: `order-schema`, `register-order`, `document-queue`, `order-fields`, `order-notifications`, `app-routing` |
 | 10 | Orderdetail | klaar (P3-A) | `/portal/orders` (zoeken op referentie/winkel/omschrijving/ordernummer/tracking, filter status-fase + "Onderweg en in behandeling", soort (Zakelijk-badge), sorteren op datum; omschrijving in tabel en kaarten; tabel vanaf 1280 px (referentie en datum op één regel, trackingkolom breed genoeg), daaronder kaarten (twee kolommen vanaf 768 px, label boven waarde); filters in de URL) en `/portal/orders/$id`: alle §10-velden, statusbadge, voortgang per fase + statusgeschiedenis (alleen customer_visible via RLS, wijzigingen als "G&R Solutions", klantbericht), voortgang buiten het normale pad: "Actie vereist" als huidige stap met de rest nog te gaan, geannuleerd eindigt met "Geannuleerd"; banner "Actie vereist" met upload, afhaalgegevens bij "Klaar voor afhalen" plus "Betaal eerst de openstaande factuur …" met openstaand bedrag per valuta en link naar de facturen, facturen via `invoice_items` → `invoice_overview` met badges en betaalinstructie, documenten (upload naar `order-documents` op `{customer_id}/{order_id}/{uuid}.{ext}`, type/grootte vooraf gecontroleerd, upload met `cacheControl: "0"`, download via `createSignedUrl(path, 300)` onder een veilige naam: ASCII-deel van de oorspronkelijke naam + de door de database gecontroleerde extensie van `storage_path`, `documentDownloadName()`), wijzigen zolang fase `registered` (soort order, winkel en ordernummer alleen-lezen bij een extra pakket en bij een hoofdorder met pakketten), "Annulering aanvragen" (`request_order_cancellation`, bevestigingsdialoog), gekoppelde pakketten + "Extra pakket toevoegen"; tests `orders`, `documents`, `order-fields`, `scoping`, `nav`, `app-routing`, PGlite `portal_contract` |
 | 11 | Statusbeheer | klaar (P4; e-mail P8) | P4-B: `/admin/statussen` toont alle statussen per fase (in reisvolgorde, ook lege fasen) met naam, code, omschrijving voor de klant, zichtbaar voor klant, klant e-mailen, volgorde, actief/inactief, "Standaard" (eerste actieve status van de fase: daar starten nieuwe orders, daarheen gaat ontvangen en afgeven) en het aantal orders dat nu op elke status staat; staff lezen (melding "Alleen een beheerder …", geen knoppen), beheerders voegen toe (fase + code, beide daarna vast; code wordt uit de naam voorgesteld, uniek, `^[a-z][a-z0-9_]{1,49}$`; volgorde voorgesteld achter de fase), wijzigen naam/omschrijving/volgorde/zichtbaar/e-mailen (onzichtbare status mailt nooit) en deactiveren/activeren (nooit verwijderen; orders en historie houden de status; waarschuwing bij de laatste actieve status van een fase, de laatste "Aangemeld" wordt geweigerd zoals de database doet, 55000); alles met de eigen client (RLS `is_admin`), fouten inline + toast. Statuswijziging enkel en in bulk via één `change_order_status`-aanroep (`changeOrderStatusFn`, staff-client, nooit service role): dialoog met alleen actieve statussen per fase, "Bezorgd" alleen bij `delivery_available`, huidige status uitgeschakeld, bericht voor de klant ("Zichtbaar voor klant"; verplicht bij "Actie vereist"), "Klant e-mailen" (start op `notify_customer`, uit bij niet-zichtbare status; P8-haak `onOrderStatusChanged`, max. één e-mail per klant per actie via `planStatusEmails`), afhalen met naam ophaler + `pay_before_pickup`-blokkade (vooraf gecontroleerd én op de `pay_before_pickup`-hint van de database) en "Toch afgeven" met verplichte reden (`pickupFn` → `pickup_override`, reden in `audit_log`), B2B-waarschuwing (niet blokkerend) zonder commerciële factuur/paklijst richting douane, "Documenten opvragen" = "Actie vereist" voorgeselecteerd; volledige historie met namen ("door Maria", profiles), van → naar, tijd, bericht en "Niet zichtbaar voor klant". Tests: `admin/order-actions`, `admin/statuses`, `admin/orders`, `admin/status-config`, PGlite `admin_contract` en `shipments_contract`; P4-review: afgeven per klant (dialoog + database), "Toch afgeven" audit alleen op onbetaalde orders, nieuw bericht bij "Actie vereist" (eigen historieregel), niet-ontvangen orders blijven staan voorbij het US-magazijn, volgende status voorgeselecteerd, melding "E-mail is nog niet geconfigureerd" (migratie `20261007120000_p4_order_guards.sql`) |
-| 12 | Admin-dashboard | deels (P2b, P4-A) | `/admin`: wie is ingelogd + rol, klantentellingen (`customers`); P4-A: ordertellingen op fase (wacht op ontvangst = fase registered + "actie vereist" vóór ontvangst, onderweg, douane, klaar voor afhalen, actie vereist, open annuleringsverzoeken), elk een link naar hetzelfde filter op `/admin/orders`; open taken (`staff_tasks`, nieuwste 8) met "Afgehandeld" (annuleringsverzoeken alleen via de orderpagina) en "Order openen"; facturen/klantbeheer P5–P7. Test `admin/dashboard`; P4-review: tegels voor elke fase (ook US-magazijn, aangekomen in Suriname, ingeklaard), open taken oudste eerst met "Alle N open taken tonen" |
-| 13–20 | Klantbeheer t/m klanthistorie | niet gestart | P5–P9 (database staat er, P2a) |
-| 21 | Admin order-/zendingbeheer | deels (P4 klaar; facturen genereren/wijzigen P6/P7, klantpagina P5) | P4-B zendingen: `/admin/zendingen` (zoeken op zendingnummer, vervoerder of AWB/container ook zonder streepjes, filter verzendwijze en "Alleen lopende zendingen", in de URL; tabel Zending \| Verzendwijze \| Vervoerder \| Vertrokken \| Aangekomen \| Orders (aantal, klanten, gemeten lbs) \| Status van de orders (aantal per fase, "Zending afgerond") vanaf 1280 px, past op 1280 zonder scrollen, kaarten daaronder; "Zending aanmaken" → de nieuwe zendingpagina). `/admin/zendingen/$id`: gegevens (alles zichtbaar voor klanten met een order erin, ook het bericht), inhoud (orders, klanten, gemeten gewicht, nog niet gewogen, per fase), waarschuwingen (order nog niet ontvangen, andere verzendwijze), orders met rij-acties (status, ontvangen, afgeven, "Uit zending halen") en selectie (status wijzigen, uit zending halen); "Orders toevoegen": alleen orders met dezelfde verzendwijze die niet afgehaald/bezorgd/geannuleerd zijn, ontvangen eerst, scannen + Enter vinkt de order met dat trackingnummer aan (anders zegt de melding waarom niet: andere verzendwijze, al afgerond, al in deze zending, onbekend, meerdere), een order uit een andere zending verhuist (badge "Nu in zending …"); één `PATCH orders` met `service_type=eq.<zending>` in het filter zelf; "Status voor hele zending wijzigen" = één `change_order_status` (via `changeOrderStatusFn`, P8-haak, max. één e-mail per klant) met alle lopende orders, afgeronde orders blijven staan; "Gegevens wijzigen" (verzendwijze vast zolang er orders in zitten); zendingnummer uniek ongeacht hoofdletters (eigen melding). "Aan zending toevoegen" ook vanuit een selectie op `/admin/orders` en op de orderpagina (vooraf: hoeveel orders meegaan en welke worden overgeslagen); de orderpagina toont de zending met "Uit zending halen" en een link. P4-A `/admin/orders`: groot zoek-/scanveld (tracking genormaliseerd, GR-code "gr 17", referentie, klantnaam/bedrijf zonder accenten, winkel, ordernummer, omschrijving), filters status-fase, soort (Zakelijk), "Wacht op ontvangst", "Openstaande factuur", "Annulering aangevraagd", sorteren (nieuwste, oudste, klant, status); tabel Order \| Klant \| Type \| Tracking \| Status \| Factuur \| Betaling vanaf 1280 px (past op 1280 zonder scrollen), kaarten daaronder; factuur/betaling alleen-lezen uit `invoice_items` → `invoice_overview` (concepten zichtbaar, per valuta); rij-acties openen, status wijzigen, ontvangen/gewicht corrigeren, afgeven; selectie → één bulk-statuswijziging; klantnaam zonder link (`/admin/klanten` komt in P5). Ontvangen zonder scanner (§35.7): exacte trackingmatch → "Ontvangen in US-magazijn" direct vanuit het zoekresultaat (`receiveOrderFn` → `receive_order`, gewicht ≤ 2 decimalen, Nederlandse komma), dubbel trackingnummer → waarschuwing + badge "Dubbel", geen match → "Order aanmaken voor klant" met het nummer. `/admin/orders/nieuw` (`createOrderForCustomerFn`): elke klant ook zonder login (gedeactiveerde niet kiesbaar), dezelfde velden als het portaal, optioneel direct ontvangen met gemeten gewicht, extra pakket via `?parent=`. `/admin/orders/$id`: klant, alle ordervelden, ontvangen/afgegeven door wie, zending (link naar `/admin/zendingen/$id`), facturen (ook concepten), documenten (upload in elke fase, download onder veilige naam, verwijderen), pakketten van de aankoop + "Extra pakket aanmaken", interne notities, voortgang en historie, banners voor annuleringsverzoek (annuleren of behouden), actie vereist, klaar voor afhalen (openstaand per valuta), ontbrekende douanedocumenten; P4-review: scanlus zonder klikken (veld leeg + focus na ontvangen), zoekresultaat direct onder het zoekveld met status en volgende stap, selectiebalk blijft in beeld, "Onbekend" als facturen niet laden, gewicht invullen na het magazijn, verzendwijze van een order in een zending vast (database) |
+| 12 | Admin-dashboard | klaar (P5-B) | `/admin`: "Nog in te stellen" (bankgegevens ontbreken per valuta, geen actief US-adres, geen verzendwijze aan, geen tarief per lb, afhaaltijden leeg, voorwaarden/verboden goederen nog voorbeeldtekst; voor beheerders ook servicesleutel, APP_URL en e-mail), elk met "Naar instellingen" naar de juiste sectie (scrolt en focust); "Overzicht": klanten totaal + nieuw in 30 dagen + actief/uitgenodigd/gedeactiveerd, nieuwe orders (30 dagen) + lopende orders, openstaande facturen (aantal + openstaand bedrag PER VALUTA, link naar klanten met openstaande facturen), achterstallig (aantal + bedrag per valuta, uit `invoice_overview.is_overdue`), betaalde facturen (+ laatste 30 dagen, concepten); ordertellingen per fase (P4); open taken met "Order openen" en nu ook "Klant openen" (`customer_id`); "Recente activiteit" (statuswijzigingen met "door …", nieuwe klanten, geaccepteerde uitnodigingen, uitgegeven/geannuleerde facturen, betalingen; links naar order en klant); "Systeemstatus" (beheerders, `systemStatusFn`: alleen booleans voor servicesleutel, APP_URL (of Vercel-adres), e-mailprovider, CRON_SECRET, plus de laatste herinneringsronde uit `job_runs`). Tests `admin/dashboard` (`summarizeInvoiceStats`, `mergeStaffActivity`, `daysAgo`), `admin/system-status` (`setupChecklist`), `server/system-status` (alleen booleans, nooit een waarde); P5-review: "Open taken" bovenaan, medewerkers zien de setup-lijst als één regel, laadfout in de setup-lijst zichtbaar met "Opnieuw proberen" |
+| 13 | Klantbeheer | klaar (P5-A, P5-B) | `/admin/klanten`: zoeken op naam, bedrijf, GR-code ("gr 17", "17"), e-mail, telefoon (met/zonder +597), filters status, soort, login ja/nee, "Openstaande facturen", sorteren (GR-code, naam, nieuwste, oudste), alles in de URL; tabel Klant \| Contact \| Status \| Login \| Orders \| Openstaand \| Klant sinds vanaf 1280 px, kaarten daaronder. `/admin/klanten/$id`: contactgegevens (wijzigen; e-mail alleen beheerder, met waarschuwing bij login/open uitnodiging), account en login, uitnodigingsstatus met acties, orders (links), zendingen, facturen + betalingen (alleen-lezen, per valuta), documenten (download), interne notities, Nederlandse geschiedenis (beheerder: uit `audit_log`; staff: uit de rijen), "Order aanmaken voor deze klant" (`/admin/orders/nieuw?customer=`), wachtwoord-resetlink; P5-B: teampagina `/admin/team` en instellingen `/admin/instellingen` (zie §35 hieronder) |
+| 14–20 | Facturen t/m klanthistorie | niet gestart | P6–P9 (database staat er, P2a); de klantpagina toont facturen en betalingen al alleen-lezen |
+| 21 | Admin order-/zendingbeheer | deels (P4 klaar, klantpagina P5-A; facturen genereren/wijzigen P6/P7) | P4-B zendingen: `/admin/zendingen` (zoeken op zendingnummer, vervoerder of AWB/container ook zonder streepjes, filter verzendwijze en "Alleen lopende zendingen", in de URL; tabel Zending \| Verzendwijze \| Vervoerder \| Vertrokken \| Aangekomen \| Orders (aantal, klanten, gemeten lbs) \| Status van de orders (aantal per fase, "Zending afgerond") vanaf 1280 px, past op 1280 zonder scrollen, kaarten daaronder; "Zending aanmaken" → de nieuwe zendingpagina). `/admin/zendingen/$id`: gegevens (alles zichtbaar voor klanten met een order erin, ook het bericht), inhoud (orders, klanten, gemeten gewicht, nog niet gewogen, per fase), waarschuwingen (order nog niet ontvangen, andere verzendwijze), orders met rij-acties (status, ontvangen, afgeven, "Uit zending halen") en selectie (status wijzigen, uit zending halen); "Orders toevoegen": alleen orders met dezelfde verzendwijze die niet afgehaald/bezorgd/geannuleerd zijn, ontvangen eerst, scannen + Enter vinkt de order met dat trackingnummer aan (anders zegt de melding waarom niet: andere verzendwijze, al afgerond, al in deze zending, onbekend, meerdere), een order uit een andere zending verhuist (badge "Nu in zending …"); één `PATCH orders` met `service_type=eq.<zending>` in het filter zelf; "Status voor hele zending wijzigen" = één `change_order_status` (via `changeOrderStatusFn`, P8-haak, max. één e-mail per klant) met alle lopende orders, afgeronde orders blijven staan; "Gegevens wijzigen" (verzendwijze vast zolang er orders in zitten); zendingnummer uniek ongeacht hoofdletters (eigen melding). "Aan zending toevoegen" ook vanuit een selectie op `/admin/orders` en op de orderpagina (vooraf: hoeveel orders meegaan en welke worden overgeslagen); de orderpagina toont de zending met "Uit zending halen" en een link. P4-A `/admin/orders`: groot zoek-/scanveld (tracking genormaliseerd, GR-code "gr 17", referentie, klantnaam/bedrijf zonder accenten, winkel, ordernummer, omschrijving), filters status-fase, soort (Zakelijk), "Wacht op ontvangst", "Openstaande factuur", "Annulering aangevraagd", sorteren (nieuwste, oudste, klant, status); tabel Order \| Klant \| Type \| Tracking \| Status \| Factuur \| Betaling vanaf 1280 px (past op 1280 zonder scrollen), kaarten daaronder; factuur/betaling alleen-lezen uit `invoice_items` → `invoice_overview` (concepten zichtbaar, per valuta); rij-acties openen, status wijzigen, ontvangen/gewicht corrigeren, afgeven; selectie → één bulk-statuswijziging; klantnaam zonder link (P5-A: klantnamen op `/admin/orders`, `/admin/orders/$id` en `/admin/zendingen/$id` linken naar `/admin/klanten/$id`). Ontvangen zonder scanner (§35.7): exacte trackingmatch → "Ontvangen in US-magazijn" direct vanuit het zoekresultaat (`receiveOrderFn` → `receive_order`, gewicht ≤ 2 decimalen, Nederlandse komma), dubbel trackingnummer → waarschuwing + badge "Dubbel", geen match → "Order aanmaken voor klant" met het nummer. `/admin/orders/nieuw` (`createOrderForCustomerFn`): elke klant ook zonder login (gedeactiveerde niet kiesbaar), dezelfde velden als het portaal, optioneel direct ontvangen met gemeten gewicht, extra pakket via `?parent=`. `/admin/orders/$id`: klant, alle ordervelden, ontvangen/afgegeven door wie, zending (link naar `/admin/zendingen/$id`), facturen (ook concepten), documenten (upload in elke fase, download onder veilige naam, verwijderen), pakketten van de aankoop + "Extra pakket aanmaken", interne notities, voortgang en historie, banners voor annuleringsverzoek (annuleren of behouden), actie vereist, klaar voor afhalen (openstaand per valuta), ontbrekende douanedocumenten; P4-review: scanlus zonder klikken (veld leeg + focus na ontvangen), zoekresultaat direct onder het zoekveld met status en volgende stap, selectiebalk blijft in beeld, "Onbekend" als facturen niet laden, gewicht invullen na het magazijn, verzendwijze van een order in een zending vast (database) |
 | 22 | Databaseontwerp | klaar (P2a) | `supabase/migrations/*.sql` (3 bestanden), `m1/m2/m3_*.test.ts` in PGlite |
 | 23 | Row Level Security | klaar in DB (P2a) | RLS + grants per tabel, PGlite-tests; live RLS-tests P10 |
 | 24 | E-mailsysteem | deels | auth-templates (P2b); Resend/herinneringen P8 |
-| 25 | Responsive design | basis (P2b, P3-A, P3-B, P4) | publieke, auth-, portal- en admin-layouts gecontroleerd op 320–1440 px zonder horizontale scroll; P3-A: dashboard, orderlijst (tabel → kaarten) en orderdetail (facturentabel → kaarten via container query) op 320/390/768/1024/1440 px; P3-B: aanmeldformulier op dezelfde breedtes, velden 44 px hoog op telefoons, `inputmode` numeric/decimal, datumvelden; reviewronde: dialoogvensters krimpen met lange bestandsnamen mee (`grid-cols-[minmax(0,1fr)]`), orderlijst tabel pas vanaf 1280 px; eindronde P10; P4-A: admin-layout breder (`AppShell wide`), orderoverzicht tabel vanaf 1280 px (past op 1280 en 1440 zonder horizontaal scrollen, tabelkaart is `relative overflow-x-auto` als vangnet), kaarten met selectievakje daaronder, dialogen binnen 320–1440 px; P4-B: zendingenlijst, zendingpagina (orders als tabel vanaf 1280 px, kaarten daaronder) en statussen (tabel per fase vanaf 1280 px met de omschrijving onder de naam, kaarten daaronder) passen op 1280 px; dialogen (zending, orders toevoegen, aan zending toevoegen, status toevoegen/wijzigen/deactiveren) binnen 320–1440 px, knoppen op telefoons volle breedte; eindronde P10 |
-| 26 | UX-eisen | deels (P2b, P3-A, P3-B, P4) | alle fouten bij eerste verzending zichtbaar, inline loginfouten, laad-/fout-/leegstaten, toasts; P3-A: elke kaart/sectie heeft eigen laad-, fout- (met "Opnieuw proberen") en leegstaat; P3-B: order aanmelden in twee stappen, alle veldfouten bij de eerste verzending (ook de regels over meerdere velden: validatie in twee lagen, `refineOrderFields`), focus op het eerste foute veld; P4-A: staff vinden een order met één zoekveld (Enter = direct zoeken, voor scanners), ontvangen vanuit het zoekresultaat, bulk-statuswijziging, statusdialoog toont alle fouten tegelijk en focust het eerste veld; P4-B: een hele zending in één keer van status wisselen, orders in een zending scannen, zending- en statusformulieren tonen alle fouten tegelijk met focus op het eerste veld |
-| 27 | Beveiliging | deels (P2b) | geen geheimen in code (`server-boundary.test.ts`), `frame-ancestors`/nosniff/referrer-policy (`security-headers.test.ts`), adres-enumeratie verborgen op reset/resend |
-| 28 | Audit trail | deels (P4) | audit-triggers in DB (P2a); P4-A: statuswijzigingen leesbaar op de orderpagina met wie/wanneer ("door Maria", `shipment_status_history.changed_by` → profiles), ontvangen door, afgegeven door, reden van "Toch afgeven" in `audit_log.reason`; P4-B: aanmaken/wijzigen van zendingen, verhuizen van orders tussen zendingen en elke statusconfiguratie-wijziging staan in `audit_log` via de bestaande triggers (bewezen in `shipments_contract`); generieke auditweergave P9 |
-| 29 | Foutafhandeling | deels (P2b, P3-A, P3-B) | `src/lib/errors.ts` (Postgres/PostgREST → Nederlands), `auth-errors.ts`, 404- en foutpagina, Nederlandse toasts; P3-A: opslaan/annuleren/upload met succes- en fouttoast, uploadfouten (type/grootte/leeg/geweigerd) inline in het dialoogvenster; P3-B: aanmeldfouten als toast én blijvende melding boven de knop (o.a. 54000 `open_order_limit` met de Nederlandse databasetekst); server functions geven fouten terug als data (`TransportError` in `errors.ts`), omdat TanStack Start bij een gegooide fout alleen de `message` meestuurt; P4-A: `requireStaff`/`requireAdmin` gooien niet meer maar geven `context.access` door (de staff-client zit alleen in de geslaagde uitkomst), de handler geeft de 42501 als data terug, dus "U heeft geen toegang tot deze actie." komt in de browser aan; staff-dialogen tonen fouten inline én als toast |
+| 25 | Responsive design | basis (P2b, P3-A, P3-B, P4) | publieke, auth-, portal- en admin-layouts gecontroleerd op 320–1440 px zonder horizontale scroll; P3-A: dashboard, orderlijst (tabel → kaarten) en orderdetail (facturentabel → kaarten via container query) op 320/390/768/1024/1440 px; P3-B: aanmeldformulier op dezelfde breedtes, velden 44 px hoog op telefoons, `inputmode` numeric/decimal, datumvelden; reviewronde: dialoogvensters krimpen met lange bestandsnamen mee (`grid-cols-[minmax(0,1fr)]`), orderlijst tabel pas vanaf 1280 px; eindronde P10; P4-A: admin-layout breder (`AppShell wide`), orderoverzicht tabel vanaf 1280 px (past op 1280 en 1440 zonder horizontaal scrollen, tabelkaart is `relative overflow-x-auto` als vangnet), kaarten met selectievakje daaronder, dialogen binnen 320–1440 px; P4-B: zendingenlijst, zendingpagina (orders als tabel vanaf 1280 px, kaarten daaronder) en statussen (tabel per fase vanaf 1280 px met de omschrijving onder de naam, kaarten daaronder) passen op 1280 px; dialogen (zending, orders toevoegen, aan zending toevoegen, status toevoegen/wijzigen/deactiveren) binnen 320–1440 px, knoppen op telefoons volle breedte; eindronde P10; P5-B: dashboard (KPI-kaarten 1/2/3/5 kolommen), team (tabel vanaf 1280 px, kaarten daaronder) en instellingen (secties, bankrekeningen 3 kolommen vanaf 1024 px, dialoog US-adres) op 320–1440 px zonder horizontale scroll |
+| 26 | UX-eisen | deels (P2b, P3-A, P3-B, P4) | alle fouten bij eerste verzending zichtbaar, inline loginfouten, laad-/fout-/leegstaten, toasts; P3-A: elke kaart/sectie heeft eigen laad-, fout- (met "Opnieuw proberen") en leegstaat; P3-B: order aanmelden in twee stappen, alle veldfouten bij de eerste verzending (ook de regels over meerdere velden: validatie in twee lagen, `refineOrderFields`), focus op het eerste foute veld; P4-A: staff vinden een order met één zoekveld (Enter = direct zoeken, voor scanners), ontvangen vanuit het zoekresultaat, bulk-statuswijziging, statusdialoog toont alle fouten tegelijk en focust het eerste veld; P4-B: een hele zending in één keer van status wisselen, orders in een zending scannen, zending- en statusformulieren tonen alle fouten tegelijk met focus op het eerste veld; P5-A: klantdialogen tonen alle veldfouten bij de eerste verzending met focus op het eerste foute veld, live GR-code-controle, conflicten als uitleg met een knop naar de juiste klant, "Opnieuw versturen kan over N seconden" / daglimiet uitgelegd, `/invite` met één duidelijke stap per toestand; P5-B: instellingen per sectie opslaan (alleen gewijzigde kolommen, "Er was niets gewijzigd"), alle veldfouten tegelijk met focus op het eerste veld (ook regels over meerdere velden, zoals BTW-uitsplitsing zonder tarief), live waarschuwing als de betalingsvoorwaarden een andere termijn of opslag noemen dan ingesteld, live voorbeeld factuurnummer, live voorbeeld van het persoonlijke US-adres van een gekozen klant, live rekenvoorbeeld van het tarief; medewerkers zien de instellingen en het team alleen-lezen ("Nog niet ingesteld" bij lege waarden) |
+| 27 | Beveiliging | deels (P2b) | geen geheimen in code (`server-boundary.test.ts`), `frame-ancestors`/nosniff/referrer-policy (`security-headers.test.ts`), adres-enumeratie verborgen op reset/resend; P5-A: service role alleen in `src/server/*` (dynamische import in server-function handlers) voor `auth.admin.*` en voor het opzoeken/inwisselen van een uitnodiging nadat het token is gecontroleerd en gehasht; uitnodigen zelf met de eigen sessie van staff (RLS); alleen de SHA-256 van het token in de database, het ruwe token één keer in de link; resetlinks voor logins die ook staff/beheerder zijn alleen door een beheerder; P5-B: een gedeactiveerde (gebande) login heeft in de database geen rol meer (`has_role`/`is_staff` negeren `auth.users.banned_until` in de toekomst), dus een nog geldig toegangstoken verliest direct alle rechten en uitnodigingen van die persoon werken niet meer; `set_user_role` houdt altijd een beheerder die kan inloggen; teamacties alleen voor beheerders (UI, server function én database); Systeemstatus geeft nooit een waarde of lengte van een geheim terug; P5-review: een login die bij het team hoort wordt nooit vanaf een klantpagina gebannen/ontbannen of gereset (ook niet de eigen), een uitnodiging van een gedeactiveerde uitnodiger telt als ingetrokken vóórdat Auth wordt aangeraakt, profielnaam en `user_metadata` komen uit de uitnodiging (niet van een vreemde die het adres vooraf registreerde), deactiveren van een teamlid trekt al diens uitnodigingen in met notitie per klant |
+| 28 | Audit trail | deels (P4) | audit-triggers in DB (P2a); P4-A: statuswijzigingen leesbaar op de orderpagina met wie/wanneer ("door Maria", `shipment_status_history.changed_by` → profiles), ontvangen door, afgegeven door, reden van "Toch afgeven" in `audit_log.reason`; P4-B: aanmaken/wijzigen van zendingen, verhuizen van orders tussen zendingen en elke statusconfiguratie-wijziging staan in `audit_log` via de bestaande triggers (bewezen in `shipments_contract`); generieke auditweergave P9; P5-A: klantpagina "Geschiedenis" in het Nederlands uit `audit_log` (beheerder): aangemaakt met code, code gewijzigd (oud → nieuw + reden), gegevens gewijzigd (welke velden), uitgenodigd, opnieuw verstuurd, ingetrokken, login gekoppeld, gedeactiveerd/geactiveerd (reden), met wie en wanneer; staff zien dezelfde gebeurtenissen afgeleid uit de rijen; deactiveren/activeren en resetlinks laten ook een interne notitie achter; P5-B: elke instellingswijziging in `audit_log` via de bestaande triggers (alleen gewijzigde kolommen; bewezen in `team_settings_contract`), factuurteller en volgende klantcode via hun RPC's (eigen auditregel), rolwijzigingen (`user_roles`-trigger), deactiveren/activeren van een teamlid als auditregel `team_login` met reden (`log_team_login_change`) |
+| 29 | Foutafhandeling | deels (P2b, P3-A, P3-B) | `src/lib/errors.ts` (Postgres/PostgREST → Nederlands), `auth-errors.ts`, 404- en foutpagina, Nederlandse toasts; P3-A: opslaan/annuleren/upload met succes- en fouttoast, uploadfouten (type/grootte/leeg/geweigerd) inline in het dialoogvenster; P3-B: aanmeldfouten als toast én blijvende melding boven de knop (o.a. 54000 `open_order_limit` met de Nederlandse databasetekst); server functions geven fouten terug als data (`TransportError` in `errors.ts`), omdat TanStack Start bij een gegooide fout alleen de `message` meestuurt; P4-A: `requireStaff`/`requireAdmin` gooien niet meer maar geven `context.access` door (de staff-client zit alleen in de geslaagde uitkomst), de handler geeft de 42501 als data terug, dus "U heeft geen toegang tot deze actie." komt in de browser aan; staff-dialogen tonen fouten inline én als toast; P5-B: instellingen- en teamfouten inline én als toast; servergedeelde helpers (`serviceFailure`, `screenBase`) staan nu in `src/server/fn-helpers.ts` (de import-bescherming van TanStack Start weigerde ze in een gedeelde module die ook in de browser zit) |
 | 30 | Geen statische demo | ok (P2b, P3-A, P3-B) | geen placeholder-cijfers; alles uit Supabase met de client van de klant (RLS), query-keys `["portal", userId, …]`, plus een expliciet filter op `customer_id`; enige "binnenkort"-tekst is de door §35.8 voorgeschreven melding zonder US-adres |
 | 31 | End-to-end acceptatietest | niet gestart | P10 |
 | 32 | Ontwikkelaanpak | lopend | fasen volgens §35.1 |
 | 33 | Ontwerpprincipe | ok (P2b, P3-A, P4) | geen gradients/glas/paars; tabellen met crème kop en vette bruine labels (orderlijst, facturen, zendingen, statussen), kaarten op mobiel |
 | 34 | Alleen vragen indien nodig | lopend | |
-| 35 | Aanvullende specificaties | deels | §35.0 (UI alleen Nederlands, `src/lib/i18n/nl.ts`), §35.2, §35.3 (P2a), §35.4, §35.6, §35.14 klaar; P3-A: §35.7 klantkant (orders lezen/wijzigen, annulering aanvragen, documenten, statussen per fase), §35.8 US-adreskaart en `service_rates.enabled` in het wijzigformulier, §35.10 factuurbadges en saldo per valuta; P3-B: §35.7 klant-INSERT (alleen klant-bewerkbare kolommen + `customer_id` uit de database + `parent_order_id`), §35.8 `service_rates.enabled` in het aanmeldformulier en `max_open_orders_per_customer` (fout 54000 netjes getoond), §35.14 verplicht vinkje verboden goederen; overige subsecties in latere fasen; P4-A: §35.2 (privileged writes via server functions met `requireStaff`, staff-client, geen service role), §35.4 (staff doen alle orderwerk; geen admin-only actie geraakt), §35.7 staff-kant (statusvoorwaarden, ontvangen, afhalen met `pay_before_pickup` + override, actie vereist, B2B-waarschuwing, orders voor klanten zonder login, extra pakketten), §35.8 `delivery_available` en `pay_before_pickup`, §35.12 haakpunt "max. één e-mail per klant per actie", §35.13 leesbare statushistorie; P4-B: §35.4 (statussen wijzigen alleen beheerders, zendingen alle staff), §35.7 zendingen (staff-only batches, zelfde verzendwijze, "Status voor hele zending wijzigen" via `change_order_status`, klanten zien een zending alleen met een eigen order erin) en statussen (flexibel, per fase, deactiveren in plaats van verwijderen, "Bezorgd" alleen bij `delivery_available`) |
+| 35 | Aanvullende specificaties | deels | §35.0 (UI alleen Nederlands, `src/lib/i18n/nl.ts`), §35.2, §35.3 (P2a), §35.4, §35.6, §35.14 klaar; P3-A: §35.7 klantkant (orders lezen/wijzigen, annulering aanvragen, documenten, statussen per fase), §35.8 US-adreskaart en `service_rates.enabled` in het wijzigformulier, §35.10 factuurbadges en saldo per valuta; P3-B: §35.7 klant-INSERT (alleen klant-bewerkbare kolommen + `customer_id` uit de database + `parent_order_id`), §35.8 `service_rates.enabled` in het aanmeldformulier en `max_open_orders_per_customer` (fout 54000 netjes getoond), §35.14 verplicht vinkje verboden goederen; overige subsecties in latere fasen; P4-A: §35.2 (privileged writes via server functions met `requireStaff`, staff-client, geen service role), §35.4 (staff doen alle orderwerk; geen admin-only actie geraakt), §35.7 staff-kant (statusvoorwaarden, ontvangen, afhalen met `pay_before_pickup` + override, actie vereist, B2B-waarschuwing, orders voor klanten zonder login, extra pakketten), §35.8 `delivery_available` en `pay_before_pickup`, §35.12 haakpunt "max. één e-mail per klant per actie", §35.13 leesbare statushistorie; P4-B: §35.4 (statussen wijzigen alleen beheerders, zendingen alle staff), §35.7 zendingen (staff-only batches, zelfde verzendwijze, "Status voor hele zending wijzigen" via `change_order_status`, klanten zien een zending alleen met een eigen order erin) en statussen (flexibel, per fase, deactiveren in plaats van verwijderen, "Bezorgd" alleen bij `delivery_available`); P5-A: §35.5 (klant toevoegen, code wijzigen, deactiveren met `ban_duration`), §35.6 (uitnodigen, opnieuw versturen/intrekken, `/invite` paden a/b/c, staff-uitnodiging inwisselen), §35.12 WhatsApp-delen van uitnodigings- en resetlinks (e-mail P8: geen e-mail, de dialoog zegt dat); P5-B: §35.2 Systeemstatus (alleen booleans), §35.4 teampagina (staff lezen, beheerders: medewerker/beheerder uitnodigen met dezelfde tokenregels als klanten, rol wijzigen via `set_user_role` met bescherming van de laatste beheerder, login deactiveren/activeren met reden, resetlink), §35.8 volledig (`/admin/instellingen`: bedrijfsgegevens, facturen, herinneringen, werkwijze, afhalen, voorwaarden/verboden goederen, nummering, bankrekeningen, US-adressen, tarieven; beheerders wijzigen, staff lezen; setup-checklist op het dashboard), §35.9 `set_invoice_counter` (huidig jaar, geweigerd zodra er een factuur is), §35.5 `set_next_customer_number` |
+
+## Bewijs P5 reviewronde (2026-10-07)
+
+23 bevindingen van de P5-review nagelopen. De bewijs-tests van de reviewer
+(`review_p5_security.test.ts`, `review_p5_spec.test.ts`) zijn omgezet naar blijvende tests in
+`customers_contract.test.ts` en `team_settings_contract.test.ts` (met de omgekeerde verwachting)
+en daarna verwijderd. Migratie: dezelfde, nog niet toegepaste
+`20261007150000_p5_customers.sql` (geen nieuw bestand; conventies groen):
+
+- `keep_order_after_cancellation_request(_order_id, _customer_message default null)`: zet bij
+  het leegmaken van het verzoek een klantzichtbaar bericht op de geschiedenis van de order
+  (zelfde status, zoals een nieuw "Actie vereist"-bericht; standaardtekst als staff niets
+  invult, max. 2000 tekens). De dialoog "Order behouden" heeft daarvoor een tekstveld,
+  vooraf ingevuld.
+- `redeem_invitation`: een login die de uitnodiging zelf aanmaakte of bevestigde
+  (`app_metadata.invitation_id` = deze uitnodiging, paden a en b) krijgt de profielnaam uit
+  het klantdossier (klant) of geen naam (medewerker vult hem zelf in), nooit wat een vreemde
+  bij een onbevestigde registratie intypte. Pad b overschrijft ook `user_metadata`
+  (`full_name` uit de uitnodiging, telefoon/bedrijf/soort/voorwaarden van de vreemde weg).
+- `log_team_login_change`: trekt bij deactiveren alle niet-geaccepteerde uitnodigingen van die
+  persoon in (ook klantuitnodigingen: die persoon zag de links), met reden in het auditlog
+  ("Ingetrokken: login van … gedeactiveerd"), een interne notitie op elke betrokken
+  klantpagina en telt alleen nog niet verlopen uitnodigingen als "open".
+- `get_invitation` (zelfde signatuur): een uitnodiging waarvan de uitnodiger de rechten niet
+  meer heeft (gedeactiveerd, rol weg buiten de app) komt terug als ingetrokken, dus `/invite`
+  zegt dat en pad b verandert niets meer aan een bestaande login voordat
+  `redeem_invitation` zou weigeren.
+- `invitations_guard`: de limieten 1×/minuut en 5×/Surinaamse dag gelden per e-mailadres
+  (alle rijen, ook ingetrokken), ook voor een nieuwe uitnodiging na "Intrekken"; een tweede
+  open uitnodiging blijft de unieke index (melding "al uitgenodigd").
+
+Server en UI:
+
+- Klant "Deactiveren"/"Activeren": `setCustomerDisabledInDb` kijkt vooraf in `user_roles`
+  (niet `has_role`, dat gebande logins verbergt) of de gekoppelde login bij het team hoort;
+  `setCustomerDisabledFn` bant of ontbant dan nooit (ook niet de eigen login), alleen het
+  klantdossier verandert, met de melding "… (de)activeert u op de pagina Team"
+  (`disableLoginPlan`, unit-test).
+- `recoveryTarget`: een teamlogin (ook gedeactiveerd; via `team_members()`, vóór de migratie
+  `has_role`) krijgt geen resetlink vanaf een klantpagina, ook niet door een beheerder
+  (die maakt hem op `/admin/team`, dat gedeactiveerde leden weigert).
+- Eenmalige links (6 dialogen: uitnodigen, opnieuw versturen voor klant en medewerker,
+  medewerker uitnodigen, resetlink klant en team): buiten klikken, Escape, de X of "Sluiten"
+  vragen eerst "De link is nog niet gekopieerd of gedeeld – Terug naar de link / Toch
+  sluiten" zolang de link niet gekopieerd (knop of Ctrl+C) of via WhatsApp gedeeld is
+  (`link-guard.ts`, `one-time-link.tsx`). Na sluiten gaat de focus naar de wachttijd-tekst
+  van het uitnodigingspaneel; `restoreFocus` slaat een uitgeschakelde knop over.
+- Deel-tekst (WhatsApp) noemt het volledige e-mailadres ("U logt in met …"); `/invite`
+  zegt dat het volledige adres in het bericht staat en na activeren getoond wordt, de
+  succesmelding noemt het adres.
+- "Klant uitnodigen": een conflict staat boven de knoppen terwijl het formulier gevuld blijft
+  (verdwijnt bij wijzigen van e-mail of code), zoals bij "Medewerker uitnodigen".
+- "Code wijzigen": live controle zoals bij klant toevoegen ("GR00042 is al toegewezen aan
+  Maria Pinas", ongeldige notatie, "Dit is al de code van deze klant"); de knop is
+  uitgeschakeld met uitleg als de code vastligt.
+- Instellingen: elk formulier meldt niet-opgeslagen wijzigingen (badge "Niet opgeslagen",
+  Opslaan-knop gevuld), een balk onderaan noemt de secties met links, en weggaan via de app
+  (TanStack `useBlocker`) of de browser (beforeunload) vraagt eerst ("Blijven en opslaan" /
+  "Wijzigingen weggooien"). Bankrekening: uitleg welke velden nodig zijn, "Er was niets
+  gewijzigd" zonder verzoek, en bevestiging voordat een complete rekening onvolledig wordt
+  (`bankAccountChange`, unit-test). Tarieven-intro gecorrigeerd.
+- Dashboard: "Open taken" bovenaan; medewerkers zien de setup-lijst als één regel ("Een
+  beheerder moet nog N instellingen invullen"); kan een bron niet laden, dan een foutmelding
+  met "Opnieuw proberen" en de waarschuwing dat de lijst onvolledig kan zijn.
+- Teksten: geen bestandsnamen of docs-verwijzingen meer voor medewerkers (servicesleutel:
+  "vraag de beheerder; zie Systeemstatus"), "Medewerkers", "de registratiepagina",
+  "(uzelf)", "Link laatst gemaakt" (alleen bij open/verlopen uitnodigingen, "vandaag 2 van 5
+  keer" vanaf de tweede keer).
+- Klantenlijst: e-mailadressen breken na de "@" en alleen in nood midden in een woord;
+  bredere contactkolom. `/admin/orders/nieuw?customer=` van een gedeactiveerde of onbekende
+  klant zegt waarom er geen klant gekozen is.
+- Teampagina: "Deactiveren" toont vooraf welke uitnodigingen vervallen (klanten met link naar
+  hun pagina, "(al verlopen)", aantal medewerker-uitnodigingen).
+
+Tests en controles:
+
+- `bun run test`: 58 bestanden, 743 tests groen (1 skipped, de bestaande). Nieuw/aangepast:
+  PGlite `customers_contract.test.ts` (team-login bij Deactiveren: eigen beheerdersdossier,
+  staff via pad c, gebande staff; uitnodiger gedeactiveerd → "revoked", geen `updateUserById`;
+  limiet per adres met Intrekken + Uitnodigen; profielnaam pad b voor klant en medewerker;
+  klantbericht bij "Order behouden" + te lang; resetlink voor teamlogin ook na ban; het
+  SPEC §5-voorbeeld John Doe GR00017), `team_settings_contract.test.ts` (notities, auditreden,
+  verlopen niet geteld, `pendingInvitationsBy`), `m1_identity.test.ts` (nieuwe uitnodiging
+  binnen een minuut na intrekken geweigerd), unit-tests `customer-actions`
+  (`disableLoginPlan`), `order-actions` (bericht), `invitations` (e-mail in deeltekst,
+  `sendsToday`), `settings` (`bankAccountChange`), `focus-return`, `server/invitations`
+  (pad b `user_metadata`).
+- `bunx tsc --noEmit` schoon; eslint en prettier schoon op alle gewijzigde bestanden (lijst
+  `p5r-changed.txt` in de scratchpad); `bun run build` en `VERCEL=1 bun run build` slagen.
+- Browsercontrole (Playwright tegen `vite dev`, Supabase gestubd zoals in deel A/B, script
+  `review-5/fixes.mjs`, stub uitgebreid met het klantbericht, de uitnodiger-controle, de
+  notities, `user_metadata` en de minuutlimiet per adres) op 320, 390, 1280 en 1440 px, als
+  beheerder en medewerker: buiten klikken/Escape houdt de linkdialoog open met de vraag, na
+  kopiëren sluit hij en staat de focus op de wachttijd-tekst; conflict met gevuld formulier;
+  deactiveren van het dossier van Kenneth (staff) → geen `auth/v1/admin`-aanroep, melding
+  "… pagina Team"; resetlink daarvoor geweigerd; "Order behouden" met bericht → historieregel;
+  instellingen: badge + balk, navigeren naar Dashboard → blokkeerdialoog, "Blijven" houdt de
+  wijziging, "Weggooien" navigeert; lege EUR-opslag → "Er was niets gewijzigd", geen verzoek;
+  dashboard-volgorde en foutstatus (500 op bankrekeningen); teamdialoog toont "Ellen Expired
+  (GR00033) (al verlopen)" en na deactiveren de notitie; `/invite` succesmelding "U logt
+  voortaan in met hugo@example.com". axe 0 overtredingen (ook met de vraag, de
+  behouden-dialoog en de teamdialoog open), geen horizontale scroll, geen consolefouten
+  (behalve de bewust veroorzaakte 500's).
+
+## Niet geverifieerd / open punten na P5 reviewronde
+
+- Live niet geverifieerd: dat GoTrue's admin-update `user_metadata` samenvoegt en een sleutel
+  met `null` verwijdert (zo gedocumenteerd en in de stub nagebootst).
+- Twee beheerders die elkaar op precies hetzelfde moment deactiveren, kunnen samen alle
+  beheerders buitensluiten (de ban gebeurt in Auth vóór de databasecontrole); herstel via het
+  Supabase-dashboard. Niet opgelost (zeldzaam, vereist twee beheerders die tegelijk handelen).
+- De limiet per adres telt `send_count` van rijen die vandaag zijn verstuurd; de knop
+  "Opnieuw versturen" rekent nog per rij en kan dus aan staan terwijl de database weigert (de
+  melding legt het dan uit).
+- Het US-adres (dialoog) meldt geen niet-opgeslagen wijzigingen: het is een modale dialoog.
+
+## Bewijs P5 deel B (2026-10-07)
+
+Teampagina, instellingen en het volledige dashboard. Migratie: dezelfde, nog niet toegepaste
+`supabase/migrations/20261007150000_p5_customers.sql` kreeg een vierde deel (geen nieuw bestand;
+de eigenaar past het geheel toe, de GitHub Action ververst `types.ts`):
+
+- 4. Team:
+  - `public.has_role()` en `public.is_staff()` (zelfde signatuur): een login met
+    `auth.users.banned_until` in de toekomst heeft geen rol. Dus deactiveren werkt direct, ook
+    voor een toegangstoken dat nog geldig is, en `redeem_invitation` weigert uitnodigingen van
+    een gedeactiveerde beheerder ("niet meer geldig").
+  - `public.set_user_role` (zelfde signatuur, zelfde meldingen): weigert ook dat de enige
+    beheerder die nog kan inloggen zichzelf de beheerdersrol afneemt ("De laatste actieve
+    beheerder kan niet worden verwijderd …", 55000).
+  - `public.team_members()`: staff en beheerders (guard `is_staff`, 42501) zien iedereen met
+    een rol, met naam, e-mailadres, rollen, gedeactiveerd ja/nee, laatste login en sinds wanneer.
+  - `public.log_team_login_change(_user_id, _blocked, _reason)`: alleen beheerders, reden
+    verplicht, alleen teamleden, nooit uzelf deactiveren; schrijft een auditregel
+    (`table_name = 'team_login'`, reden) en trekt bij deactiveren de open uitnodigingen van die
+    persoon in. Execute alleen voor `authenticated`.
+  - Conventies (`conventions.test.ts`) groen. Tot de migratie live staat: de teampagina valt
+    terug op `user_roles` + `profiles` (beheerders zien het team zonder e-mailadressen en
+    deactiveringsstatus, medewerkers alleen zichzelf, met een melding), deactiveren bant de
+    login wel maar schrijft geen auditregel (toast zegt dat), en een nog geldig token houdt tot
+    een uur zijn rechten.
+- Server (alle fouten als data):
+  - `lib/server-fns/team.functions.ts` (beheerder):
+    - `inviteStaffFn`: de staff-uitnodiging met de eigen sessie van de beheerder. Alleen de
+      SHA-256 gaat naar de database, het ruwe token alleen in de link op het scherm.
+      Conflicten: al teamlid, al uitgenodigd, open klantuitnodiging, of het adres van een
+      klantdossier. P8-haak `onInvitationSent`.
+    - `setTeamLoginBlockedFn`: eerst controleren tegen `team_members()` (teamlid, niet uzelf,
+      niet twee keer), dan ban/unban via `auth.admin.updateUserById`, dan
+      `log_team_login_change`.
+    - `createTeamRecoveryLinkFn`: alleen voor teamleden die niet gedeactiveerd zijn.
+  - `lib/server-fns/system.functions.ts` (`systemStatusFn`, beheerder): `configStatus()` uit
+    `src/server/system-status.ts` geeft alleen booleans, plus de laatste `job_runs`-regel van
+    `payment_reminders` via de eigen client.
+  - Rollen wijzigen gaat zonder server function: `set_user_role` met de eigen client
+    (`changeTeamRole`: eerst de nieuwe rol, dan de oude weg; weigert de database dat, dan
+    wordt de toegevoegde rol teruggedraaid).
+  - Gedeelde helpers:
+    - `lib/server-fns/helpers.ts` (alleen wat ook in de browser mag).
+    - `src/server/fn-helpers.ts` (`serviceFailure`, `screenBase`, dynamisch geladen).
+      `customers.functions.ts` gebruikt ze nu ook.
+- Instellingen: alle schrijfacties met de eigen client van de beheerder (RLS: alleen
+  beheerders, ook te zien bij medewerkers die het via de API proberen: `42501` "Alleen een
+  beheerder …"). Alleen gewijzigde kolommen, `audit_row`-triggers loggen ze.
+  `lib/admin/settings.ts` bevat:
+  - de secties en hun veldregels;
+  - `paymentTermsWarnings`;
+  - `formatInvoiceNumber`, zelfde formaat als `issue_invoice`;
+  - `billableWeight`: altijd naar boven afronden, in honderdsten;
+  - `incompleteBankCurrencies`;
+  - controle op placeholders in de US-adressen.
+- Tests: `bun run test` 58 bestanden, 730 groen (1 skipped, de bestaande). Nieuw:
+  - PGlite `team_settings_contract.test.ts` (20). De echte code van de app (`lib/admin/team.ts`,
+    `lib/admin/settings.ts`) tegen de migraties, met een supabase-js-nabootsing die rijen
+    teruggeeft zoals PostgREST (datums als tekst, numeric als getal). Bewezen:
+    - `team_members()` voor staff en beheerder, maar niet voor klant of anon;
+    - een gebande login heeft direct geen rechten en is weer staff na unban;
+    - de uitnodiging van een gedeactiveerde beheerder werkt niet meer;
+    - laatste actieve beheerder;
+    - `log_team_login_change` (alle weigeringen, audit, ingetrokken uitnodigingen);
+    - `changeTeamRole` heen en terug, en bij weigering niets half gedaan;
+    - `inviteStaff` (alleen de hash, alle conflicten, staff mag niet);
+    - de seed van company_settings valideert ongewijzigd;
+    - opslaan alleen door beheerders, alleen gewijzigde kolommen in `audit_log`;
+    - registreren uit → geen klantdossier maar een taak;
+    - bankrekening, US-adres (klant ziet alleen actieve), zeevracht aan met tarief (klant ziet
+      hem), factuurteller (staff ziet hem niet), volgende klantcode (alleen omhoog, peek volgt).
+  - `lib/admin/{settings,team,system-status}.test.ts`, `server/system-status.test.ts`.
+  - Uitgebreid: `dashboard`, `keys`, `nav`.
+
+  Verder:
+  - `bunx tsc --noEmit` schoon.
+  - `bun run build` en `VERCEL=1 bun run build` slagen.
+  - eslint en prettier schoon op alle gewijzigde bestanden (lijst in de scratchpad
+    `p5b-changed.txt`).
+- Browsercontrole (Playwright tegen `vite dev`, Supabase volledig gestubd zoals in deel A,
+  servicesleutel `sb_secret_stub` alleen voor de lokale mock; scripts in de scratchpad `p5b/`):
+  - `/admin`, `/admin/team` en `/admin/instellingen` (ook met `#bankrekeningen-title`) als
+    beheerder en als medewerker, op 320, 390, 768, 1024, 1280 en 1440 px: geen horizontale
+    scroll, axe 0 overtredingen, geen consolefouten. Gevonden en opgelost: links in "Recente
+    activiteit" alleen door kleur te herkennen (axe `link-in-text-block`, nu onderstreept),
+    te lage links in de checklist en KPI's (nu min. 32 px), bankrekeningen als smalle
+    label/waarde-rijen (nu onder elkaar), en een factuurteller die "volgende factuur …" toonde
+    naast "de nummering ligt vast".
+  - Doorlopen als beheerder:
+    - Facturen: termijn 14 en opslag 12,5 → twee live waarschuwingen, voorbeeld "GR-2026-0001",
+      `PATCH company_settings` met alleen die drie kolommen.
+    - Lege bedrijfsnaam + fout e-mailadres → twee fouten, focus op de naam, geen verzoek.
+    - Ongewijzigd opslaan → "Er was niets gewijzigd".
+    - BTW-uitsplitsing zonder tarief → fout op het tarief.
+    - Registreren uit → `PATCH {public_signup_enabled:false}`.
+    - EUR-rekening → `PATCH company_bank_accounts`, badge "Compleet".
+    - US-adres: leeg → 5 fouten met focus; `{NAAM}` → "Onbekende code"; zonder `{GR_CODE}`
+      een waarschuwing; live voorbeeld "Énéas … GR00017"; `POST warehouse_addresses`;
+      uitschakelen → `PATCH {is_active:false}`.
+    - Luchtvracht 4,50 / min 1 / 0,5 → "2,30 lbs wordt 2,50 lbs × USD 4,50 = USD 11,25";
+      ongeldig tarief → fout met focus.
+    - Factuurteller 41 → `set_invoice_counter` → "INV-2026-0042", en vergrendeld als het jaar
+      al een factuur heeft.
+    - Volgende klantcode "gr 50" → de databasemelding inline; "GR00500" → opgeslagen.
+    - Medewerker uitnodigen: leeg → fout met focus; conflicten teamlid / klantadres (met
+      "Klant openen") / al uitgenodigd; nieuw als beheerder → link één keer, token ↔ hash
+      klopt, geen hash op het scherm, WhatsApp met "Beste Nina", "geen e-mail verstuurd".
+    - Rol Kenneth → beheerder → medewerker (2 resp. 3 RPC's); eigen rij zonder "Deactiveren".
+    - Deactiveren zonder reden → fout; met reden → ban `876000h`, `log_team_login_change`,
+      "1 open uitnodiging ingetrokken", badge "Gedeactiveerd"; activeren → `none`.
+    - Resetlink voor Kenneth.
+    - Staff-uitnodiging opnieuw versturen (nieuwe hash, wachttijd) en intrekken.
+    - Dashboard: "Naar instellingen" scrolt naar en focust de bankrekeningen; "Klant openen"
+      vanuit een taak.
+  - Als medewerker: geen invoervelden of knoppen op instellingen en team, geen Systeemstatus.
+  - Zonder `team_members()`: de terugvalmelding.
+  - De flows van deel A (uitnodigen, opnieuw versturen, deactiveren, resetlink, "Order
+    behouden", inwisselen a/c/staff) en de paginaronde van deel A draaiden opnieuw groen na
+    het verplaatsen van de servergedeelde helpers.
+
+## Niet geverifieerd / open punten na P5 deel B
+
+- Niets van P5-B is tegen het live Supabase-project gedraaid. Niet live bevestigd: dat
+  `auth.users.banned_until` na `ban_duration` door GoTrue zo wordt gezet dat `has_role`/
+  `is_staff` het direct zien (in PGlite nagebootst), en `team_members()` met de echte
+  `auth.users.email` (varchar) en `last_sign_in_at`.
+- Migratie `20261007150000_p5_customers.sql` staat nog niet live (zie deel A). Tot dan: de
+  teampagina toont de terugvallijst, deactiveren schrijft geen auditregel en een nog geldig
+  token van een gedeactiveerd teamlid werkt tot het verloopt (max. 1 uur).
+- Een teamlid verwijderen (alle rollen weg) zit niet in de app: deactiveren houdt de rol
+  bewaard, zodat de geschiedenis blijft kloppen. Wie het echt wil, kan het met SQL doen.
+- Betalingsherinneringen (P8): de instellingen bestaan en Systeemstatus toont de laatste
+  ronde uit `job_runs`, maar er draait nog geen job.
+- Bij het wijzigen van de voorwaardentekst wordt niet afgedwongen dat de versie omhooggaat;
+  de hint vraagt erom.
+- De factuurteller toont alleen het huidige jaar (Suriname-tijd).
+
+## Bewijs P5 deel A (2026-10-07)
+
+Klantbeheer, uitnodigingen en de twee carry-overs uit P4. Nieuwe migratie (eigenaar moet hem
+toepassen; de GitHub Action ververst `types.ts`):
+
+- `supabase/migrations/20261007150000_p5_customers.sql`:
+  1. `public.keep_order_after_cancellation_request(_order_id)`: alleen staff (42501), vergrendelt
+     de order, weigert een geannuleerde order en een order zonder verzoek of open taak (55000),
+     maakt `cancellation_requested_at` leeg (met `app.audit_reason` "Annuleringsverzoek
+     afgehandeld: order behouden") en sluit de open `order_cancellation_request`-taak, in één
+     transactie. Execute alleen voor `authenticated`. "Order behouden" op `/admin/orders/$id`
+     gebruikt hem (`keepOrderAfterCancellation` in `lib/admin/order-actions.ts`); zolang de
+     migratie niet live staat (PostgREST `PGRST202`/`42883`) sluit de knop alleen de taak, zoals
+     in P4.
+  2. `private.handle_new_user()`: een bevestigde login zonder klantdossier geeft altijd een
+     staff-taak: open staff-uitnodiging voor het adres → `signup_email_conflict` ("… open
+     uitnodiging als medewerker …"); bekend klantadres of open klantuitnodiging →
+     `signup_email_conflict` (zoals voorheen, nu ook als registreren uit staat); registreren uit
+     → `signup_customer_failed` ("… terwijl registreren uitstaat …").
+  3. `public.redeem_invitation` (zelfde signatuur) sluit die taken voor het adres (en de
+     conflicttaak van de klant) bij het inwisselen.
+  Conventies (`conventions.test.ts`) groen; PGlite-tests in `customers_contract.test.ts` en
+  drie aangepaste verwachtingen in `m1_identity.test.ts` (staff-uitnodiging en registreren-uit
+  geven nu een taak; pad b sluit twee taken).
+- Server (alle fouten als data, `requireStaff`/`requireAdmin`):
+  `lib/server-fns/customers.functions.ts` (`inviteCustomerFn`, `resendInvitationFn`,
+  `setCustomerDisabledFn` (beheerder; status met de eigen client, daarna ban/unban via
+  `auth.admin.updateUserById`, `ban_duration` `876000h`/`none`), `createRecoveryLinkFn`),
+  `lib/server-fns/invitations.functions.ts` (`getInvitationFn`, `redeemInvitationFn`,
+  `redeemInvitationAsUserFn`). Service role alleen in `src/server/{admin-client,auth-admin,
+  invitations}.ts`: `auth.admin.*` en het opzoeken/inwisselen van een uitnodiging nadat het
+  token (43 tekens base64url) is gecontroleerd en met SHA-256 gehasht. Uitnodigen en opnieuw
+  versturen schrijven met de eigen sessie van staff (RLS); de hash verschijnt nooit in een
+  antwoord, het ruwe token alleen in de link. Pad a/b: login aanmaken of bevestigen +
+  wachtwoord, `redeem_invitation`, voorwaarden vastleggen; mislukt het koppelen, dan wordt een
+  net aangemaakte login weer verwijderd. Pad c: eerst inloggen, de user-id komt uit het
+  geverifieerde token. Links: `getAppUrl()`; alleen voor links op het scherm valt
+  `screenLinkBase()` zonder `APP_URL` terug op de origin van de browser (de dialoog zegt dat).
+  E-mail: haken `onInvitationSent`/`onInvitationRedeemed` in
+  `server/invitation-notifications.ts` (P8), nu `emailed: false`; de dialogen zeggen dat er
+  geen e-mail is verstuurd.
+- Tests: `bun run test` 53 bestanden, 682 tests groen (1 skipped, al eerder);
+  nieuw `customers_contract.test.ts` (21, PGlite met een supabase-js-nabootsing: echte RLS,
+  guards, triggers en audit), `server/invitations.test.ts` (21, gemockte service-client voor
+  paden a/b/c, staff, verlopen/ingetrokken/gebruikt, rollback), `server/auth-admin.test.ts`,
+  `server/admin-client.test.ts`, `lib/admin/{invitations,customers,customer-actions}.test.ts`,
+  `lib/auth/invite-schemas.test.ts`, uitbreidingen in `order-actions`, `keys` en `nav`.
+  `bunx tsc --noEmit` schoon; `bun run build` en `VERCEL=1 bun run build` slagen; eslint en
+  prettier schoon op alle gewijzigde bestanden.
+- Browsercontrole (Playwright tegen `vite dev`, Supabase volledig gestubd: browserverkeer via
+  routes, server functions via een lokale mock op `SUPABASE_URL=http://127.0.0.1:54329` met
+  `SUPABASE_SERVICE_ROLE_KEY=sb_secret_stub`, inclusief `auth/v1/admin/*`; niets naar het
+  live project): `/admin/klanten` (zoeken "gr 17", telefoon, filters, leeg), klantpagina's
+  (Maria met login en facturen, Johan zakelijk zonder login, Hugo uitgenodigd, Ellen verlopen,
+  Carol gedeactiveerd, onbekend en ongeldig id) en `/invite` (open, pad c, verlopen, gebruikt,
+  ongeldig, misvormd, staff) op 320/390/768/1024/1280/1440 px: geen horizontale scroll, axe 0
+  overtredingen, geen consolefouten. Doorlopen: klant toevoegen (lege verzending toont alle
+  fouten, "GR00042 is al toegewezen aan Maria Pinas", opslaan → klantpagina), uitnodigen
+  (link één keer, token ↔ hash klopt, kopiëren, WhatsApp-tekst, conflicten login/andere
+  code/gedeactiveerd/al uitgenodigd), opnieuw versturen (nieuwe hash, knop daarna geblokkeerd
+  "kan over 59 seconden") en intrekken, gegevens wijzigen als staff (alleen gewijzigde velden,
+  e-mail alleen-lezen), code wijzigen als beheerder (reden verplicht; geschiedenis "Klantcode
+  gewijzigd: GR00031 → GR00018 · reden: …"), Maria's code vast, deactiveren/activeren (ban
+  `876000h` → `none`, notitie, banner met reden), resetlink, "Order behouden" (RPC, verzoek
+  leeg, taak gesloten), inwisselen pad a (Ellen, na verlenging) → `/portal`, pad c (Carl: fout
+  wachtwoord → "Onjuist e-mailadres of wachtwoord.", daarna gekoppeld) → `/portal`, staff (Kim,
+  naam in het profiel) → `/admin`, dezelfde link daarna "Deze uitnodiging is al gebruikt".
+  Gevonden en opgelost: `<dl>` met een losse regel op `/invite` (axe), een gedeactiveerde klant
+  met login gaf het conflict "heeft al een login" (nu "gedeactiveerd", test toegevoegd), de
+  wachttijd na opnieuw versturen begon bij het laden van de pagina (toonde 62 s), "Volledige
+  naam" toonde bedrijf + naam.
+
+## Niet geverifieerd / open punten na P5 deel A
+
+- Niets van P5-A is tegen het live Supabase-project gedraaid. Niet live bevestigd:
+  `auth.admin.createUser`/`updateUserById` (`ban_duration`)/`generateLink({ type: "recovery" })`
+  met de nieuwe `sb_secret_`-sleutel, de foutcode van GoTrue voor een bestaand adres
+  (`email_exists`) en voor een gebande login bij inloggen (`user_banned`), en de directe
+  `insert` in `customers` zonder `customer_number` door staff (trigger nummert; in PGlite getest).
+- Migratie `20261007150000_p5_customers.sql` staat nog niet live; tot dan sluit "Order behouden"
+  alleen de taak (het portaal blijft het verzoek tonen) en geeft `handle_new_user` bij
+  registreren-uit en open staff-uitnodigingen nog geen taak.
+- Resetlinks: geldigheid volgt de Auth-instelling (standaard 1 uur); `/auth/confirm` met
+  `token_hash` + `type=recovery` bestaat sinds P2b, live niet bevestigd voor links uit
+  `generateLink`.
+- E-mail (uitnodiging, welkom) is P8: de haken bestaan, er wordt niets verstuurd.
+- Staff zien geen `audit_log` (alleen beheerders); hun geschiedenis is afgeleid uit de rijen en
+  mist dus wijzigingen van contactgegevens en eerdere codes.
+- De klantenlijst laadt alle klanten, orders per klant en openstaande facturen in de browser;
+  prima voor het huidige volume (honderden klanten).
+- ~~Deel B (P5): teampagina (staff uitnodigen/deactiveren), instellingen en dashboard-uitbreiding.~~ Gedaan in P5 deel B.
 
 ## Bewijs P4 reviewronde (2026-10-07)
 
@@ -491,17 +852,16 @@ migratie vragen (zie "Carry-over fixes"). Belangrijkste wijzigingen:
   `shipments_contract.test.ts`). Eigenaar: migratie toepassen en `types.ts` verversen (de
   types veranderen niet: alleen functies en triggers).
 
-- (P5 of later, nieuwe migratie) Annuleringsverzoek "behouden": een guarded staff-RPC (bv.
-  `decide_cancellation_request(_order_id, _keep boolean, _customer_message)`) die
-  `cancellation_requested_at` leegmaakt bij "behouden" (met een klantzichtbare melding) en de
-  taak sluit, zodat het portaal de aanvraag niet blijft tonen en de klant later opnieuw kan
-  aanvragen. Nu sluit `/admin/orders/$id` alleen de taak (`staff_tasks.resolved_at`); de UI kan
-  een nieuwe RPC pas gebruiken nadat de migratie live staat en `types.ts` is ververst.
+- ~~Annuleringsverzoek "behouden"~~: opgelost in `20261007150000_p5_customers.sql`
+  (`keep_order_after_cancellation_request(_order_id, _customer_message)`: verzoek leeg, taak
+  gesloten en een klantzichtbaar bericht op de geschiedenis van de order, in één transactie;
+  tests in `customers_contract.test.ts`). Eigenaar: migratie toepassen; de UI valt tot dan
+  terug op alleen de taak sluiten (dan zonder bericht).
 
-- (P5, nieuwe migratie) `handle_new_user` maakt geen staff-taak wanneer
-  `public_signup_enabled` uit staat op het moment van bevestigen of wanneer er een open
-  staff-uitnodiging is; overweeg daar ook een taak, zodat staff elke login zonder
-  klantdossier ziet. De portal toont nu een neutrale tekst voor alle gevallen.
+- ~~`handle_new_user` maakt geen staff-taak bij registreren-uit of een open
+  staff-uitnodiging~~: opgelost in dezelfde migratie (taken `signup_customer_failed` en
+  `signup_email_conflict`, gesloten door `redeem_invitation`; tests in
+  `customers_contract.test.ts` en `m1_identity.test.ts`).
 
 ## Later (buiten scope v1, §35.16)
 

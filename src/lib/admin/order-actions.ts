@@ -339,3 +339,56 @@ export async function createOrderForCustomer(
   if (error) throw error;
   return { id: data.id, reference: data.reference, customerId: input.customerId, parentOrderId };
 }
+
+// ---------------------------------------------------------------------------
+// "Order behouden" after a cancellation request
+// ---------------------------------------------------------------------------
+
+/**
+ * Not yet in the generated types: keep_order_after_cancellation_request
+ * arrives with migration 20261007150000_p5_customers.sql, and types.ts is
+ * regenerated from the live database after it is applied. This one narrow
+ * signature stands in until then (drop it once types.ts lists the RPC).
+ */
+type KeepOrderRpc = (
+  fn: "keep_order_after_cancellation_request",
+  args: { _order_id: string; _customer_message?: string },
+) => PromiseLike<{ error: { code?: string; message: string } | null }>;
+
+/** PostgREST's "function not found" (the migration is not applied yet), or Postgres' own. */
+const MISSING_FUNCTION = new Set(["PGRST202", "42883"]);
+
+/** At most what shipment_status_history.customer_message holds. */
+export const KEEP_ORDER_MESSAGE_MAX = 2000;
+
+/**
+ * "Order behouden" (SPEC §35.7; carry-over of P4): the guarded staff RPC
+ * clears orders.cancellation_requested_at, resolves the open cancellation
+ * task and puts a message for the customer on the order's history (the
+ * database's default text when `customerMessage` is empty), in one
+ * transaction. The portal then stops showing the request, shows why, and the
+ * customer can ask again later. Before the migration is applied the RPC does
+ * not exist yet: then only the task is resolved, as in P4 (`cleared: false`).
+ */
+export async function keepOrderAfterCancellation(
+  client: Client,
+  input: { orderId: string; taskId: string | null; customerMessage?: string },
+): Promise<{ cleared: boolean }> {
+  const rpc = client.rpc as unknown as KeepOrderRpc;
+  const message = input.customerMessage?.trim();
+  const { error } = await rpc.call(client, "keep_order_after_cancellation_request", {
+    _order_id: input.orderId,
+    ...(message ? { _customer_message: message } : {}),
+  });
+  if (!error) return { cleared: true };
+  if (!MISSING_FUNCTION.has(error.code ?? "") || !input.taskId) throw error;
+  const fallback = await client
+    .from("staff_tasks")
+    .update({ resolved_at: new Date().toISOString() })
+    .eq("id", input.taskId)
+    .is("resolved_at", null)
+    .select("id")
+    .single();
+  if (fallback.error) throw fallback.error;
+  return { cleared: false };
+}

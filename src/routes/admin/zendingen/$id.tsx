@@ -635,9 +635,13 @@ function CustomerText({ order }: { order: AdminOrderView }) {
   if (!order.customer) return <Muted>–</Muted>;
   return (
     <>
-      <span className="block break-words font-semibold text-foreground">
+      <Link
+        to="/admin/klanten/$id"
+        params={{ id: order.customer.id }}
+        className="block break-words font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline"
+      >
         {customerDisplayName(order.customer)}
-      </span>
+      </Link>
       <span className="font-heading text-xs font-bold text-primary tabular-nums">
         {order.customer.customer_code}
       </span>

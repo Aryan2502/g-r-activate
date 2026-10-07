@@ -751,12 +751,15 @@ function CustomerCell({ order }: { order: AdminOrderView }) {
   if (!order.customer) return <Muted>–</Muted>;
   return (
     <>
-      {/* /admin/klanten/$id arrives in P5; until then the name is plain text. */}
-      <span className="block break-words font-semibold text-foreground">
+      <Link
+        to="/admin/klanten/$id"
+        params={{ id: order.customer.id }}
+        className="block break-words font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline"
+      >
         {order.customer.account_type === "business" && order.customer.company_name
           ? order.customer.company_name
           : order.customer.full_name}
-      </span>
+      </Link>
       {order.customer.account_type === "business" && order.customer.company_name ? (
         <span className="block break-words text-xs text-muted-foreground">
           {order.customer.full_name}

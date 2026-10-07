@@ -43,6 +43,14 @@ describe("focus return for dialogs without a trigger (WCAG 2.4.3)", () => {
     expect(document.activeElement?.getAttribute("tabindex")).toBe("-1");
   });
 
+  it("a button the action disabled cannot take focus: the page heading instead", () => {
+    document.body.innerHTML = `<main><h1>Hugo Hoek</h1><button id="r" disabled>Opnieuw versturen</button></main>`;
+    const event = closeEvent();
+    restoreFocus(document.getElementById("r"), event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement?.tagName).toBe("H1");
+  });
+
   it("leaves a handler that already chose (e.g. back to the scan field) alone", () => {
     document.body.innerHTML = `<button id="b">x</button><input id="scan" />`;
     const event = closeEvent();

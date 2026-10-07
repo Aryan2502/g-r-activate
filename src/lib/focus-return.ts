@@ -31,7 +31,9 @@ export function focusReturnTarget(): HTMLElement | null {
  */
 export function restoreFocus(target: HTMLElement | null, event: Event): void {
   if (event.defaultPrevented || typeof document === "undefined") return;
-  if (target?.isConnected) {
+  // A button the action just disabled (e.g. "Opnieuw versturen" for a
+  // minute) cannot take focus: then the heading, as for a removed one.
+  if (target?.isConnected && !target.matches(":disabled")) {
     event.preventDefault();
     target.focus();
     return;

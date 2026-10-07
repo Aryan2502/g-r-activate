@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { FieldError } from "@/components/admin/Callout";
+import { Callout, FieldError } from "@/components/admin/Callout";
 import { CustomerPicker } from "@/components/admin/CustomerPicker";
 import { ShellPageHeader } from "@/components/layout/AppShell";
 import { OrderFieldsInputs } from "@/components/portal/OrderFieldsInputs";
@@ -44,8 +44,10 @@ import { submitCreateOrder } from "@/lib/server-fns/admin-orders.functions";
  * order (created_by_role 'staff') in the initial status. With a measured
  * weight it is received straight away (a package that arrived unannounced).
  *
- * ?customer=<id> preselects the customer, ?tracking=… comes from the
- * receiving search, ?parent=<order id> adds an extra package to a purchase.
+ * ?customer=<id> preselects the customer (from "Order aanmaken voor deze
+ * klant" on the customer page, which the back link and "Annuleren" then
+ * return to), ?tracking=… comes from the receiving search, ?parent=<order id>
+ * adds an extra package to a purchase.
  */
 const searchSchema = z.object({
   customer: z.string().uuid().optional().catch(undefined),
@@ -83,6 +85,11 @@ function NewStaffOrderPage() {
   const root = rootId ? viaChild.data : parent.data;
   const sibling = Boolean(search.parent);
 
+  // "Order aanmaken voor deze klant" on a customer's page: back to that customer.
+  const fromCustomer =
+    !sibling && search.customer
+      ? (customers.data ?? []).find((c) => c.id === search.customer)
+      : undefined;
   const back = root ? (
     <Link
       to="/admin/orders/$id"
@@ -91,6 +98,15 @@ function NewStaffOrderPage() {
     >
       <ArrowLeft className="size-4" aria-hidden />
       {t("admin.newOrder.backToOrder", { reference: root.reference })}
+    </Link>
+  ) : fromCustomer ? (
+    <Link
+      to="/admin/klanten/$id"
+      params={{ id: fromCustomer.id }}
+      className="mb-4 inline-flex items-center gap-1.5 rounded-sm text-sm font-semibold text-primary underline-offset-4 hover:underline"
+    >
+      <ArrowLeft className="size-4" aria-hidden />
+      {t("admin.newOrder.backToCustomer", { name: fromCustomer.full_name })}
     </Link>
   ) : (
     <Link
@@ -156,15 +172,39 @@ function NewStaffOrderPage() {
     );
   }
 
+  // A link for a customer who cannot get new orders (disabled, or unknown):
+  // say why the picker is empty instead of leaving it silently unselected.
+  const linked = !sibling && search.customer ? search.customer : null;
+  const unavailable =
+    linked && (!fromCustomer || fromCustomer.status === "disabled") ? (
+      <Callout
+        tone="warning"
+        icon={AlertTriangle}
+        title={
+          fromCustomer
+            ? t("admin.newOrder.customerDisabled", {
+                name: fromCustomer.full_name,
+                code: fromCustomer.customer_code,
+              })
+            : t("admin.newOrder.customerNotFound")
+        }
+        className="mb-4"
+      >
+        {t("admin.newOrder.customerUnavailableHint")}
+      </Callout>
+    ) : null;
+
   return (
     <div className="mx-auto max-w-3xl">
       {header}
+      {unavailable}
       <NewOrderForm
         userId={auth.userId}
         customers={customers.data ?? []}
         initialCustomer={root?.customer_id ?? search.customer ?? null}
         tracking={search.tracking ?? ""}
         root={root ?? null}
+        backToCustomer={fromCustomer?.id ?? null}
       />
     </div>
   );
@@ -176,12 +216,15 @@ function NewOrderForm({
   initialCustomer,
   tracking,
   root,
+  backToCustomer,
 }: {
   userId: string;
   customers: readonly PickerCustomer[];
   initialCustomer: string | null;
   tracking: string;
   root: AdminOrderDetail | null;
+  /** Opened from this customer's page: "Annuleren" goes back there. */
+  backToCustomer: string | null;
 }) {
   const t = useT();
   const id = useId();
@@ -231,7 +274,11 @@ function NewOrderForm({
           parentOrderId: root?.id ?? null,
           measuredWeightLbs: weight,
         });
-        await queryClient.invalidateQueries({ queryKey: adminKeys.orders(userId) });
+        // Orders, and the customer's page and list (order counts) hang under these.
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: adminKeys.orders(userId) }),
+          queryClient.invalidateQueries({ queryKey: adminKeys.customers(userId) }),
+        ]);
         if (created.receiveError) {
           toast.warning(
             t("admin.newOrder.receiveFailed", {
@@ -357,6 +404,10 @@ function NewOrderForm({
           <Button type="button" variant="outline" asChild>
             {root ? (
               <Link to="/admin/orders/$id" params={{ id: root.id }}>
+                {t("portal.newOrder.cancel")}
+              </Link>
+            ) : backToCustomer ? (
+              <Link to="/admin/klanten/$id" params={{ id: backToCustomer }}>
                 {t("portal.newOrder.cancel")}
               </Link>
             ) : (

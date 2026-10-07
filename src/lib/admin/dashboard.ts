@@ -3,7 +3,13 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { adminKeys } from "@/lib/admin/keys";
-import type { AdminOrderSearch } from "@/lib/admin/orders";
+import { allPages, type AdminOrderSearch } from "@/lib/admin/orders";
+import type { CurrencyCode } from "@/lib/format";
+import {
+  OPEN_INVOICE_STATUSES,
+  totalsByCurrency,
+  type CurrencyAmount,
+} from "@/lib/portal/invoices";
 import type { StatusStage } from "@/lib/portal/orders";
 
 type CustomerStatus = Database["public"]["Enums"]["customer_status"];
@@ -36,18 +42,34 @@ async function countCustomers(status: CustomerStatus): Promise<number> {
   return count ?? 0;
 }
 
-/** Customers per status (RLS: staff see all customers). */
+/** "Nieuw" on the dashboard: the last 30 days. */
+export const RECENT_DAYS = 30;
+
+/** The instant `days` days before `now`, for created_at >= filters. */
+export function daysAgo(days: number, now: Date = new Date()): string {
+  return new Date(now.getTime() - days * 86_400_000).toISOString();
+}
+
+/** Customers per status, plus those added in the last 30 days (RLS: staff see all customers). */
 export const customerCountsQueryOptions = (userId: string) =>
   queryOptions({
     queryKey: adminKeys.customerCounts(userId),
     staleTime: 30_000,
     queryFn: async () => {
-      const [active, invited, disabled] = await Promise.all([
+      const [active, invited, disabled, recent] = await Promise.all([
         countCustomers("active"),
         countCustomers("invited"),
         countCustomers("disabled"),
+        supabase
+          .from("customers")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", daysAgo(RECENT_DAYS))
+          .then(({ count, error }) => {
+            if (error) throw error;
+            return count ?? 0;
+          }),
       ]);
-      return { active, invited, disabled, total: active + invited + disabled };
+      return { active, invited, disabled, total: active + invited + disabled, recent };
     },
   });
 
@@ -213,3 +235,323 @@ export async function resolveStaffTask(taskId: string): Promise<void> {
 /** Cancellation requests are decided on the order page (annuleren of behouden), not ticked off. */
 export const resolvableFromDashboard = (task: Pick<StaffTask, "kind">) =>
   task.kind !== "order_cancellation_request";
+
+// ---------------------------------------------------------------------------
+// Orders and invoices at a glance (SPEC §12): from invoice_overview, per currency
+// ---------------------------------------------------------------------------
+
+/** Stages after which an order is no longer "lopend". */
+const FINISHED_STAGES: readonly StatusStage[] = ["completed", "cancelled"];
+
+export interface OrderStats {
+  /** Registered in the last 30 days (by customers or staff). */
+  recent: number;
+  /** Not handed over and not cancelled. */
+  open: number;
+}
+
+export const orderStatsQueryOptions = (userId: string) =>
+  queryOptions({
+    queryKey: adminKeys.orderStats(userId),
+    staleTime: 30_000,
+    queryFn: async (): Promise<OrderStats> => {
+      const statuses = await supabase.from("shipment_statuses").select("code, stage");
+      if (statuses.error) throw statuses.error;
+      const finished = statuses.data
+        .filter((s) => FINISHED_STAGES.includes(s.stage))
+        .map((s) => s.code);
+      let open = supabase.from("orders").select("id", { count: "exact", head: true });
+      if (finished.length > 0) open = open.not("status", "in", `(${finished.join(",")})`);
+      const [recent, openCount] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", daysAgo(RECENT_DAYS)),
+        open,
+      ]);
+      if (recent.error) throw recent.error;
+      if (openCount.error) throw openCount.error;
+      return { recent: recent.count ?? 0, open: openCount.count ?? 0 };
+    },
+  });
+
+type OverviewRow = Database["public"]["Views"]["invoice_overview"]["Row"];
+export type OpenInvoiceRow = Pick<OverviewRow, "currency" | "balance_due" | "is_overdue">;
+
+export interface InvoiceStats {
+  /** Open or partially paid (overdue included). */
+  openCount: number;
+  overdueCount: number;
+  paidCount: number;
+  /** Paid in full in the last 30 days (paid_at). */
+  paidRecent: number;
+  draftCount: number;
+  /** Still to be paid, per currency (SPEC §35.10: never summed across currencies). */
+  outstanding: CurrencyAmount[];
+  overdueOutstanding: CurrencyAmount[];
+}
+
+export function summarizeInvoiceStats(
+  open: readonly OpenInvoiceRow[],
+  counts: { paid: number; paidRecent: number; drafts: number },
+): InvoiceStats {
+  const withBalance = open.filter((r) => (r.balance_due ?? 0) > 0);
+  const overdue = withBalance.filter((r) => r.is_overdue === true);
+  const amounts = (rows: readonly OpenInvoiceRow[]) =>
+    totalsByCurrency(rows.map((r) => ({ currency: r.currency, amount: r.balance_due })));
+  return {
+    openCount: open.length,
+    overdueCount: overdue.length,
+    paidCount: counts.paid,
+    paidRecent: counts.paidRecent,
+    draftCount: counts.drafts,
+    outstanding: amounts(withBalance),
+    overdueOutstanding: amounts(overdue),
+  };
+}
+
+const invoiceCount = () => supabase.from("invoices").select("id", { count: "exact", head: true });
+
+async function countOf(query: PromiseLike<{ count: number | null; error: unknown }>) {
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/** Invoice KPIs; overdue and balances are computed by invoice_overview, never stored. */
+export const invoiceStatsQueryOptions = (userId: string) =>
+  queryOptions({
+    queryKey: adminKeys.invoiceStats(userId),
+    staleTime: 30_000,
+    queryFn: async (): Promise<InvoiceStats> => {
+      const [open, paid, paidRecent, drafts] = await Promise.all([
+        allPages<OpenInvoiceRow & { id: string | null }>((from, to) =>
+          supabase
+            .from("invoice_overview")
+            .select("id, currency, balance_due, is_overdue")
+            .in("status", OPEN_INVOICE_STATUSES)
+            .order("id")
+            .range(from, to),
+        ),
+        countOf(invoiceCount().eq("status", "paid")),
+        countOf(invoiceCount().eq("status", "paid").gte("paid_at", daysAgo(RECENT_DAYS))),
+        countOf(invoiceCount().eq("status", "draft")),
+      ]);
+      return summarizeInvoiceStats(open, { paid, paidRecent, drafts });
+    },
+  });
+
+// ---------------------------------------------------------------------------
+// Recent activity (SPEC §12, §35.7: derived, no notifications table)
+// ---------------------------------------------------------------------------
+
+type ActivityCustomer = { id: string; full_name: string; customer_code: string } | null;
+
+export type StaffActivity =
+  | {
+      kind: "status_changed";
+      key: string;
+      at: string;
+      orderId: string;
+      reference: string | null;
+      customer: ActivityCustomer;
+      status: string;
+      by: string | null;
+    }
+  | { kind: "customer_created"; key: string; at: string; customer: NonNullable<ActivityCustomer> }
+  | {
+      kind: "invitation_accepted";
+      key: string;
+      at: string;
+      invitationKind: Database["public"]["Enums"]["invitation_kind"];
+      email: string;
+      customer: ActivityCustomer;
+    }
+  | {
+      kind: "invoice_issued" | "invoice_cancelled";
+      key: string;
+      at: string;
+      invoiceNumber: string | null;
+      amount: number;
+      currency: CurrencyCode;
+      customer: ActivityCustomer;
+    }
+  | {
+      kind: "payment_recorded";
+      key: string;
+      at: string;
+      amount: number;
+      currency: CurrencyCode | null;
+      invoiceNumber: string | null;
+      customer: ActivityCustomer;
+    };
+
+export interface StaffActivitySources {
+  history: readonly {
+    id: number;
+    order_id: string;
+    to_status: string;
+    changed_at: string;
+    changed_by: string | null;
+    order: { reference: string; customer: ActivityCustomer } | null;
+  }[];
+  customers: readonly {
+    id: string;
+    full_name: string;
+    customer_code: string;
+    created_at: string;
+  }[];
+  invitations: readonly {
+    id: string;
+    kind: Database["public"]["Enums"]["invitation_kind"];
+    email: string;
+    accepted_at: string | null;
+    customer: ActivityCustomer;
+  }[];
+  invoices: readonly {
+    id: string;
+    invoice_number: string | null;
+    issued_at: string | null;
+    cancelled_at: string | null;
+    total_amount: number;
+    currency: CurrencyCode;
+    customer: ActivityCustomer;
+  }[];
+  payments: readonly {
+    id: string;
+    amount: number;
+    created_at: string;
+    invoice: {
+      invoice_number: string | null;
+      currency: CurrencyCode;
+      customer: ActivityCustomer;
+    } | null;
+  }[];
+}
+
+export const STAFF_ACTIVITY_LIMIT = 12;
+
+/** Newest first, each item once; ties ordered by key so the list does not jump. */
+export function mergeStaffActivity(
+  sources: StaffActivitySources,
+  limit = STAFF_ACTIVITY_LIMIT,
+): StaffActivity[] {
+  const items: StaffActivity[] = [];
+  for (const h of sources.history) {
+    items.push({
+      kind: "status_changed",
+      key: `h:${h.id}`,
+      at: h.changed_at,
+      orderId: h.order_id,
+      reference: h.order?.reference ?? null,
+      customer: h.order?.customer ?? null,
+      status: h.to_status,
+      by: h.changed_by,
+    });
+  }
+  for (const c of sources.customers) {
+    items.push({ kind: "customer_created", key: `c:${c.id}`, at: c.created_at, customer: c });
+  }
+  for (const i of sources.invitations) {
+    if (!i.accepted_at) continue;
+    items.push({
+      kind: "invitation_accepted",
+      key: `a:${i.id}`,
+      at: i.accepted_at,
+      invitationKind: i.kind,
+      email: i.email,
+      customer: i.customer,
+    });
+  }
+  for (const i of sources.invoices) {
+    const base = {
+      invoiceNumber: i.invoice_number,
+      amount: i.total_amount,
+      currency: i.currency,
+      customer: i.customer,
+    };
+    if (i.issued_at)
+      items.push({ kind: "invoice_issued", key: `i:${i.id}`, at: i.issued_at, ...base });
+    if (i.cancelled_at) {
+      items.push({ kind: "invoice_cancelled", key: `ic:${i.id}`, at: i.cancelled_at, ...base });
+    }
+  }
+  for (const p of sources.payments) {
+    items.push({
+      kind: "payment_recorded",
+      key: `p:${p.id}`,
+      at: p.created_at,
+      amount: p.amount,
+      currency: p.invoice?.currency ?? null,
+      invoiceNumber: p.invoice?.invoice_number ?? null,
+      customer: p.invoice?.customer ?? null,
+    });
+  }
+  const unique = [...new Map(items.map((item) => [item.key, item])).values()];
+  return unique
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.key.localeCompare(b.key))
+    .slice(0, limit);
+}
+
+const ACTIVITY_CUSTOMER = "customer:customers(id, full_name, customer_code)" as const;
+const ACTIVITY_INVOICE_COLUMNS =
+  `id, invoice_number, issued_at, cancelled_at, total_amount, currency, ${ACTIVITY_CUSTOMER}` as const;
+
+/** The newest items of each source; everything staff may read (RLS: is_staff). */
+export const recentActivityQueryOptions = (userId: string) =>
+  queryOptions({
+    queryKey: adminKeys.recentActivity(userId),
+    staleTime: 30_000,
+    queryFn: async (): Promise<StaffActivity[]> => {
+      const n = STAFF_ACTIVITY_LIMIT;
+      const [history, customers, invitations, issued, cancelled, payments] = await Promise.all([
+        supabase
+          .from("shipment_status_history")
+          .select(
+            `id, order_id, to_status, changed_at, changed_by, order:orders(reference, ${ACTIVITY_CUSTOMER})`,
+          )
+          .order("changed_at", { ascending: false })
+          .limit(n),
+        supabase
+          .from("customers")
+          .select("id, full_name, customer_code, created_at")
+          .order("created_at", { ascending: false })
+          .limit(n),
+        supabase
+          .from("invitations")
+          .select(`id, kind, email, accepted_at, ${ACTIVITY_CUSTOMER}`)
+          .not("accepted_at", "is", null)
+          .order("accepted_at", { ascending: false })
+          .limit(n),
+        supabase
+          .from("invoices")
+          .select(ACTIVITY_INVOICE_COLUMNS)
+          .not("issued_at", "is", null)
+          .order("issued_at", { ascending: false })
+          .limit(n),
+        supabase
+          .from("invoices")
+          .select(ACTIVITY_INVOICE_COLUMNS)
+          .not("cancelled_at", "is", null)
+          .order("cancelled_at", { ascending: false })
+          .limit(n),
+        supabase
+          .from("payments")
+          .select(
+            `id, amount, created_at, invoice:invoices(invoice_number, currency, ${ACTIVITY_CUSTOMER})`,
+          )
+          .order("created_at", { ascending: false })
+          .limit(n),
+      ]);
+      for (const result of [history, customers, invitations, issued, cancelled, payments]) {
+        if (result.error) throw result.error;
+      }
+      return mergeStaffActivity({
+        history: history.data ?? [],
+        customers: customers.data ?? [],
+        invitations: invitations.data ?? [],
+        invoices: [...(issued.data ?? []), ...(cancelled.data ?? [])],
+        payments: payments.data ?? [],
+      });
+    },
+  });

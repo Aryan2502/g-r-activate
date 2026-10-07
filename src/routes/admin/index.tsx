@@ -1,8 +1,7 @@
-import { useState, type ComponentType, type ReactNode, type SVGProps } from "react";
+import { useState, type ComponentType, type SVGProps } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import {
-  AlertTriangle,
   Ban,
   Check,
   ChevronRight,
@@ -14,21 +13,24 @@ import {
   MapPin,
   PackageCheck,
   Plane,
-  RotateCw,
   Stamp,
   TriangleAlert,
-  Users,
+  UserRound,
   Warehouse,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { OverviewKpis } from "@/components/admin/dashboard/OverviewKpis";
+import { DashboardPanel, PanelLoadError } from "@/components/admin/dashboard/Panel";
+import { RecentActivity } from "@/components/admin/dashboard/RecentActivity";
+import { SetupChecklist } from "@/components/admin/dashboard/SetupChecklist";
+import { SystemStatusPanel } from "@/components/admin/dashboard/SystemStatusPanel";
 import { ShellPageHeader } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ORDER_COUNT_KEYS,
   ORDER_COUNT_SEARCH,
-  customerCountsQueryOptions,
   openTasksQueryOptions,
   orderCountsQueryOptions,
   resolvableFromDashboard,
@@ -38,6 +40,7 @@ import {
   type StaffTask,
 } from "@/lib/admin/dashboard";
 import { adminKeys } from "@/lib/admin/keys";
+import { systemStatusQueryOptions } from "@/lib/admin/system-status-query";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, formatNumber } from "@/lib/format";
 import { t, useT } from "@/lib/i18n";
@@ -52,7 +55,9 @@ export const Route = createFileRoute("/admin/")({
 function AdminHome() {
   const t = useT();
   const { auth } = adminRoute.useRouteContext();
+  const isAdmin = auth.role === "admin";
   const profile = useQuery(staffProfileQueryOptions(auth.userId));
+  const system = useQuery({ ...systemStatusQueryOptions(auth.userId), enabled: isAdmin });
   const name = profile.data ?? auth.email;
 
   return (
@@ -62,61 +67,21 @@ function AdminHome() {
         description={t("admin.home.signedInAs", { email: auth.email })}
       />
       <div className="space-y-6">
+        <SetupChecklist
+          userId={auth.userId}
+          isAdmin={isAdmin}
+          system={isAdmin ? system.data : null}
+        />
+        {/* What needs someone first (cancellation requests, sign-up conflicts), then the overview. */}
+        <OpenTasks userId={auth.userId} />
+        <OverviewKpis userId={auth.userId} />
         <OrderCounts userId={auth.userId} />
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-          <CustomerCounts userId={auth.userId} />
-          <OpenTasks userId={auth.userId} />
+        <div className={isAdmin ? "grid gap-6 lg:grid-cols-2" : "grid gap-6"}>
+          <RecentActivity userId={auth.userId} />
+          {isAdmin ? <SystemStatusPanel status={system} /> : null}
         </div>
       </div>
     </>
-  );
-}
-
-function Panel({
-  title,
-  icon,
-  description,
-  actions,
-  children,
-}: {
-  title: string;
-  icon: ReactNode;
-  description?: string;
-  actions?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border bg-card p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-lg text-foreground">
-            <span className="text-primary [&_svg]:size-5" aria-hidden>
-              {icon}
-            </span>
-            {title}
-          </h2>
-          {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
-        </div>
-        {actions}
-      </div>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
-function LoadError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
-  const t = useT();
-  return (
-    <div role="alert" className="flex flex-col items-start gap-3 text-sm">
-      <p className="flex items-center gap-2 text-destructive">
-        <AlertTriangle className="size-4" aria-hidden />
-        {t("admin.home.loadFailed")} {errorMessage(error)}
-      </p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        <RotateCw aria-hidden />
-        {t("common.retry")}
-      </Button>
-    </div>
   );
 }
 
@@ -137,7 +102,7 @@ function OrderCounts({ userId }: { userId: string }) {
   const t = useT();
   const counts = useQuery(orderCountsQueryOptions(userId));
   return (
-    <Panel
+    <DashboardPanel
       title={t("admin.home.operationsTitle")}
       icon={<ClipboardList />}
       description={t("admin.home.operationsIntro")}
@@ -151,7 +116,7 @@ function OrderCounts({ userId }: { userId: string }) {
       }
     >
       {counts.isError ? (
-        <LoadError error={counts.error} onRetry={() => void counts.refetch()} />
+        <PanelLoadError error={counts.error} onRetry={() => void counts.refetch()} />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {ORDER_COUNT_KEYS.map((key) => {
@@ -201,45 +166,7 @@ function OrderCounts({ userId }: { userId: string }) {
           })}
         </ul>
       )}
-    </Panel>
-  );
-}
-
-function CustomerCounts({ userId }: { userId: string }) {
-  const t = useT();
-  const counts = useQuery(customerCountsQueryOptions(userId));
-
-  return (
-    <Panel title={t("admin.home.customersTitle")} icon={<Users />}>
-      {counts.isPending ? (
-        <Skeleton className="h-24 w-full" />
-      ) : counts.isError ? (
-        <LoadError error={counts.error} onRetry={() => void counts.refetch()} />
-      ) : (
-        <>
-          <p className="font-heading text-4xl font-bold text-primary tabular-nums">
-            {formatNumber(counts.data.total, 0)}
-          </p>
-          <p className="text-sm text-muted-foreground">{t("admin.home.customersTotal")}</p>
-          <dl className="mt-4 grid grid-cols-3 gap-3 border-t pt-4 text-sm">
-            {(
-              [
-                ["admin.home.customersActive", counts.data.active],
-                ["admin.home.customersInvited", counts.data.invited],
-                ["admin.home.customersDisabled", counts.data.disabled],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-muted-foreground">{t(label)}</dt>
-                <dd className="text-lg font-semibold text-foreground tabular-nums">
-                  {formatNumber(value, 0)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </>
-      )}
-    </Panel>
+    </DashboardPanel>
   );
 }
 
@@ -253,7 +180,7 @@ function OpenTasks({ userId }: { userId: string }) {
   const hidden = tasks.data ? tasks.data.total - tasks.data.tasks.length : 0;
 
   return (
-    <Panel
+    <DashboardPanel
       title={t("admin.home.tasksTitle")}
       icon={<ClipboardList />}
       description={t("admin.home.tasksIntro")}
@@ -264,7 +191,7 @@ function OpenTasks({ userId }: { userId: string }) {
           <Skeleton className="h-14 w-full" />
         </div>
       ) : tasks.isError ? (
-        <LoadError error={tasks.error} onRetry={() => void tasks.refetch()} />
+        <PanelLoadError error={tasks.error} onRetry={() => void tasks.refetch()} />
       ) : tasks.data.total === 0 ? (
         <p className="text-sm text-muted-foreground">{t("admin.home.tasksEmpty")}</p>
       ) : (
@@ -290,7 +217,10 @@ function OpenTasks({ userId }: { userId: string }) {
                 <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
               ) : null}
               {all && everything.isError ? (
-                <LoadError error={everything.error} onRetry={() => void everything.refetch()} />
+                <PanelLoadError
+                  error={everything.error}
+                  onRetry={() => void everything.refetch()}
+                />
               ) : (
                 <Button
                   size="sm"
@@ -307,7 +237,7 @@ function OpenTasks({ userId }: { userId: string }) {
           ) : null}
         </>
       )}
-    </Panel>
+    </DashboardPanel>
   );
 }
 
@@ -344,6 +274,14 @@ function TaskItem({ userId, task }: { userId: string; task: StaffTask }) {
             <Link to="/admin/orders/$id" params={{ id: task.order_id }}>
               <ExternalLink aria-hidden />
               {t("admin.home.taskOpenOrder")}
+            </Link>
+          </Button>
+        ) : null}
+        {task.customer_id ? (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/admin/klanten/$id" params={{ id: task.customer_id }}>
+              <UserRound aria-hidden />
+              {t("admin.home.taskOpenCustomer")}
             </Link>
           </Button>
         ) : null}

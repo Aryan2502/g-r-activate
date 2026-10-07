@@ -17,7 +17,67 @@ export const adminKeys = {
   /** Display names of logins (profiles), for "door Maria". */
   people: (userId: string, ids: readonly string[]) =>
     ["admin", userId, "people", [...ids].sort().join(",")] as const,
+  /**
+   * Every customer (the picker of "Order aanmaken voor klant"). Everything
+   * about customers hangs under it, so one invalidation after adding,
+   * inviting, editing or disabling a customer refreshes the list, the
+   * picker and the customer's page.
+   */
   customers: (userId: string) => ["admin", userId, "customers"] as const,
+  customerList: (userId: string) => ["admin", userId, "customers", "list"] as const,
+  /** Open invitations by customer (status column of the list). */
+  customerListInvitations: (userId: string) =>
+    ["admin", userId, "customers", "list-invitations"] as const,
+  /** Open invoice balances by customer (filter "Openstaande facturen"). */
+  customerListInvoices: (userId: string) =>
+    ["admin", userId, "customers", "list-invoices"] as const,
+  /** The next generated GR number (peek_next_customer_number). */
+  nextCustomerNumber: (userId: string) => ["admin", userId, "customers", "next-number"] as const,
+  /** Who holds a GR number, for the live uniqueness check of "Klant toevoegen". */
+  customerCodeHolder: (userId: string, code: string) =>
+    ["admin", userId, "customers", "code", code] as const,
+  /** One customer; like an order, the id has its own "id" segment. */
+  customer: (userId: string, customerId: string) =>
+    ["admin", userId, "customers", "id", customerId] as const,
+  customerInvitations: (userId: string, customerId: string) =>
+    ["admin", userId, "customers", "id", customerId, "invitations"] as const,
+  customerNotes: (userId: string, customerId: string) =>
+    ["admin", userId, "customers", "id", customerId, "notes"] as const,
+  customerInvoices: (userId: string, customerId: string) =>
+    ["admin", userId, "customers", "id", customerId, "invoices"] as const,
+  customerAudit: (userId: string, customerId: string) =>
+    ["admin", userId, "customers", "id", customerId, "audit"] as const,
+  /**
+   * The team page: members (team_members()) and open staff invitations. A
+   * role change or (de)activation can revoke invitations, so both hang under
+   * one key.
+   */
+  team: (userId: string) => ["admin", userId, "team"] as const,
+  teamMembers: (userId: string) => ["admin", userId, "team", "members"] as const,
+  teamInvitations: (userId: string) => ["admin", userId, "team", "invitations"] as const,
+  /** What "Deactiveren" of a member would revoke (the dialog's list). */
+  teamPendingBy: (userId: string, memberId: string) =>
+    ["admin", userId, "team", "pending-by", memberId] as const,
+  /**
+   * Settings (/admin/instellingen) and what the dashboard derives from them
+   * (setup checklist). Saving any section refreshes everything under it; the
+   * operational settings of the order pages (`settings`) are refreshed too.
+   */
+  config: (userId: string) => ["admin", userId, "config"] as const,
+  companySettings: (userId: string) => ["admin", userId, "config", "company"] as const,
+  bankAccounts: (userId: string) => ["admin", userId, "config", "bank-accounts"] as const,
+  warehouseAddresses: (userId: string) => ["admin", userId, "config", "warehouse"] as const,
+  serviceRates: (userId: string) => ["admin", userId, "config", "rates"] as const,
+  invoiceCounter: (userId: string, year: number) =>
+    ["admin", userId, "config", "invoice-counter", year] as const,
+  /** Booleans about the server's configuration (admins only, systemStatusFn). */
+  systemStatus: (userId: string) => ["admin", userId, "config", "system-status"] as const,
+  /** Dashboard figures that are not order counts. */
+  dashboard: (userId: string) => ["admin", userId, "dashboard"] as const,
+  customerStats: (userId: string) => ["admin", userId, "dashboard", "customers"] as const,
+  invoiceStats: (userId: string) => ["admin", userId, "dashboard", "invoices"] as const,
+
+  recentActivity: (userId: string) => ["admin", userId, "dashboard", "activity"] as const,
   tasks: (userId: string) => ["admin", userId, "tasks"] as const,
   openTasks: (userId: string, scope: "first" | "all" = "first") =>
     ["admin", userId, "tasks", "open", scope] as const,
@@ -27,6 +87,15 @@ export const adminKeys = {
   orderBilling: (userId: string) => ["admin", userId, "orders", "billing"] as const,
   cancellationTasks: (userId: string) => ["admin", userId, "orders", "cancellation-tasks"] as const,
   orderCounts: (userId: string) => ["admin", userId, "orders", "counts"] as const,
+  /** Dashboard: orders registered in the last 30 days and running orders. */
+  orderStats: (userId: string) => ["admin", userId, "orders", "stats"] as const,
+  /** Orders per customer (the customer list's "Orders" column). */
+  ordersPerCustomer: (userId: string) => ["admin", userId, "orders", "per-customer"] as const,
+  /** One customer's orders and their documents (customer page); refreshed with every order change. */
+  customerOrders: (userId: string, customerId: string) =>
+    ["admin", userId, "orders", "customer", customerId] as const,
+  customerDocuments: (userId: string, customerId: string) =>
+    ["admin", userId, "orders", "customer", customerId, "documents"] as const,
   /**
    * One order. The id sits behind its own "id" segment, so a URL such as
    * /admin/orders/list can never share a key (and cached data) with the list.

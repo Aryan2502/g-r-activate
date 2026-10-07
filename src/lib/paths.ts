@@ -16,7 +16,10 @@ export const paths: Readonly<
     | "adminOrders"
     | "adminOrderNew"
     | "adminShipments"
-    | "adminStatuses",
+    | "adminStatuses"
+    | "adminCustomers"
+    | "adminTeam"
+    | "adminSettings",
     string
   >
 > = {
@@ -39,4 +42,10 @@ export const paths: Readonly<
   adminShipments: "/admin/zendingen",
   /** Order statuses: staff read, admins edit. */
   adminStatuses: "/admin/statussen",
+  /** Customers; `/admin/klanten/<id>` is one customer's page. */
+  adminCustomers: "/admin/klanten",
+  /** Staff and admins: admins invite, change roles, deactivate; staff read. */
+  adminTeam: "/admin/team",
+  /** Settings (SPEC §35.8): admins edit, staff read. `#<section id>` jumps to a section. */
+  adminSettings: "/admin/instellingen",
 };
