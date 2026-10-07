@@ -22,6 +22,7 @@ import {
   createAuthUser,
   createDb,
   expectSqlError,
+  execMigrationSql,
   listMigrations,
   withSavepoint,
 } from "./harness";
@@ -417,7 +418,9 @@ describe("schema", () => {
              (select count(*) from public.invoice_number_counters)::int as counters`;
     await db.transaction(async (tx) => {
       const before = await one(tx, fingerprint);
-      for (const m of replay) await tx.exec(m.sql);
+      // execMigrationSql: later files enable pg_cron / pg_net (P8), which
+      // PGlite only knows through the harness's stubs.
+      for (const m of replay) await execMigrationSql(tx, m.sql);
       expect(await one(tx, fingerprint)).toEqual(before);
       await tx.rollback();
     });

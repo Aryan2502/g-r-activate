@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Callout } from "@/components/admin/Callout";
+import { ExportCsvButton } from "@/components/admin/ExportCsvButton";
 import { InvoiceSummary, PaymentSummary } from "@/components/admin/OrderBilling";
 import { useOrderDialogs, type OrderDialogs } from "@/components/admin/OrderDialogs";
 import { OrderRowActions } from "@/components/admin/OrderRowActions";
@@ -59,6 +60,7 @@ import {
   type AdminOrderSearch,
   type AdminOrderView,
 } from "@/lib/admin/orders";
+import { exportOrders } from "@/lib/admin/exports";
 import { newInvoiceSearch } from "@/lib/admin/invoice-builder";
 import {
   DEFAULT_OPERATIONAL_SETTINGS,
@@ -156,6 +158,7 @@ function AdminOrdersPage() {
       {header}
       <OrdersBoard
         userId={auth.userId}
+        isAdmin={auth.role === "admin"}
         search={search}
         views={buildOrderViews(orders.data, statuses.data, billing.data, cancellations.data)}
         statuses={statuses.data}
@@ -183,6 +186,7 @@ function AdminOrdersPage() {
 
 function OrdersBoard({
   userId,
+  isAdmin,
   search,
   views,
   statuses,
@@ -192,6 +196,8 @@ function OrdersBoard({
   sideErrors,
 }: {
   userId: string;
+  /** "Exporteer CSV" is for admins (SPEC §35.15). */
+  isAdmin: boolean;
   search: AdminOrderSearch;
   views: AdminOrderView[];
   statuses: AdminStatusMap;
@@ -265,6 +271,17 @@ function OrdersBoard({
             total: formatNumber(views.length, 0),
           })}
         </p>
+        {isAdmin && visible.length > 0 ? (
+          <ExportCsvButton
+            scope={t("admin.exports.scopeFiltered", { count: formatNumber(visible.length, 0) })}
+            options={[
+              {
+                label: t("admin.exports.what.orders"),
+                run: () => exportOrders({ ids: visible.map((o) => o.id) }),
+              },
+            ]}
+          />
+        ) : null}
       </div>
       {visible.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border bg-card p-6 shadow-sm">

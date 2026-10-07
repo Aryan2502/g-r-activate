@@ -6,6 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import {
+  BellRing,
   Container,
   LayoutDashboard,
   ListChecks,
@@ -13,6 +14,7 @@ import {
   PackagePlus,
   Receipt,
   RotateCw,
+  ScrollText,
   Settings,
   ShieldCheck,
   Users,
@@ -47,16 +49,23 @@ export const Route = createFileRoute("/admin")({
 // The most specific item is highlighted: /admin/orders/nieuw → "Order aanmaken",
 // an order's page → "Orders", a shipment's page → "Zendingen", a customer's
 // page → "Klanten", the invoice builder and an invoice's page → "Facturen".
-const nav: ShellNavItem[] = [
+const staffNav: ShellNavItem[] = [
   { to: paths.admin, label: t("admin.nav.dashboard"), icon: LayoutDashboard, exact: true },
   { to: paths.adminCustomers, label: t("admin.nav.customers"), icon: Users },
   { to: paths.adminOrders, label: t("admin.nav.orders"), icon: Package },
   { to: paths.adminOrderNew, label: t("admin.nav.newOrder"), icon: PackagePlus },
   { to: paths.adminShipments, label: t("admin.nav.shipments"), icon: Container },
   { to: paths.adminInvoices, label: t("admin.nav.invoices"), icon: Receipt },
+  { to: paths.adminReminders, label: t("admin.nav.reminders"), icon: BellRing },
   { to: paths.adminStatuses, label: t("admin.nav.statuses"), icon: ListChecks },
   { to: paths.adminTeam, label: t("admin.nav.team"), icon: ShieldCheck },
   { to: paths.adminSettings, label: t("admin.nav.settings"), icon: Settings },
+];
+
+// The audit log is admin-read only (RLS is_admin): staff do not get the item.
+const adminNav: ShellNavItem[] = [
+  ...staffNav,
+  { to: paths.adminAudit, label: t("admin.nav.audit"), icon: ScrollText },
 ];
 
 function AdminLayout() {
@@ -70,7 +79,7 @@ function AdminLayout() {
     <AppShell
       areaName={t("admin.areaName")}
       homePath={paths.admin}
-      nav={nav}
+      nav={auth.role === "admin" ? adminNav : staffNav}
       onSignOut={signOut}
       signingOut={signingOut}
       wide

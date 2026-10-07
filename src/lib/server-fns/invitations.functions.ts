@@ -88,16 +88,32 @@ export type RedeemResponse =
     }
   | Failure;
 
-async function afterRedeem(outcome: {
-  invitationId: string;
-  kind: InvitationKind;
-  customerId: string | null;
-  userId: string;
-}) {
-  // P8 hook point: the "welkom" e-mail. Never fails the redemption.
+/**
+ * The "welkom" e-mail (with the personal US address for customers). Never
+ * fails the redemption. It runs with the service-role client the redemption
+ * already uses (the invitee has no session in this request yet), reading only
+ * the redeemed customer's record and the active US addresses.
+ */
+async function afterRedeem(
+  admin: Parameters<typeof import("@/server/invitations").redeemForUser>[0],
+  outcome: {
+    invitationId: string;
+    kind: InvitationKind;
+    email: string;
+    customerId: string | null;
+    userId: string;
+  },
+) {
   try {
     const { onInvitationRedeemed } = await import("@/server/invitation-notifications");
-    await onInvitationRedeemed(outcome);
+    await onInvitationRedeemed({
+      admin,
+      invitationId: outcome.invitationId,
+      kind: outcome.kind,
+      email: outcome.email,
+      customerId: outcome.customerId,
+      userId: outcome.userId,
+    });
   } catch (error) {
     console.error("[redeemInvitation] onInvitationRedeemed failed", error);
   }
@@ -119,13 +135,14 @@ export const redeemInvitationFn = createServerFn({ method: "POST" })
         import("@/server/admin-client"),
         import("@/server/invitations"),
       ]);
-      const outcome = await redeemWithPassword(await loadAdminClient(), parsed.data);
+      const admin = await loadAdminClient();
+      const outcome = await redeemWithPassword(admin, parsed.data);
       if (!outcome.ok) {
         return outcome.reason === "needs_login"
           ? { ok: true, needsLogin: true }
           : { ok: true, state: outcome.status };
       }
-      await afterRedeem(outcome);
+      await afterRedeem(admin, outcome);
       return {
         ok: true,
         kind: outcome.kind,
@@ -164,7 +181,8 @@ export const redeemInvitationAsUserFn = createServerFn({ method: "POST" })
         import("@/server/admin-client"),
         import("@/server/invitations"),
       ]);
-      const outcome = await redeemForUser(await loadAdminClient(), {
+      const admin = await loadAdminClient();
+      const outcome = await redeemForUser(admin, {
         ...parsed.data,
         userId: context.userId,
       });
@@ -173,7 +191,7 @@ export const redeemInvitationAsUserFn = createServerFn({ method: "POST" })
           ? { ok: true, needsLogin: true }
           : { ok: true, state: outcome.status };
       }
-      await afterRedeem(outcome);
+      await afterRedeem(admin, outcome);
       return {
         ok: true,
         kind: outcome.kind,

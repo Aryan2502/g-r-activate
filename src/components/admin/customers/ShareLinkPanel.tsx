@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Copy, Info, MailX, MessageCircle } from "lucide-react";
+import { Copy, Info, MailCheck, MailX, MessageCircle } from "lucide-react";
 
 import { Callout } from "@/components/admin/Callout";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { whatsappHref } from "@/lib/admin/invitations";
 import { copyToClipboard } from "@/lib/clipboard";
+import { invitationEmailText, type EmailOutcome } from "@/lib/email/outcome";
 import { phoneDigits } from "@/lib/phone";
 import { useT } from "@/lib/i18n";
 
@@ -14,8 +15,9 @@ import { useT } from "@/lib/i18n";
  * A link staff hand to the customer themselves (SPEC §35.6, §35.12): the
  * invitation link or a password-reset link, ALWAYS with "Kopieer …" and
  * "Deel via WhatsApp" (wa.me with the customer's number and a Dutch
- * message). Until e-mail exists (P8) this is the only way the link reaches
- * the customer, and the panel says so; it never claims an e-mail went out.
+ * message). For an invitation it also says what happened to the e-mail the
+ * server sent (sent to …, not configured, failed): only "sent" means the
+ * link reached the person without staff sharing it.
  */
 export function ShareLinkPanel({
   link,
@@ -23,7 +25,8 @@ export function ShareLinkPanel({
   copyLabel,
   shareText,
   phone,
-  emailed,
+  emailOutcome,
+  emailTo = null,
   linkSource,
   notes,
   onShared,
@@ -34,8 +37,10 @@ export function ShareLinkPanel({
   /** The WhatsApp message, ending with the link. */
   shareText: string;
   phone: string | null;
-  /** Whether the server sent it by e-mail (P8); null when e-mail does not apply. */
-  emailed: boolean | null;
+  /** What happened to the e-mail with this link; null when no e-mail applies (reset links). */
+  emailOutcome: EmailOutcome | null;
+  /** The address it was e-mailed to (for "verstuurd naar …"). */
+  emailTo?: string | null;
   linkSource: "app_url" | "request";
   /** Extra lines (validity, "only now"). */
   notes?: readonly string[];
@@ -104,11 +109,14 @@ export function ShareLinkPanel({
           ))}
         </ul>
       ) : null}
-      {emailed === false ? (
-        <Callout tone="warning" icon={MailX} title={t("admin.invitations.emailOff")} />
-      ) : emailed === true ? (
-        <p className="text-sm text-muted-foreground">{t("admin.invitations.emailSent")}</p>
-      ) : null}
+      {emailOutcome === null ? null : emailOutcome === "sent" || emailOutcome === "duplicate" ? (
+        <p className="flex items-start gap-2 text-sm text-foreground" role="status">
+          <MailCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+          <span>{invitationEmailText(emailOutcome, emailTo)}</span>
+        </p>
+      ) : (
+        <Callout tone="warning" icon={MailX} title={invitationEmailText(emailOutcome, emailTo)} />
+      )}
       {linkSource === "request" ? (
         <p className="text-xs text-muted-foreground">
           {t("admin.invitations.requestBase", { base })}

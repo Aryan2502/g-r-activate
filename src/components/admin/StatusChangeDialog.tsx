@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 
 import { Callout, FieldError } from "@/components/admin/Callout";
+import { StatusFollowUpView } from "@/components/admin/StatusFollowUp";
 import { CurrencyAmounts } from "@/components/portal/CurrencyAmounts";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,13 +37,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { EMAIL_SENDING_CONFIGURED } from "@/lib/admin/email";
+import { emailStatusQueryOptions } from "@/lib/admin/email";
 import { adminKeys } from "@/lib/admin/keys";
 import {
   ordersWithCustomsDocuments,
   unpaidInvoicesForOrders,
   type StatusTarget,
 } from "@/lib/admin/orders";
+import type { StatusFollowUp } from "@/lib/admin/status-share";
 import {
   STAGE_DISPLAY_ORDER,
   defaultNotify,
@@ -54,6 +56,7 @@ import {
   type OperationalSettings,
   type StatusRow,
 } from "@/lib/admin/statuses";
+import { statusEmailSummary } from "@/lib/email/outcome";
 import { errorMessage, toAppError } from "@/lib/errors";
 import { formatNumber } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -78,8 +81,11 @@ const REASON_MAX = 500;
  *   US warehouse (receive them first, with their weight);
  * - a B2B order without commercial invoice or packing list gets a warning
  *   (never a block) when it moves on to customs;
- * - "Klant e-mailen" starts at the status's notify_customer (P8 hook) and
- *   says plainly that no e-mail goes out yet.
+ * - "Klant e-mailen" starts at the status's notify_customer; while e-mail is
+ *   not configured the dialog says so beforehand, and the toast afterwards
+ *   says what happened to each customer's "statusupdate" e-mail. Customers
+ *   whose e-mail did not go out are then listed with a WhatsApp button each
+ *   (StatusFollowUpView, SPEC §35.12) before the dialog closes.
  */
 export function StatusChangeDialog({
   userId,
@@ -106,8 +112,17 @@ export function StatusChangeDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [followUps, setFollowUps] = useState<StatusFollowUp[] | null>(null);
+  useEffect(() => {
+    if (!open) setFollowUps(null);
+  }, [open]);
+  const close = (next: boolean) => {
+    if (busy) return;
+    if (!next) setFollowUps(null);
+    onOpenChange(next);
+  };
   return (
-    <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent
         className="max-h-[92vh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg bg-card sm:max-w-xl"
         onCloseAutoFocus={(event) => {
@@ -119,16 +134,21 @@ export function StatusChangeDialog({
         }}
       >
         {/* Mounted only while open, so every opening starts from a clean form. */}
-        <StatusChangeForm
-          userId={userId}
-          orders={orders}
-          statuses={statuses}
-          settings={settings}
-          initialStatus={initialStatus ?? null}
-          heading={heading ?? null}
-          onBusyChange={setBusy}
-          onClose={() => onOpenChange(false)}
-        />
+        {followUps ? (
+          <StatusFollowUpView followUps={followUps} onClose={() => close(false)} />
+        ) : (
+          <StatusChangeForm
+            userId={userId}
+            orders={orders}
+            statuses={statuses}
+            settings={settings}
+            initialStatus={initialStatus ?? null}
+            heading={heading ?? null}
+            onBusyChange={setBusy}
+            onFollowUps={setFollowUps}
+            onClose={() => close(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -142,6 +162,7 @@ function StatusChangeForm({
   initialStatus,
   heading,
   onBusyChange,
+  onFollowUps,
   onClose,
 }: {
   userId: string;
@@ -151,6 +172,8 @@ function StatusChangeForm({
   initialStatus: string | null;
   heading: { title: string; description: string } | null;
   onBusyChange: (busy: boolean) => void;
+  /** Customers to tell via WhatsApp instead: the dialog shows them before closing. */
+  onFollowUps: (followUps: StatusFollowUp[]) => void;
   onClose: () => void;
 }) {
   const t = useT();
@@ -224,6 +247,9 @@ function StatusChangeForm({
         hasCustomsDocuments: false,
       }),
     );
+  // Known beforehand: without e-mail the customer is not told (the dialog says so).
+  const emailStatus = useQuery(emailStatusQueryOptions(userId));
+  const emailOff = emailStatus.data?.configured === false;
   const customsDocs = useQuery({
     queryKey: adminKeys.selectionChecks(
       userId,
@@ -343,10 +369,9 @@ function StatusChangeForm({
           }),
         );
       }
-      // Until P8 nothing is sent: say so instead of letting staff assume it.
-      if (result.changed.length > 0 && notify && visible && !EMAIL_SENDING_CONFIGURED) {
-        parts.push(t("admin.status.emailNotSent"));
-      }
+      // What happened to the "statusupdate" e-mails (one per customer).
+      const emailSummary = statusEmailSummary(result.emailOutcomes);
+      if (emailSummary) parts.push(emailSummary);
       const text = parts.join(" ");
       if (result.changed.length === 0) toast.info(text);
       else toast.success(text);
@@ -354,7 +379,8 @@ function StatusChangeForm({
         queryClient.invalidateQueries({ queryKey: adminKeys.orders(userId) }),
         queryClient.invalidateQueries({ queryKey: adminKeys.tasks(userId) }),
       ]);
-      onClose();
+      if (result.followUps.length > 0) onFollowUps(result.followUps);
+      else onClose();
     },
     onError: (error) => {
       const app = toAppError(error);
@@ -614,17 +640,17 @@ function StatusChangeForm({
             checked={visible && notify}
             disabled={!visible || !target}
             onCheckedChange={setNotify}
-            aria-describedby={`${id}-notify-hint${EMAIL_SENDING_CONFIGURED ? "" : ` ${id}-email-off`}`}
+            aria-describedby={`${id}-notify-hint${emailOff && visible ? ` ${id}-email-off` : ""}`}
             className="mt-1"
           />
         </div>
-        {!EMAIL_SENDING_CONFIGURED && visible ? (
+        {emailOff && visible ? (
           <p
             id={`${id}-email-off`}
             className="mt-2 flex items-start gap-1.5 border-t pt-2 text-xs leading-5 text-foreground"
           >
             <MailX className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
-            {t("admin.status.emailOff")}
+            {t("email.notConfigured")}
           </p>
         ) : null}
       </div>

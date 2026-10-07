@@ -21,19 +21,21 @@ import {
   type VoidPaymentInput,
 } from "@/lib/admin/invoice-actions";
 import { parseActionInput } from "@/lib/admin/order-actions";
+import type { EmailOutcome } from "@/lib/email/outcome";
 import { CodedError, toTransportError } from "@/lib/errors";
 import { t } from "@/lib/i18n";
 import { logFailure, unwrap, type Failure, type LinkSource } from "@/lib/server-fns/helpers";
-import { denied, requireAdmin, requireStaff } from "@/lib/server-fns/middleware";
+import { denied, requireAdmin, requireStaff, type RoleAccess } from "@/lib/server-fns/middleware";
 
 /**
  * Invoice server functions (SPEC §16, §35.9, §35.12). Each runs
  * requireStaff/requireAdmin and returns failures as data (TransportError),
  * so the browser keeps the SQLSTATE and hints such as invoice_dates. The
  * database work uses the staff member's OWN client (RPC guards, RLS and the
- * audit triggers see who did it); never the service role. E-mail is P8:
- * the hook in src/server/invoice-notifications.ts reports whether it sent
- * anything (not yet), so the UI never claims an e-mail went out.
+ * audit triggers see who did it); never the service role. Then the e-mail
+ * (src/server/invoice-notifications.ts), whose outcome comes back with the
+ * answer, so the UI says exactly whether the customer was e-mailed. Only the
+ * e-mail log is written with the service role (src/server/email.ts).
  */
 
 export const issueInvoiceInputSchema = z.object({ invoiceId: z.string().uuid() });
@@ -44,15 +46,15 @@ export type IssueInvoiceResponse =
       ok: true;
       invoiceId: string;
       invoiceNumber: string;
-      /** Whether the customer was e-mailed "factuur aangemaakt" (P8; false until then). */
-      emailed: boolean;
+      /** What happened to the "factuur aangemaakt" e-mail. */
+      emailOutcome: EmailOutcome;
     }
   | Failure;
 
 /**
  * "Genereer factuur", after the builder saved the draft: issue_invoice gives
  * the gapless number, recomputes the totals, writes the snapshots and sets
- * the status 'open', in one transaction. Then the P8 hook "factuur aangemaakt".
+ * the status 'open', in one transaction. Then the "factuur aangemaakt" e-mail.
  */
 export const issueInvoiceFn = createServerFn({ method: "POST" })
   .middleware([requireStaff])
@@ -76,22 +78,24 @@ export const issueInvoiceFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    // P8 hook point: "factuur aangemaakt". Never fails the issue.
-    let emailed = false;
+    // "Factuur aangemaakt". Never fails the issue.
+    let emailOutcome: EmailOutcome;
     try {
       const { onInvoiceIssued } = await import("@/server/invoice-notifications");
-      emailed = (
+      emailOutcome = (
         await onInvoiceIssued({
+          db: access.supabase,
           invoiceId: issued.id,
           invoiceNumber: issued.number,
           customerId: issued.customerId,
           userId: access.userId,
         })
-      ).emailed;
+      ).email;
     } catch (error) {
       console.error("[issueInvoiceFn] onInvoiceIssued failed", error);
+      emailOutcome = "failed";
     }
-    return { ok: true, invoiceId: issued.id, invoiceNumber: issued.number, emailed };
+    return { ok: true, invoiceId: issued.id, invoiceNumber: issued.number, emailOutcome };
   });
 
 // ---------------------------------------------------------------------------
@@ -101,39 +105,41 @@ export const issueInvoiceFn = createServerFn({ method: "POST" })
 export type PaymentResponse =
   | ({
       ok: true;
-      /** Whether the customer was e-mailed "betaling ontvangen" (P8; false until then). */
-      emailed: boolean;
+      /** "Betaling ontvangen": only when the invoice became paid (null: no e-mail meant). */
+      emailOutcome: EmailOutcome | null;
     } & PaymentOutcome)
   | Failure;
 
-/** P8 hook point "betaling ontvangen"; never fails the payment. */
+/** "Betaling ontvangen" when the invoice became paid; never fails the payment. */
 async function paymentHook(
   name: string,
   action: "record" | "mark_paid",
   invoiceId: string,
   result: PaymentOutcome,
-  userId: string,
-): Promise<boolean> {
+  access: Extract<RoleAccess, { ok: true }>,
+): Promise<EmailOutcome | null> {
+  if (result.invoiceStatus !== "paid") return null;
   try {
     const { onPaymentRecorded } = await import("@/server/invoice-notifications");
     return (
       await onPaymentRecorded({
+        db: access.supabase,
         invoiceId,
         paymentId: result.paymentId,
         action,
         invoiceStatus: result.invoiceStatus,
-        userId,
+        userId: access.userId,
       })
-    ).emailed;
+    ).email;
   } catch (error) {
     console.error(`[${name}] onPaymentRecorded failed`, error);
-    return false;
+    return "failed";
   }
 }
 
 /**
  * "Betaling registreren": record_payment with the amount (≤ the balance; the
- * payment trigger derives 'partially_paid' or 'paid'), then the P8 hook.
+ * payment trigger derives 'partially_paid' or 'paid'), then "betaling ontvangen" when paid.
  */
 export const recordPaymentFn = createServerFn({ method: "POST" })
   .middleware([requireStaff])
@@ -151,14 +157,14 @@ export const recordPaymentFn = createServerFn({ method: "POST" })
       logFailure("recordPaymentFn", error);
       return { ok: false, error: toTransportError(error) };
     }
-    const emailed = await paymentHook(
+    const emailOutcome = await paymentHook(
       "recordPaymentFn",
       "record",
       input.invoiceId,
       result,
-      access.userId,
+      access,
     );
-    return { ok: true, emailed, ...result };
+    return { ok: true, emailOutcome, ...result };
   });
 
 /** "Markeer als betaald": one payment for the full balance (record_payment without an amount). */
@@ -178,14 +184,14 @@ export const markPaidFn = createServerFn({ method: "POST" })
       logFailure("markPaidFn", error);
       return { ok: false, error: toTransportError(error) };
     }
-    const emailed = await paymentHook(
+    const emailOutcome = await paymentHook(
       "markPaidFn",
       "mark_paid",
       input.invoiceId,
       result,
-      access.userId,
+      access,
     );
-    return { ok: true, emailed, ...result };
+    return { ok: true, emailOutcome, ...result };
   });
 
 export type VoidPaymentResponse = ({ ok: true } & PaymentOutcome) | Failure;

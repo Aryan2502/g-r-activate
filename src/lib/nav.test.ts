@@ -7,6 +7,7 @@ const portalNav = [
   { to: "/portal/orders" },
   { to: "/portal/orders/nieuw" },
   { to: "/portal/facturen" },
+  { to: "/portal/historie" },
   { to: "/portal/profiel" },
 ];
 
@@ -35,6 +36,10 @@ describe("activeNavPath()", () => {
     );
   });
 
+  it("highlights Historie on the history page, also with filters in the URL", () => {
+    expect(activeNavPath(portalNav, "/portal/historie")).toBe("/portal/historie");
+  });
+
   it("does not match on a shared prefix that is not a path segment", () => {
     expect(activeNavPath(portalNav, "/portal/ordersx")).toBeNull();
   });
@@ -51,6 +56,8 @@ describe("activeNavPath() in the admin area", () => {
     { to: "/admin/statussen" },
     { to: "/admin/team" },
     { to: "/admin/instellingen" },
+    { to: "/admin/herinneringen" },
+    { to: "/admin/audit" },
   ];
 
   it("highlights one item per page", () => {
@@ -73,5 +80,7 @@ describe("activeNavPath() in the admin area", () => {
     );
     expect(activeNavPath(adminNav, "/admin/team")).toBe("/admin/team");
     expect(activeNavPath(adminNav, "/admin/instellingen")).toBe("/admin/instellingen");
+    expect(activeNavPath(adminNav, "/admin/herinneringen")).toBe("/admin/herinneringen");
+    expect(activeNavPath(adminNav, "/admin/audit")).toBe("/admin/audit");
   });
 });

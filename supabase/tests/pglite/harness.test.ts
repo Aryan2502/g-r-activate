@@ -573,8 +573,10 @@ select net.http_post('https://app.example.com/api/cron/x', '{"a":1}'::jsonb,
         ).n,
       ).toBe(true);
 
-      // Supabase lets the API roles call pg_net once it is enabled; a migration
-      // that must prevent that has to revoke it itself.
+      // As on Supabase (pg_net >= 0.12 + its grant_pg_net_access hook): the API
+      // roles may call pg_net once it is enabled, and a migration (run as the
+      // non-owner postgres there) cannot revoke it. Clients are kept out by
+      // `net` not being an exposed schema of the Data API.
       const rights = await one(
         own.query<{ anon: boolean; authenticated: boolean }>(
           `select has_function_privilege('anon', 'net.http_post(text, jsonb, jsonb, jsonb, integer)', 'execute') as anon,

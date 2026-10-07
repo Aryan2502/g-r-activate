@@ -119,7 +119,10 @@ function InvitationRow({
   const t = useT();
   const queryClient = useQueryClient();
   const [resent, setResent] = useState<Resent | null>(null);
-  const guard = useLinkGuard(resent?.link ?? null, () => setResent(null));
+  // Closing before the link was copied, shared or e-mailed asks first.
+  const guard = useLinkGuard(resent && resent.emailOutcome !== "sent" ? resent.link : null, () =>
+    setResent(null),
+  );
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const state = invitationState(invitation);
   const live = resendAvailability(invitation, new Date());
@@ -243,7 +246,8 @@ function InvitationRow({
                 link: resent.link,
               })}
               phone={null}
-              emailed={resent.emailed}
+              emailOutcome={resent.emailOutcome}
+              emailTo={resent.invitation.email}
               linkSource={resent.linkSource}
               notes={[
                 t("admin.invitations.linkOnce"),

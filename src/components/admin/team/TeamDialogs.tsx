@@ -406,7 +406,7 @@ export function TeamRecoveryDialog({
             copyLabel={t("admin.recovery.copy")}
             shareText={recoveryShareText({ fullName: member.displayName, link: result.link })}
             phone={null}
-            emailed={null}
+            emailOutcome={null}
             linkSource={result.linkSource}
             notes={[t("admin.recovery.validity")]}
             onShared={guard.markShared}

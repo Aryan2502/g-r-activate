@@ -1,16 +1,22 @@
 import type { UseQueryResult } from "@tanstack/react-query";
-import { CircleCheck, CircleX, Info, Server } from "lucide-react";
+import { AlertTriangle, CircleCheck, CircleX, Info, Server } from "lucide-react";
 
 import { DashboardPanel, PanelLoadError } from "@/components/admin/dashboard/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { SystemStatus } from "@/lib/admin/system-status";
+import {
+  cronSilent,
+  runState,
+  type JobRunSummary,
+  type SystemStatus,
+} from "@/lib/admin/system-status";
 import { formatDateTime } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
 /**
  * "Systeemstatus" (SPEC §35.2): booleans only, never a value: service-role
- * key, APP_URL, e-mail provider, cron secret, and the last payment-reminder
- * run with its status. Admins only (systemStatusFn).
+ * key, APP_URL, e-mail provider, cron secret, the last payment-reminder
+ * run with its status, and the last AUTOMATIC run on its own line (a manual
+ * run must not hide a daily schedule that stopped). Admins only.
  */
 export function SystemStatusPanel({ status }: { status: UseQueryResult<SystemStatus> }) {
   const t = useT();
@@ -34,20 +40,54 @@ export function SystemStatusPanel({ status }: { status: UseQueryResult<SystemSta
           />
           <Row label={t("admin.home.system.email")} ok={status.data.email} />
           <Row label={t("admin.home.system.cronSecret")} ok={status.data.cronSecret} />
-          <div className="grid gap-1 py-2.5 sm:grid-cols-[1fr_auto] sm:gap-3">
-            <dt className="text-muted-foreground">{t("admin.home.system.lastReminder")}</dt>
-            <dd className="text-foreground tabular-nums">
-              {status.data.lastReminderRun
-                ? `${t("admin.home.system.runValue", {
-                    status: t(`admin.home.system.runStatus.${status.data.lastReminderRun.status}`),
-                    date: formatDateTime(status.data.lastReminderRun.startedAt),
-                  })} (${t(`admin.home.system.runTrigger.${status.data.lastReminderRun.trigger}`)})`
-                : t("admin.home.system.noRun")}
-            </dd>
-          </div>
+          <RunRow
+            label={t("admin.home.system.lastReminder")}
+            run={status.data.lastReminderRun}
+            withTrigger
+          />
+          {status.data.lastCronReminderRun !== undefined ? (
+            <RunRow
+              label={t("admin.home.system.lastCronReminder")}
+              run={status.data.lastCronReminderRun}
+              {...(cronSilent(status.data) ? { warning: t("admin.home.system.cronSilent") } : {})}
+            />
+          ) : null}
         </dl>
       )}
     </DashboardPanel>
+  );
+}
+
+function RunRow({
+  label,
+  run,
+  withTrigger = false,
+  warning,
+}: {
+  label: string;
+  run: JobRunSummary | null;
+  withTrigger?: boolean;
+  warning?: string;
+}) {
+  const t = useT();
+  return (
+    <div className="grid gap-1 py-2.5 sm:grid-cols-[1fr_auto] sm:gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground tabular-nums sm:text-right">
+        {run
+          ? `${t("admin.home.system.runValue", {
+              status: t(`admin.home.system.runStatus.${runState(run)}`),
+              date: formatDateTime(run.startedAt),
+            })}${withTrigger ? ` (${t(`admin.home.system.runTrigger.${run.trigger}`)})` : ""}`
+          : t("admin.home.system.noRun")}
+        {warning ? (
+          <span className="mt-0.5 flex items-start gap-1 text-xs font-semibold text-warning sm:justify-end">
+            <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden />
+            {warning}
+          </span>
+        ) : null}
+      </dd>
+    </div>
   );
 }
 

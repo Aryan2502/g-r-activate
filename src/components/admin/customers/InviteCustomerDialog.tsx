@@ -63,7 +63,7 @@ type Conflict = Extract<InviteResponse, { status: "conflict" }>["conflict"];
  * existing one. inviteCustomerFn looks the e-mail up first and never makes a
  * second record for it; a conflict is explained with the way forward. The
  * result is the link, ALWAYS with "Kopieer uitnodigingslink" and "Deel via
- * WhatsApp" (e-mail follows in P8).
+ * WhatsApp", and what happened to the e-mail with the link.
  */
 export function InviteCustomerDialog({
   userId,
@@ -91,8 +91,12 @@ export function InviteCustomerDialog({
     setOutcome(null);
     setTarget(customer);
   };
-  // The link is shown once: closing before it was copied or shared asks first.
-  const guard = useLinkGuard(outcome?.status === "invited" ? outcome.link : null, finish);
+  // The link is shown once: closing before it was copied or shared asks first,
+  // unless the e-mail with the link went out.
+  const guard = useLinkGuard(
+    outcome?.status === "invited" && outcome.emailOutcome !== "sent" ? outcome.link : null,
+    finish,
+  );
   const close = (next: boolean) => {
     if (busy) return;
     if (next) onOpenChange(true);
@@ -542,7 +546,8 @@ function InviteOutcome({
           link: outcome.link,
         })}
         phone={customer.phone}
-        emailed={outcome.emailed}
+        emailOutcome={outcome.emailOutcome}
+        emailTo={customer.email}
         linkSource={outcome.linkSource}
         notes={[
           t("admin.invitations.linkOnce"),

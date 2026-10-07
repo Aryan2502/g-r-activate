@@ -82,7 +82,10 @@ export function CustomerInvitationPanel({
   const t = useT();
   const queryClient = useQueryClient();
   const [resent, setResent] = useState<Resent | null>(null);
-  const guard = useLinkGuard(resent?.link ?? null, () => setResent(null));
+  // Closing before the link was copied, shared or e-mailed asks first.
+  const guard = useLinkGuard(resent && resent.emailOutcome !== "sent" ? resent.link : null, () =>
+    setResent(null),
+  );
   // Where focus goes after the link dialog: "Opnieuw versturen" is disabled
   // for a minute then, so Radix cannot return focus to it.
   const hintRef = useRef<HTMLParagraphElement>(null);
@@ -266,7 +269,8 @@ export function CustomerInvitationPanel({
                 link: resent.link,
               })}
               phone={customer.phone}
-              emailed={resent.emailed}
+              emailOutcome={resent.emailOutcome}
+              emailTo={resent.invitation.email}
               linkSource={resent.linkSource}
               notes={[
                 t("admin.invitations.linkOnce"),

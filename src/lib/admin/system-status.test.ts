@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
-const { setupChecklist } = await import("./system-status");
+const { cronSilent, runState, setupChecklist } = await import("./system-status");
 
 const filled = (currency: "USD" | "EUR" | "SRD") => ({
   id: currency,
@@ -93,5 +93,50 @@ describe("setupChecklist (SPEC §35.8)", () => {
     expect(
       setupChecklist({ system: { ...system, appUrl: false, appUrlFromVercel: true } }),
     ).toEqual([{ key: "appUrl", tone: "info", section: null, fromVercel: true }]);
+  });
+});
+
+describe("the daily schedule (P8 review)", () => {
+  const NOW = new Date("2026-10-08T15:00:00Z");
+  const run = (startedAt: string, trigger: "cron" | "manual" = "cron") => ({
+    status: "succeeded" as const,
+    trigger,
+    startedAt,
+    finishedAt: startedAt,
+  });
+
+  it("warns when CRON_SECRET is set but no automatic run started in the last 26 hours", () => {
+    const fresh = { ...system, lastCronReminderRun: run("2026-10-08T12:00:05Z") };
+    expect(cronSilent(fresh, NOW)).toBe(false);
+    const stale = { ...system, lastCronReminderRun: run("2026-10-07T12:00:05Z") };
+    expect(cronSilent(stale, NOW)).toBe(true);
+    // A manual run today does not hide the stopped schedule.
+    expect(
+      setupChecklist({
+        system: { ...stale, lastReminderRun: run("2026-10-08T14:00:00Z", "manual") },
+        now: NOW,
+      }),
+    ).toEqual([{ key: "cronSilent", tone: "warning", section: null, neverRan: false }]);
+    expect(setupChecklist({ system: { ...system, lastCronReminderRun: null }, now: NOW })).toEqual([
+      { key: "cronSilent", tone: "warning", section: null, neverRan: true },
+    ]);
+    // Not known (an older server): no claim.
+    expect(cronSilent(system, NOW)).toBe(false);
+  });
+
+  it("without CRON_SECRET it names that instead", () => {
+    expect(
+      setupChecklist({ system: { ...system, cronSecret: false, lastCronReminderRun: null } }),
+    ).toEqual([{ key: "cronSecret", tone: "warning", section: null }]);
+  });
+
+  it("a run still 'running' after 15 minutes is shown as abandoned", () => {
+    expect(runState({ status: "running", started_at: "2026-10-08T14:50:00Z" }, NOW)).toBe(
+      "running",
+    );
+    expect(runState({ status: "running", startedAt: "2026-10-08T14:40:00Z" }, NOW)).toBe(
+      "abandoned",
+    );
+    expect(runState({ status: "failed", started_at: "2026-10-01T00:00:00Z" }, NOW)).toBe("failed");
   });
 });

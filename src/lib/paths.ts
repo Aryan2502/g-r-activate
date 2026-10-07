@@ -13,6 +13,7 @@ export const paths: Readonly<
     | "portalOrders"
     | "portalOrderNew"
     | "portalInvoices"
+    | "portalHistory"
     | "admin"
     | "adminOrders"
     | "adminOrderNew"
@@ -22,7 +23,9 @@ export const paths: Readonly<
     | "adminTeam"
     | "adminSettings"
     | "adminInvoices"
-    | "adminInvoiceNew",
+    | "adminInvoiceNew"
+    | "adminReminders"
+    | "adminAudit",
     string
   >
 > = {
@@ -39,6 +42,8 @@ export const paths: Readonly<
   portalOrderNew: "/portal/orders/nieuw",
   /** The customer's invoices; `/portal/facturen/<id>` is one invoice (never a draft). */
   portalInvoices: "/portal/facturen",
+  /** History per year (SPEC §20): `?year=&type=&q=` filter it. */
+  portalHistory: "/portal/historie",
   admin: "/admin",
   adminOrders: "/admin/orders",
   /** "Order aanmaken voor klant"; `?customer=`, `?parent=` and `?tracking=` prefill it. */
@@ -57,4 +62,8 @@ export const paths: Readonly<
   adminInvoices: "/admin/facturen",
   /** The invoice builder; `?customer=<id>&orders=<id,id>` prefills it (SPEC §35.9). */
   adminInvoiceNew: "/admin/facturen/nieuw",
+  /** Payment reminders (SPEC §35.12): open invoices, last runs, "Herinneringen nu versturen". */
+  adminReminders: "/admin/herinneringen",
+  /** The generic audit log (SPEC §35.13): admins only. */
+  adminAudit: "/admin/audit",
 };

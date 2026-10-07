@@ -455,7 +455,7 @@ export function RecoveryLinkDialog({
               copyLabel={t("admin.recovery.copy")}
               shareText={recoveryShareText({ fullName: result.fullName, link: result.link })}
               phone={result.phone}
-              emailed={null}
+              emailOutcome={null}
               linkSource={result.linkSource}
               notes={[t("admin.recovery.validity")]}
               onShared={guard.markShared}

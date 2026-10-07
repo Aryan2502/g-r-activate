@@ -7,13 +7,17 @@
 -- real shape: method is net.http_method, headers are required, the body is
 -- bytea (decode with convert_from(body, 'UTF8')), and there is no timestamp.
 --
--- Rights as Supabase's grant_pg_net_access hook leaves them: USAGE on net and
--- EXECUTE on the request functions for postgres AND anon, authenticated and
--- service_role. A migration that must keep clients from making the database
--- send HTTP requests has to revoke that itself.
+-- Rights as pg_net >= 0.12 (Supabase ships 0.19/0.20) plus Supabase's
+-- grant_pg_net_access hook leave them: USAGE on net for PUBLIC (pg_net.sql)
+-- and for postgres, anon, authenticated and service_role (the hook); the
+-- request functions are SECURITY INVOKER with EXECUTE left to PUBLIC; the
+-- queue and response tables are granted to PUBLIC (the invoker inserts).
+-- On Supabase all of it is owned by supabase_admin, so a migration (run as
+-- the non-owner postgres) cannot revoke any of it; the control is that `net`
+-- is not an exposed schema of the Data API (docs/DEPLOYMENT.md §7.4).
 
 create schema net;
-revoke all on schema net from public;
+grant usage on schema net to public;
 grant usage on schema net to postgres, anon, authenticated, service_role;
 
 create type net.http_method as enum ('GET', 'POST', 'DELETE');
@@ -38,8 +42,8 @@ create table net._http_response (
   created timestamptz not null default now()
 );
 
-revoke all on net.http_request_queue, net._http_response from public;
-grant select on net.http_request_queue, net._http_response to postgres;
+grant all on net.http_request_queue, net._http_response to public;
+grant all on sequence net.http_request_queue_id_seq to public;
 
 create function net.__url_with_params(url text, params jsonb) returns text
 language sql immutable as $$
@@ -55,7 +59,7 @@ create function net.http_get(
   params jsonb default '{}'::jsonb,
   headers jsonb default '{}'::jsonb,
   timeout_milliseconds integer default 5000
-) returns bigint language sql security definer set search_path = '' as $$
+) returns bigint language sql security invoker set search_path = '' as $$
   insert into net.http_request_queue (method, url, headers, body, timeout_milliseconds)
   values ('GET', net.__url_with_params(url, params), coalesce(headers, '{}'::jsonb), null, timeout_milliseconds)
   returning id
@@ -69,7 +73,7 @@ create function net.http_post(
   params jsonb default '{}'::jsonb,
   headers jsonb default '{"Content-Type": "application/json"}'::jsonb,
   timeout_milliseconds integer default 5000
-) returns bigint language plpgsql security definer set search_path = '' as $$
+) returns bigint language plpgsql security invoker set search_path = '' as $$
 declare
   _headers jsonb := coalesce(headers, '{}'::jsonb);
   _type text;
@@ -93,16 +97,11 @@ create function net.http_delete(
   params jsonb default '{}'::jsonb,
   headers jsonb default '{}'::jsonb,
   timeout_milliseconds integer default 5000
-) returns bigint language sql security definer set search_path = '' as $$
+) returns bigint language sql security invoker set search_path = '' as $$
   insert into net.http_request_queue (method, url, headers, body, timeout_milliseconds)
   values ('DELETE', net.__url_with_params(url, params), coalesce(headers, '{}'::jsonb), null, timeout_milliseconds)
   returning id
 $$;
 
-revoke all on all functions in schema net from public;
-grant execute on function
-  net.http_get(text, jsonb, jsonb, integer),
-  net.http_post(text, jsonb, jsonb, jsonb, integer),
-  net.http_delete(text, jsonb, jsonb, integer)
-to postgres, anon, authenticated, service_role;
-grant execute on function net.__url_with_params(text, jsonb) to postgres;
+-- EXECUTE on every function stays with PUBLIC (the default; pg_net >= 0.12
+-- revokes nothing).

@@ -22,6 +22,8 @@ import {
   toTransportError,
   type TransportError,
 } from "@/lib/errors";
+import type { StatusFollowUp } from "@/lib/admin/status-share";
+import type { EmailOutcome } from "@/lib/email/outcome";
 import { denied, requireStaff } from "@/lib/server-fns/middleware";
 
 /**
@@ -32,21 +34,63 @@ import { denied, requireStaff } from "@/lib/server-fns/middleware";
  * - writes with the staff member's OWN client (context.access.supabase), so
  *   the RPC guards, RLS and triggers apply and the history records who did
  *   it ("door Maria"); never the service role;
- * - then calls the P8 e-mail hook in src/server/order-notifications.ts, which
- *   never fails the action.
+ * - then sends the e-mails (src/server/order-notifications.ts: "statusupdate",
+ *   at most one per customer; "order bevestigd") and reports what happened
+ *   to each (EmailOutcome), so the dialogs say whether the customer was
+ *   e-mailed; an e-mail problem never fails the action.
  * Failures are RETURNED (TransportError), so the browser keeps the SQLSTATE
  * and hints such as pay_before_pickup; use the submit* wrappers below, which
  * throw them as CodedError.
  */
 
 type Failure = { ok: false; error: TransportError };
-export type StatusActionResponse = { ok: true; changed: string[]; unchanged: string[] } | Failure;
+export type StatusActionResponse =
+  | {
+      ok: true;
+      changed: string[];
+      unchanged: string[];
+      /** One per customer that was to be e-mailed (empty: no e-mail was meant to go out). */
+      emailOutcomes: EmailOutcome[];
+      /**
+       * Customers whose e-mail did not go out, with a WhatsApp message to
+       * send instead (SPEC §35.12).
+       */
+      followUps: StatusFollowUp[];
+    }
+  | Failure;
 
 /** Expected refusals (validation, state, access) are warnings; the rest is an error. */
 function logFailure(name: string, error: unknown) {
   const kind = toAppError(error).kind;
   const log = kind === "unknown" || kind === "network" ? console.error : console.warn;
   log(`[${name}] failed`, error);
+}
+
+/**
+ * The "statusupdate" e-mails of one action (an unexpected error counts as
+ * failed), and a WhatsApp message for every customer whose e-mail did not go out.
+ */
+async function statusEmails(
+  name: string,
+  event: Parameters<typeof import("@/server/order-notifications").onOrderStatusChanged>[0],
+): Promise<{ emailOutcomes: EmailOutcome[]; followUps: StatusFollowUp[] }> {
+  if (event.emails.length === 0) return { emailOutcomes: [], followUps: [] };
+  const notifications = await import("@/server/order-notifications");
+  let emailOutcomes: EmailOutcome[];
+  try {
+    emailOutcomes = (await notifications.onOrderStatusChanged(event)).emails;
+  } catch (error) {
+    console.error(`[${name}] onOrderStatusChanged failed`, error);
+    emailOutcomes = event.emails.map(() => "failed" as const);
+  }
+  let linkBase: string | null = null;
+  try {
+    linkBase = (await import("@/server/fn-helpers")).screenBase().base;
+  } catch (error) {
+    console.warn(`[${name}] no link base for WhatsApp messages`, error);
+  }
+  const followUps = await notifications.statusFollowUps(event, emailOutcomes, linkBase);
+  return { emailOutcomes, followUps };
 }
 
 /** "Status wijzigen", for one order or a selection (bulk), in one call. */
@@ -68,20 +112,16 @@ export const changeOrderStatusFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    // P8 hook point: "statusupdate" e-mails, at most one per customer.
-    try {
-      const { onOrderStatusChanged } = await import("@/server/order-notifications");
-      await onOrderStatusChanged({
-        action: "status",
-        toStatus: input.toStatus,
-        customerMessage: input.customerMessage,
-        emails: result.emails,
-        userId: access.userId,
-      });
-    } catch (error) {
-      console.error("[changeOrderStatusFn] onOrderStatusChanged failed", error);
-    }
-    return { ok: true, changed: result.changed, unchanged: result.unchanged };
+    // "statusupdate" e-mails, at most one per customer.
+    const emails = await statusEmails("changeOrderStatusFn", {
+      db: access.supabase,
+      action: "status",
+      toStatus: input.toStatus,
+      customerMessage: input.customerMessage,
+      emails: result.emails,
+      userId: access.userId,
+    });
+    return { ok: true, changed: result.changed, unchanged: result.unchanged, ...emails };
   });
 
 /**
@@ -106,19 +146,15 @@ export const pickupFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    try {
-      const { onOrderStatusChanged } = await import("@/server/order-notifications");
-      await onOrderStatusChanged({
-        action: "pickup",
-        toStatus: input.toStatus,
-        customerMessage: input.customerMessage,
-        emails: result.emails,
-        userId: access.userId,
-      });
-    } catch (error) {
-      console.error("[pickupFn] onOrderStatusChanged failed", error);
-    }
-    return { ok: true, changed: result.changed, unchanged: result.unchanged };
+    const emails = await statusEmails("pickupFn", {
+      db: access.supabase,
+      action: "pickup",
+      toStatus: input.toStatus,
+      customerMessage: input.customerMessage,
+      emails: result.emails,
+      userId: access.userId,
+    });
+    return { ok: true, changed: result.changed, unchanged: result.unchanged, ...emails };
   });
 
 /** "Ontvangen in US-magazijn": the measured weight, then the US-warehouse status. */
@@ -152,21 +188,17 @@ export const receiveOrderFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    if (toStatus) {
-      try {
-        const { onOrderStatusChanged } = await import("@/server/order-notifications");
-        await onOrderStatusChanged({
+    const emails = toStatus
+      ? await statusEmails("receiveOrderFn", {
+          db: access.supabase,
           action: "receive",
           toStatus,
           customerMessage: null,
           emails: result.emails,
           userId: access.userId,
-        });
-      } catch (error) {
-        console.error("[receiveOrderFn] onOrderStatusChanged failed", error);
-      }
-    }
-    return { ok: true, changed: result.changed, unchanged: result.unchanged };
+        })
+      : { emailOutcomes: [], followUps: [] };
+    return { ok: true, changed: result.changed, unchanged: result.unchanged, ...emails };
   });
 
 export type CreateOrderResponse =
@@ -176,6 +208,10 @@ export type CreateOrderResponse =
       reference: string;
       /** Set when the order was created but receiving it right away failed. */
       receiveError: TransportError | null;
+      /** "Order bevestigd" to the customer. */
+      emailOutcome: EmailOutcome;
+      /** "Statusupdate" of the immediate receipt (empty when not received or not e-mailed). */
+      receiveEmailOutcomes: EmailOutcome[];
     }
   | Failure;
 
@@ -202,22 +238,28 @@ export const createOrderForCustomerFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    // P8 hook point: "order bevestigd". Never fails the creation.
+    // "Order bevestigd". Never fails the creation.
+    let emailOutcome: EmailOutcome;
     try {
       const { onOrderRegistered } = await import("@/server/order-notifications");
-      await onOrderRegistered({
-        orderId: order.id,
-        reference: order.reference,
-        customerId: order.customerId,
-        parentOrderId: order.parentOrderId,
-        userId: access.userId,
-        createdBy: "staff",
-      });
+      emailOutcome = (
+        await onOrderRegistered({
+          db: access.supabase,
+          orderId: order.id,
+          reference: order.reference,
+          customerId: order.customerId,
+          parentOrderId: order.parentOrderId,
+          userId: access.userId,
+          createdBy: "staff",
+        })
+      ).email;
     } catch (error) {
       console.error("[createOrderForCustomerFn] onOrderRegistered failed", error);
+      emailOutcome = "failed";
     }
 
     let receiveError: TransportError | null = null;
+    let receiveEmailOutcomes: EmailOutcome[] = [];
     const weight = weightFromText(input.measuredWeightLbs);
     if (weight !== null) {
       try {
@@ -230,24 +272,29 @@ export const createOrderForCustomerFn = createServerFn({ method: "POST" })
           .select("status")
           .eq("id", order.id)
           .maybeSingle();
-        try {
-          const { onOrderStatusChanged } = await import("@/server/order-notifications");
-          await onOrderStatusChanged({
+        receiveEmailOutcomes = (
+          await statusEmails("createOrderForCustomerFn", {
+            db: access.supabase,
             action: "receive",
             toStatus: row?.status ?? "",
             customerMessage: null,
             emails: received.emails,
             userId: access.userId,
-          });
-        } catch (error) {
-          console.error("[createOrderForCustomerFn] onOrderStatusChanged failed", error);
-        }
+          })
+        ).emailOutcomes;
       } catch (error) {
         logFailure("createOrderForCustomerFn/receive", error);
         receiveError = toTransportError(error);
       }
     }
-    return { ok: true, id: order.id, reference: order.reference, receiveError };
+    return {
+      ok: true,
+      id: order.id,
+      reference: order.reference,
+      receiveError,
+      emailOutcome,
+      receiveEmailOutcomes,
+    };
   });
 
 // ---------------------------------------------------------------------------

@@ -157,9 +157,11 @@ export function PaymentDialog({
     mutationFn: (input: ReturnType<typeof validatePaymentForm> & { ok: true }) =>
       mode === "full" ? submitMarkPaid(input.markPaid) : submitRecordPayment(input.record),
     onSuccess: async (result, input) => {
-      const description = result.emailed
-        ? t("admin.invoices.payment.emailed")
-        : t("admin.invoices.payment.noEmail");
+      // "Betaling ontvangen" goes out only once the invoice is paid.
+      const description =
+        result.emailOutcome === null
+          ? t("admin.invoices.payment.noEmailPartial")
+          : t(`admin.invoices.payment.email.${result.emailOutcome}`);
       if (result.invoiceStatus === "paid") {
         toast.success(t("admin.invoices.payment.successPaid", { number: invoice.invoiceNumber }), {
           description,

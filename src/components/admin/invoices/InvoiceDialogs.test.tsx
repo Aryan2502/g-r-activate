@@ -80,10 +80,10 @@ describe("PaymentDialog", () => {
     expect(server.submitRecordPayment).not.toHaveBeenCalled();
   });
 
-  it("records the amount and says no e-mail went out", async () => {
+  it("records a part payment and says no e-mail goes out for it", async () => {
     server.submitRecordPayment.mockResolvedValue({
       ok: true,
-      emailed: false,
+      emailOutcome: null,
       paymentId: "p1",
       invoiceStatus: "partially_paid",
       amountPaid: 20,
@@ -107,14 +107,14 @@ describe("PaymentDialog", () => {
     );
     expect(toast.success).toHaveBeenCalledWith(
       t("admin.invoices.payment.success", { amount: "USD 20,00" }),
-      { description: t("admin.invoices.payment.noEmail") },
+      { description: t("admin.invoices.payment.noEmailPartial") },
     );
   });
 
   it("'Markeer als betaald' pays the balance shown in the dialog (sent as the amount)", async () => {
     server.submitMarkPaid.mockResolvedValue({
       ok: true,
-      emailed: false,
+      emailOutcome: "skipped",
       paymentId: "p1",
       invoiceStatus: "paid",
       amountPaid: 45.15,

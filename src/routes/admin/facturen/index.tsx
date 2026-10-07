@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { FilePlus2, Search, XCircle } from "lucide-react";
 
+import { ExportCsvButton } from "@/components/admin/ExportCsvButton";
 import { ShellPageHeader } from "@/components/layout/AppShell";
 import { CurrencyAmounts } from "@/components/portal/CurrencyAmounts";
 import { LoadError, Muted } from "@/components/portal/Section";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Constants } from "@/integrations/supabase/types";
+import { exportInvoices, exportPayments } from "@/lib/admin/exports";
 import {
   INVOICE_PERIODS,
   INVOICE_SORTS,
@@ -143,12 +145,34 @@ function InvoicesPage() {
             </div>
           ) : null}
           <Totals summary={summary} />
-          <p className="mb-3 text-sm text-muted-foreground tabular-nums" aria-live="polite">
-            {t(all.length === 1 ? "admin.invoices.resultCountOne" : "admin.invoices.resultCount", {
-              count: formatNumber(visible.length, 0),
-              total: formatNumber(all.length, 0),
-            })}
-          </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
+              {t(
+                all.length === 1 ? "admin.invoices.resultCountOne" : "admin.invoices.resultCount",
+                {
+                  count: formatNumber(visible.length, 0),
+                  total: formatNumber(all.length, 0),
+                },
+              )}
+            </p>
+            {auth.role === "admin" && visible.length > 0 ? (
+              <ExportCsvButton
+                scope={t("admin.exports.scopeFiltered", {
+                  count: formatNumber(visible.length, 0),
+                })}
+                options={[
+                  {
+                    label: t("admin.exports.what.invoices"),
+                    run: () => exportInvoices({ ids: visibleIds(visible) }),
+                  },
+                  {
+                    label: t("admin.exports.what.payments"),
+                    run: () => exportPayments({ invoiceIds: visibleIds(visible) }),
+                  },
+                ]}
+              />
+            ) : null}
+          </div>
           {visible.length === 0 ? (
             <div className="flex flex-col items-start gap-3 rounded-lg border bg-card p-6 shadow-sm">
               <p className="text-sm text-foreground">{t("admin.invoices.noResults")}</p>
@@ -165,6 +189,10 @@ function InvoicesPage() {
     </>
   );
 }
+
+/** The ids of the invoices the filters show, in their order. */
+const visibleIds = (invoices: readonly AdminInvoiceListItem[]) =>
+  invoices.flatMap((i) => (i.id ? [i.id] : []));
 
 // ---------------------------------------------------------------------------
 // Filters (in the URL)

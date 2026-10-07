@@ -23,6 +23,8 @@ function itemText(t: Translate, item: SetupItem): string {
       });
     case "appUrl":
       return item.fromVercel ? t("admin.home.setup.appUrlVercel") : t("admin.home.setup.appUrl");
+    case "cronSilent":
+      return item.neverRan ? t("admin.home.setup.cronNeverRan") : t("admin.home.setup.cronSilent");
     default:
       return t(`admin.home.setup.${item.key}`);
   }

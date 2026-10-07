@@ -38,10 +38,13 @@ export const registerOrderFn = createServerFn({ method: "POST" })
         return { ok: false, error: toTransportError(error) };
       }
 
-      // P8 hook point: the "order bevestigd" e-mail. Never fails the registration.
+      // The "order bevestigd" e-mail. Never fails the registration. The order
+      // and the customer are read with the customer's own client (RLS); only
+      // the e-mail log is written with the service role (src/server/email.ts).
       try {
         const { onOrderRegistered } = await import("@/server/order-notifications");
         await onOrderRegistered({
+          db: context.supabase,
           orderId: order.id,
           reference: order.reference,
           customerId: order.customerId,

@@ -72,6 +72,8 @@ export const adminKeys = {
     ["admin", userId, "config", "invoice-counter", year] as const,
   /** Booleans about the server's configuration (admins only, systemStatusFn). */
   systemStatus: (userId: string) => ["admin", userId, "config", "system-status"] as const,
+  /** Whether e-mail is configured (every staff member, emailStatusFn). */
+  emailStatus: (userId: string) => ["admin", userId, "config", "email-status"] as const,
   /** Dashboard figures that are not order counts. */
   dashboard: (userId: string) => ["admin", userId, "dashboard"] as const,
   customerStats: (userId: string) => ["admin", userId, "dashboard", "customers"] as const,
@@ -92,6 +94,14 @@ export const adminKeys = {
   invoiceList: (userId: string) => ["admin", userId, "invoices", "list"] as const,
   invoice: (userId: string, invoiceId: string) =>
     ["admin", userId, "invoices", "id", invoiceId] as const,
+  /** The e-mails about one invoice (email_logs: factuur, herinneringen, betaling ontvangen). */
+  invoiceEmails: (userId: string, invoiceId: string) =>
+    ["admin", userId, "invoices", "id", invoiceId, "emails"] as const,
+  /** /admin/herinneringen: open invoices with settings and reminder log, and the job runs. */
+  reminders: (userId: string) => ["admin", userId, "invoices", "reminders"] as const,
+  reminderOverview: (userId: string) =>
+    ["admin", userId, "invoices", "reminders", "overview"] as const,
+  reminderRuns: (userId: string) => ["admin", userId, "invoices", "reminders", "runs"] as const,
   /** The payments of one invoice (voided ones too: staff see them). */
   invoicePayments: (userId: string, invoiceId: string) =>
     ["admin", userId, "invoices", "id", invoiceId, "payments"] as const,
@@ -154,4 +164,9 @@ export const adminKeys = {
     ["admin", userId, "orders", "shipments", "id", shipmentId, "orders"] as const,
   /** Orders per status code (the statuses page: what is in use). */
   statusUsage: (userId: string) => ["admin", userId, "orders", "status-usage"] as const,
+
+  /** /admin/audit: audit_log (admins only), one page per filter set. */
+  audit: (userId: string) => ["admin", userId, "audit"] as const,
+  auditPage: (userId: string, filters: Readonly<Record<string, unknown>>, page: number) =>
+    ["admin", userId, "audit", filters, page] as const,
 };

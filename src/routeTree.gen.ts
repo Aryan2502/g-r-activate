@@ -20,10 +20,13 @@ import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as PublicVerbodenGoederenRouteImport } from './routes/_public/verboden-goederen'
 import { Route as PublicVoorwaardenRouteImport } from './routes/_public/voorwaarden'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAuditRouteImport } from './routes/admin/audit'
+import { Route as AdminHerinneringenRouteImport } from './routes/admin/herinneringen'
 import { Route as AdminInstellingenRouteImport } from './routes/admin/instellingen'
 import { Route as AdminStatussenRouteImport } from './routes/admin/statussen'
 import { Route as AdminTeamRouteImport } from './routes/admin/team'
 import { Route as PortalIndexRouteImport } from './routes/portal/index'
+import { Route as PortalHistorieRouteImport } from './routes/portal/historie'
 import { Route as PortalProfielRouteImport } from './routes/portal/profiel'
 import { Route as AuthAuthConfirmRouteImport } from './routes/_auth/auth/confirm'
 import { Route as AuthAuthSetPasswordRouteImport } from './routes/_auth/auth/set-password'
@@ -38,6 +41,7 @@ import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders/$id'
 import { Route as AdminOrdersNieuwRouteImport } from './routes/admin/orders/nieuw'
 import { Route as AdminZendingenIndexRouteImport } from './routes/admin/zendingen/index'
 import { Route as AdminZendingenIdRouteImport } from './routes/admin/zendingen/$id'
+import { Route as ApiCronPaymentRemindersRouteImport } from './routes/api/cron/payment-reminders'
 import { Route as PortalFacturenIndexRouteImport } from './routes/portal/facturen/index'
 import { Route as PortalFacturenIdRouteImport } from './routes/portal/facturen/$id'
 import { Route as PortalOrdersIndexRouteImport } from './routes/portal/orders/index'
@@ -99,6 +103,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHerinneringenRoute = AdminHerinneringenRouteImport.update({
+  id: '/herinneringen',
+  path: '/herinneringen',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminInstellingenRoute = AdminInstellingenRouteImport.update({
   id: '/instellingen',
   path: '/instellingen',
@@ -117,6 +131,11 @@ const AdminTeamRoute = AdminTeamRouteImport.update({
 const PortalIndexRoute = PortalIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalHistorieRoute = PortalHistorieRouteImport.update({
+  id: '/historie',
+  path: '/historie',
   getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalProfielRoute = PortalProfielRouteImport.update({
@@ -189,6 +208,11 @@ const AdminZendingenIdRoute = AdminZendingenIdRouteImport.update({
   path: '/zendingen/$id',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const ApiCronPaymentRemindersRoute = ApiCronPaymentRemindersRouteImport.update({
+  id: '/api/cron/payment-reminders',
+  path: '/api/cron/payment-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalFacturenIndexRoute = PortalFacturenIndexRouteImport.update({
   id: '/facturen/',
   path: '/facturen/',
@@ -234,9 +258,12 @@ export interface FileRoutesByFullPath {
   '/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
   '/verboden-goederen': typeof PublicVerbodenGoederenRoute
   '/voorwaarden': typeof PublicVoorwaardenRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/herinneringen': typeof AdminHerinneringenRoute
   '/admin/instellingen': typeof AdminInstellingenRoute
   '/admin/statussen': typeof AdminStatussenRoute
   '/admin/team': typeof AdminTeamRoute
+  '/portal/historie': typeof PortalHistorieRoute
   '/portal/profiel': typeof PortalProfielRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
@@ -249,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
+  '/api/cron/payment-reminders': typeof ApiCronPaymentRemindersRoute
   '/portal/facturen/$id': typeof PortalFacturenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
@@ -268,9 +296,12 @@ export interface FileRoutesByTo {
   '/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
   '/verboden-goederen': typeof PublicVerbodenGoederenRoute
   '/voorwaarden': typeof PublicVoorwaardenRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/herinneringen': typeof AdminHerinneringenRoute
   '/admin/instellingen': typeof AdminInstellingenRoute
   '/admin/statussen': typeof AdminStatussenRoute
   '/admin/team': typeof AdminTeamRoute
+  '/portal/historie': typeof PortalHistorieRoute
   '/portal/profiel': typeof PortalProfielRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
@@ -283,6 +314,7 @@ export interface FileRoutesByTo {
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
+  '/api/cron/payment-reminders': typeof ApiCronPaymentRemindersRoute
   '/portal/facturen/$id': typeof PortalFacturenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
@@ -306,9 +338,12 @@ export interface FileRoutesById {
   '/_auth/wachtwoord-vergeten': typeof AuthWachtwoordVergetenRoute
   '/_public/verboden-goederen': typeof PublicVerbodenGoederenRoute
   '/_public/voorwaarden': typeof PublicVoorwaardenRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/herinneringen': typeof AdminHerinneringenRoute
   '/admin/instellingen': typeof AdminInstellingenRoute
   '/admin/statussen': typeof AdminStatussenRoute
   '/admin/team': typeof AdminTeamRoute
+  '/portal/historie': typeof PortalHistorieRoute
   '/portal/profiel': typeof PortalProfielRoute
   '/_public/': typeof PublicIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -322,6 +357,7 @@ export interface FileRoutesById {
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
+  '/api/cron/payment-reminders': typeof ApiCronPaymentRemindersRoute
   '/portal/facturen/$id': typeof PortalFacturenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
@@ -345,9 +381,12 @@ export interface FileRouteTypes {
     | '/wachtwoord-vergeten'
     | '/verboden-goederen'
     | '/voorwaarden'
+    | '/admin/audit'
+    | '/admin/herinneringen'
     | '/admin/instellingen'
     | '/admin/statussen'
     | '/admin/team'
+    | '/portal/historie'
     | '/portal/profiel'
     | '/admin/'
     | '/portal/'
@@ -360,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
+    | '/api/cron/payment-reminders'
     | '/portal/facturen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
@@ -379,9 +419,12 @@ export interface FileRouteTypes {
     | '/wachtwoord-vergeten'
     | '/verboden-goederen'
     | '/voorwaarden'
+    | '/admin/audit'
+    | '/admin/herinneringen'
     | '/admin/instellingen'
     | '/admin/statussen'
     | '/admin/team'
+    | '/portal/historie'
     | '/portal/profiel'
     | '/admin'
     | '/portal'
@@ -394,6 +437,7 @@ export interface FileRouteTypes {
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
+    | '/api/cron/payment-reminders'
     | '/portal/facturen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
@@ -416,9 +460,12 @@ export interface FileRouteTypes {
     | '/_auth/wachtwoord-vergeten'
     | '/_public/verboden-goederen'
     | '/_public/voorwaarden'
+    | '/admin/audit'
+    | '/admin/herinneringen'
     | '/admin/instellingen'
     | '/admin/statussen'
     | '/admin/team'
+    | '/portal/historie'
     | '/portal/profiel'
     | '/_public/'
     | '/admin/'
@@ -432,6 +479,7 @@ export interface FileRouteTypes {
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
+    | '/api/cron/payment-reminders'
     | '/portal/facturen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
@@ -450,6 +498,7 @@ export interface RootRouteChildren {
   PortalRouteRoute: typeof PortalRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
+  ApiCronPaymentRemindersRoute: typeof ApiCronPaymentRemindersRoute
   AdminFacturenIdPrintRoute: typeof AdminFacturenIdPrintRoute
   PortalFacturenIdPrintRoute: typeof PortalFacturenIdPrintRoute
 }
@@ -533,6 +582,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/herinneringen': {
+      id: '/admin/herinneringen'
+      path: '/herinneringen'
+      fullPath: '/admin/herinneringen'
+      preLoaderRoute: typeof AdminHerinneringenRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/instellingen': {
       id: '/admin/instellingen'
       path: '/instellingen'
@@ -559,6 +622,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/portal/'
       preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/historie': {
+      id: '/portal/historie'
+      path: '/historie'
+      fullPath: '/portal/historie'
+      preLoaderRoute: typeof PortalHistorieRouteImport
       parentRoute: typeof PortalRouteRoute
     }
     '/portal/profiel': {
@@ -659,6 +729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminZendingenIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/api/cron/payment-reminders': {
+      id: '/api/cron/payment-reminders'
+      path: '/api/cron/payment-reminders'
+      fullPath: '/api/cron/payment-reminders'
+      preLoaderRoute: typeof ApiCronPaymentRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal/facturen/': {
       id: '/portal/facturen/'
       path: '/facturen'
@@ -712,6 +789,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminHerinneringenRoute: typeof AdminHerinneringenRoute
   AdminInstellingenRoute: typeof AdminInstellingenRoute
   AdminStatussenRoute: typeof AdminStatussenRoute
   AdminTeamRoute: typeof AdminTeamRoute
@@ -729,6 +808,8 @@ interface AdminRouteRouteChildren {
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAuditRoute: AdminAuditRoute,
+  AdminHerinneringenRoute: AdminHerinneringenRoute,
   AdminInstellingenRoute: AdminInstellingenRoute,
   AdminStatussenRoute: AdminStatussenRoute,
   AdminTeamRoute: AdminTeamRoute,
@@ -750,6 +831,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface PortalRouteRouteChildren {
+  PortalHistorieRoute: typeof PortalHistorieRoute
   PortalProfielRoute: typeof PortalProfielRoute
   PortalIndexRoute: typeof PortalIndexRoute
   PortalFacturenIdRoute: typeof PortalFacturenIdRoute
@@ -760,6 +842,7 @@ interface PortalRouteRouteChildren {
 }
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
+  PortalHistorieRoute: PortalHistorieRoute,
   PortalProfielRoute: PortalProfielRoute,
   PortalIndexRoute: PortalIndexRoute,
   PortalFacturenIdRoute: PortalFacturenIdRoute,
@@ -813,6 +896,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRouteRoute: PortalRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
+  ApiCronPaymentRemindersRoute: ApiCronPaymentRemindersRoute,
   AdminFacturenIdPrintRoute: AdminFacturenIdPrintRoute,
   PortalFacturenIdPrintRoute: PortalFacturenIdPrintRoute,
 }

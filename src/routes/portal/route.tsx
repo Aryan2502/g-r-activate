@@ -6,6 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import {
+  History,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -50,6 +51,7 @@ const nav: ShellNavItem[] = [
   { to: paths.portalOrders, label: t("portal.nav.orders"), icon: Package },
   { to: paths.portalOrderNew, label: t("portal.nav.newOrder"), icon: PackagePlus },
   { to: paths.portalInvoices, label: t("portal.nav.invoices"), icon: Receipt },
+  { to: paths.portalHistory, label: t("portal.nav.history"), icon: History },
   { to: paths.portalProfile, label: t("portal.nav.profile"), icon: UserRound },
 ];
 

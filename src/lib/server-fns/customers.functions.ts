@@ -21,6 +21,7 @@ import {
 } from "@/lib/admin/customer-actions";
 import { invitationLink } from "@/lib/admin/invitations";
 import { parseActionInput } from "@/lib/admin/order-actions";
+import type { EmailOutcome } from "@/lib/email/outcome";
 import { toTransportError, type TransportError } from "@/lib/errors";
 import { logFailure, unwrap, type Failure, type LinkSource } from "@/lib/server-fns/helpers";
 import { denied, requireAdmin, requireStaff } from "@/lib/server-fns/middleware";
@@ -36,8 +37,9 @@ import { denied, requireAdmin, requireStaff } from "@/lib/server-fns/middleware"
  * Invitation links: the raw token appears only in the link returned here,
  * once; the database stores its hash. The link's base is APP_URL, or, for
  * this on-screen link only, the origin of the staff member's browser
- * (src/server/links.ts). E-mail is P8: the hook reports whether it sent
- * anything (not yet), so the dialogs never claim an e-mail went out.
+ * (src/server/links.ts). The e-mail (src/server/invitation-notifications.ts)
+ * always links to APP_URL and reports what happened (EmailOutcome), so the
+ * dialogs say whether the link was e-mailed too.
  */
 
 // ---------------------------------------------------------------------------
@@ -53,7 +55,8 @@ export type InviteResponse =
       customer: CustomerSummary;
       link: string;
       linkSource: LinkSource;
-      emailed: boolean;
+      /** The "uitnodiging" e-mail; the link is shown on screen either way. */
+      emailOutcome: EmailOutcome;
       customerCreated: boolean;
     }
   | { ok: true; status: "conflict"; conflict: InviteConflict }
@@ -90,11 +93,12 @@ export const inviteCustomerFn = createServerFn({ method: "POST" })
       };
     }
 
-    // P8 hook point: the "uitnodiging" e-mail. Never fails the invitation.
-    let emailed = false;
+    // The "uitnodiging" e-mail. Never fails the invitation.
+    let emailOutcome: EmailOutcome;
     try {
       const { onInvitationSent } = await import("@/server/invitation-notifications");
-      ({ emailed } = await onInvitationSent({
+      ({ email: emailOutcome } = await onInvitationSent({
+        db: access.supabase,
         invitationId: result.invitationId,
         kind: "customer",
         email: result.customer.email ?? "",
@@ -105,6 +109,7 @@ export const inviteCustomerFn = createServerFn({ method: "POST" })
       }));
     } catch (error) {
       console.error("[inviteCustomerFn] onInvitationSent failed", error);
+      emailOutcome = "failed";
     }
     return {
       ok: true,
@@ -114,7 +119,7 @@ export const inviteCustomerFn = createServerFn({ method: "POST" })
       customer: result.customer,
       link: invitationLink(base.base, result.token),
       linkSource: base.source,
-      emailed,
+      emailOutcome,
       customerCreated: result.customerCreated,
     };
   });
@@ -130,7 +135,8 @@ export type ResendResponse =
       customer: CustomerSummary | null;
       link: string;
       linkSource: LinkSource;
-      emailed: boolean;
+      /** The "uitnodiging" e-mail; the link is shown on screen either way. */
+      emailOutcome: EmailOutcome;
     }
   | Failure;
 
@@ -153,10 +159,11 @@ export const resendInvitationFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    let emailed = false;
+    let emailOutcome: EmailOutcome;
     try {
       const { onInvitationSent } = await import("@/server/invitation-notifications");
-      ({ emailed } = await onInvitationSent({
+      ({ email: emailOutcome } = await onInvitationSent({
+        db: access.supabase,
         invitationId: result.invitation.id,
         kind: result.invitation.kind,
         email: result.invitation.email,
@@ -167,6 +174,7 @@ export const resendInvitationFn = createServerFn({ method: "POST" })
       }));
     } catch (error) {
       console.error("[resendInvitationFn] onInvitationSent failed", error);
+      emailOutcome = "failed";
     }
     return {
       ok: true,
@@ -174,7 +182,7 @@ export const resendInvitationFn = createServerFn({ method: "POST" })
       customer: result.customer,
       link: invitationLink(base.base, result.token),
       linkSource: base.source,
-      emailed,
+      emailOutcome,
     };
   });
 

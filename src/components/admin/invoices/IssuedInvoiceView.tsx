@@ -27,6 +27,8 @@ import {
   VoidPaymentDialog,
   type InvoiceActionTarget,
 } from "@/components/admin/invoices/InvoiceDialogs";
+import { InvoiceTimeline } from "@/components/admin/invoices/InvoiceTimeline";
+import { EmailLogList } from "@/components/admin/reminders/EmailLogList";
 import { InvoicePreview } from "@/components/invoice/InvoiceDocument";
 import { LoadError, Section } from "@/components/portal/Section";
 import { InvoiceStatusBadge } from "@/components/portal/StatusBadges";
@@ -43,16 +45,19 @@ import {
   type InvoiceViewRow,
 } from "@/lib/admin/invoice-queries";
 import { customerDisplayName, customersQueryOptions, peopleQueryOptions } from "@/lib/admin/orders";
+import { invoiceEmailLogsQueryOptions } from "@/lib/admin/reminders";
 import { companySettingsQueryOptions } from "@/lib/admin/settings-queries";
 import type { AppRole } from "@/lib/auth/redirect";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/format";
 import { useT } from "@/lib/i18n";
+import { sumAmounts } from "@/lib/invoice/totals";
 import {
   formatPercent,
   fromIssuedInvoice,
   parseIssuerSnapshot,
   type InvoiceItemRow,
 } from "@/lib/invoice/model";
+import { paths } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
 /**
@@ -134,6 +139,7 @@ function InvoiceBody({
   const id = invoice.id ?? "";
   const customers = useQuery(customersQueryOptions(userId));
   const payments = useQuery(invoicePaymentsQueryOptions(userId, id));
+  const emails = useQuery(invoiceEmailLogsQueryOptions(userId, id));
   const settings = useQuery(companySettingsQueryOptions(userId));
   const relations = useQuery(invoiceRelationsQueryOptions(userId, id, invoice.replaces_invoice_id));
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -142,6 +148,7 @@ function InvoiceBody({
   const issuer = parseIssuerSnapshot(invoice.issuer_snapshot);
   const customer = (customers.data ?? []).find((c) => c.id === invoice.customer_id) ?? null;
   const peopleIds = [
+    invoice.created_by ?? null,
     invoice.issued_by,
     invoice.cancelled_by,
     ...(payments.data ?? []).flatMap((p) => [p.recorded_by, p.voided_by]),
@@ -161,7 +168,7 @@ function InvoiceBody({
   const payable = (status === "open" || status === "partially_paid") && balance > 0;
   const cancelled = status === "cancelled";
   const lateFeePercent = issuer.lateFeePercent ?? settings.data?.late_fee_percent ?? null;
-  const hasLateFeeLine = items.some((i) => i.line_type === "late_fee");
+  const hasLateFeeLine = lateFeeLineAmount(items) !== null;
   const lateFeeOffered =
     admin && lateFeePercent !== null && canApplyLateFee(invoice, lateFeePercent, hasLateFeeLine);
   const orderIds = [...new Set(items.flatMap((i) => (i.order_id ? [i.order_id] : [])))];
@@ -294,7 +301,7 @@ function InvoiceBody({
       />
 
       {/* xl: the document on the left over all rows; the cards stack on the right (the last row takes the rest). */}
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:grid-rows-[auto_auto_1fr]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:grid-rows-[auto_auto_auto_1fr]">
         <Section
           title={t("admin.invoices.detail.summaryTitle")}
           icon={Receipt}
@@ -356,7 +363,7 @@ function InvoiceBody({
 
         <section
           aria-label={t("admin.invoices.detail.documentLabel")}
-          className="min-w-0 rounded-lg border bg-muted/60 p-2 sm:p-4 xl:col-start-1 xl:row-span-3 xl:row-start-1 print:border-0 print:bg-transparent print:p-0"
+          className="min-w-0 rounded-lg border bg-muted/60 p-2 sm:p-4 xl:col-start-1 xl:row-span-4 xl:row-start-1 print:border-0 print:bg-transparent print:p-0"
         >
           <InvoicePreview model={model} label={t("admin.invoices.detail.documentLabel")} />
         </section>
@@ -421,7 +428,40 @@ function InvoiceBody({
                 : t("admin.invoices.reminders.never")}
             </dd>
           </dl>
+          <h3 className="mt-5 text-sm font-bold text-primary">
+            {t("admin.reminders.emailLog.title")}
+          </h3>
+          {emails.isError ? (
+            <LoadError
+              className="mt-2"
+              title={t("admin.reminders.emailLog.loadFailed")}
+              error={emails.error}
+              onRetry={() => void emails.refetch()}
+            />
+          ) : emails.isPending ? (
+            <Skeleton className="mt-2 h-12 w-full" />
+          ) : (
+            <EmailLogList
+              className="mt-2"
+              logs={emails.data}
+              empty={t("admin.reminders.emailLog.empty")}
+            />
+          )}
+          <Link
+            to={paths.adminReminders}
+            className="mt-3 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {t("admin.invoices.reminders.manage")}
+          </Link>
         </Section>
+
+        <InvoiceTimeline
+          invoice={invoice}
+          payments={payments}
+          lateFee={lateFeeLineAmount(items)}
+          name={name}
+          className="xl:col-start-2 print:hidden"
+        />
       </div>
 
       {/* Dialogs; each mounts only for its own action. */}
@@ -719,4 +759,10 @@ function PaymentRow({
       ) : null}
     </li>
   );
+}
+
+/** The amount of the invoice's late-fee line (apply_late_fee adds at most one), or null. */
+function lateFeeLineAmount(items: readonly InvoiceItemRow[]): number | null {
+  const lines = items.filter((i) => i.line_type === "late_fee");
+  return lines.length > 0 ? sumAmounts(lines.map((i) => Number(i.amount))) : null;
 }

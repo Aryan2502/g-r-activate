@@ -146,8 +146,11 @@ export async function applyMigrations(db: Db, migrations: MigrationFile[]): Prom
  * Runs a migration's SQL, installing the pg_cron / pg_net stub exactly where
  * the file says `create extension`. Each piece is padded with whitespace in
  * place of the text before it, so error positions still point into the file.
+ * Exported for tests that replay migrations inside their own transaction
+ * (e.g. idempotency checks): plain `tx.exec(sql)` would hit PGlite's missing
+ * pg_cron / pg_net.
  */
-async function execMigrationSql(tx: Transaction, sql: string): Promise<void> {
+export async function execMigrationSql(tx: Transaction, sql: string): Promise<void> {
   let done = 0;
   const run = async (end: number) => {
     const piece = sql.slice(done, end);

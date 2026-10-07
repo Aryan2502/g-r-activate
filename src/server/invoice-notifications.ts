@@ -1,11 +1,29 @@
 import "@tanstack/react-start/server-only";
 
+import { invoiceEmailKey } from "@/lib/email/keys";
+import type { EmailOutcome } from "@/lib/email/outcome";
+import { invoiceIssuedEmail, paymentReceivedEmail } from "@/server/email-templates/invoices";
+import {
+  appUrlOrNull,
+  loadIssuedInvoice,
+  loadRecipient,
+  noAppUrlOutcome,
+  sendToCustomer,
+  type NotificationDb,
+} from "@/server/notification-data";
+
 /**
- * Hook points for invoice e-mails. Load with
- * `await import("@/server/invoice-notifications")` inside a server handler.
+ * Invoice e-mails (SPEC §24, §35.12). Load with
+ * `await import("@/server/invoice-notifications")` inside a server handler,
+ * after the database committed. The content comes from the invoice's
+ * snapshots (never today's settings), read with the staff member's own
+ * client; the address is the customer record's current one. A link to
+ * /portal/facturen/<id> only for a customer who can log in.
  */
 
 export interface InvoiceIssuedEvent {
+  /** The staff member's own client. */
+  db: NotificationDb;
   invoiceId: string;
   invoiceNumber: string;
   customerId: string;
@@ -13,26 +31,35 @@ export interface InvoiceIssuedEvent {
   userId: string;
 }
 
-/**
- * P8 HOOK: "Factuur aangemaakt" e-mail (SPEC §35.12).
- *
- * issueInvoiceFn calls this once, after issue_invoice committed (the invoice
- * has its number and snapshots); a failure here never fails or undoes the
- * issue (the caller logs and moves on). P8 sends the e-mail with an
- * idempotency key such as `invoice_issued:<invoiceId>`, built from the
- * snapshots (never today's settings), with a link to /portal/facturen/<id>
- * only for customers with a login (SPEC §35.12), and logs
- * `skipped_no_provider` without Resend.
- *
- * Until P8 nothing is sent: it reports `emailed: false`, so the builder never
- * says an e-mail went out.
- */
-export async function onInvoiceIssued(event: InvoiceIssuedEvent): Promise<{ emailed: boolean }> {
-  void event;
-  return { emailed: false };
+/** "Factuur aangemaakt": once per invoice (invoice:<id>:invoice_issued:1). */
+export async function onInvoiceIssued(event: InvoiceIssuedEvent): Promise<{ email: EmailOutcome }> {
+  const appUrl = appUrlOrNull();
+  if (!appUrl) return { email: noAppUrlOutcome("invoice_issued") };
+  const recipient = await loadRecipient(event.db, event.customerId);
+  if (!recipient) throw new Error(`customer ${event.customerId} not readable`);
+  if (!recipient.email) return { email: "no_address" };
+  const invoice = await loadIssuedInvoice(event.db, event.invoiceId);
+  if (!invoice) throw new Error(`invoice ${event.invoiceId} not issued or not readable`);
+
+  const content = invoiceIssuedEmail({
+    appUrl,
+    invoiceId: invoice.id,
+    model: invoice.model,
+    access: recipient.access,
+    recipient: recipient.email,
+  });
+  const email = await sendToCustomer(recipient, content, {
+    kind: "invoice_issued",
+    idempotencyKey: invoiceEmailKey(invoice.id, "invoice_issued", 1),
+    invoiceId: invoice.id,
+    replyTo: invoice.model.issuer.email,
+  });
+  return { email };
 }
 
 export interface PaymentRecordedEvent {
+  /** The staff member's own client. */
+  db: NotificationDb;
   invoiceId: string;
   paymentId: string;
   /** "Betaling registreren" (an amount) or "Markeer als betaald" (the full balance). */
@@ -44,23 +71,37 @@ export interface PaymentRecordedEvent {
 }
 
 /**
- * P8 HOOK: "Betaling ontvangen" e-mail (SPEC §35.12).
- *
- * recordPaymentFn and markPaidFn call this once, after record_payment
- * committed; a failure here never fails or undoes the payment (the caller
- * logs and moves on). P8 sends the e-mail ONLY when `invoiceStatus` is
- * 'paid' (the invoice is settled), with an idempotency key such as
- * `payment_received:<invoiceId>` (one confirmation per invoice, also when a
- * voided payment is recorded again), built from the invoice's snapshots,
- * with a link to /portal/facturen/<id> only for customers with a login, and
- * logs `skipped_no_provider` without Resend.
- *
- * Until P8 nothing is sent: it reports `emailed: false`, so the payment
- * dialog never says an e-mail went out.
+ * "Betaling ontvangen": ONLY when the payment settled the invoice (status
+ * 'paid'); a part payment e-mails nothing (email: null). One confirmation
+ * per invoice (invoice:<id>:payment_received:1), also when a voided payment
+ * is recorded again.
  */
 export async function onPaymentRecorded(
   event: PaymentRecordedEvent,
-): Promise<{ emailed: boolean }> {
-  void event;
-  return { emailed: false };
+): Promise<{ email: EmailOutcome | null }> {
+  if (event.invoiceStatus !== "paid") return { email: null };
+  const appUrl = appUrlOrNull();
+  if (!appUrl) return { email: noAppUrlOutcome("payment_received") };
+  const invoice = await loadIssuedInvoice(event.db, event.invoiceId);
+  if (!invoice) throw new Error(`invoice ${event.invoiceId} not readable`);
+  const recipient = await loadRecipient(event.db, invoice.customerId);
+  if (!recipient) throw new Error(`customer ${invoice.customerId} not readable`);
+  if (!recipient.email) return { email: "no_address" };
+
+  const content = paymentReceivedEmail({
+    appUrl,
+    invoiceId: invoice.id,
+    model: invoice.model,
+    access: recipient.access,
+    recipient: recipient.email,
+    amountPaid: invoice.amountPaid,
+    paidAt: invoice.paidAt,
+  });
+  const email = await sendToCustomer(recipient, content, {
+    kind: "payment_received",
+    idempotencyKey: invoiceEmailKey(invoice.id, "payment_received", 1),
+    invoiceId: invoice.id,
+    replyTo: invoice.model.issuer.email,
+  });
+  return { email };
 }

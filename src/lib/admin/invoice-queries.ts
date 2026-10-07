@@ -55,7 +55,7 @@ export const invoiceDraftQueryOptions = (userId: string, invoiceId: string) =>
   });
 
 const INVOICE_VIEW_COLUMNS =
-  "id, invoice_number, status, customer_id, currency, invoice_date, due_date, customer_note, paid_at, total_lbs, subtotal_freight, total_charges, total_discount, total_amount, vat_rate, vat_amount, issuer_snapshot, bill_to_snapshot, amount_paid, balance_due, is_overdue, days_overdue, cancelled_at, cancelled_by, cancel_reason, replaces_invoice_id, issued_at, issued_by, first_reminder_sent_at, last_reminder_sent_at, reminder_count, late_fee_applied_at" as const;
+  "id, invoice_number, status, customer_id, currency, invoice_date, due_date, customer_note, paid_at, total_lbs, subtotal_freight, total_charges, total_discount, total_amount, vat_rate, vat_amount, issuer_snapshot, bill_to_snapshot, amount_paid, balance_due, is_overdue, days_overdue, cancelled_at, cancelled_by, cancel_reason, replaces_invoice_id, issued_at, issued_by, first_reminder_sent_at, last_reminder_sent_at, reminder_count, late_fee_applied_at, created_at, created_by" as const;
 
 export type InvoiceViewRow = IssuedInvoiceRow & {
   customer_id: string | null;
@@ -69,11 +69,14 @@ export type InvoiceViewRow = IssuedInvoiceRow & {
   replaces_invoice_id: string | null;
   issued_at: string | null;
   issued_by: string | null;
-  /** Reminder bookkeeping (P8 fills it; shown read-only). */
+  /** Reminder bookkeeping (runPaymentReminders fills it; shown read-only). */
   first_reminder_sent_at: string | null;
   last_reminder_sent_at: string | null;
   reminder_count: number | null;
   late_fee_applied_at: string | null;
+  /** When and by whom the draft was made (the invoice's history, P9). */
+  created_at?: string | null;
+  created_by?: string | null;
 };
 
 /**

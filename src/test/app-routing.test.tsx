@@ -29,6 +29,7 @@ describe("App routing", () => {
     ["/admin", "/admin/"],
     ["/portal/facturen", "/portal/facturen/"],
     ["/portal/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f", "/portal/facturen/$id"],
+    ["/portal/historie", "/portal/historie"],
     ["/admin/facturen", "/admin/facturen/"],
     // The static segment wins over $id: "nieuw" is the builder, never an invoice id.
     ["/admin/facturen/nieuw", "/admin/facturen/nieuw"],
@@ -36,6 +37,8 @@ describe("App routing", () => {
     // Print routes: the document alone, outside the area layouts (SPEC §35.11).
     ["/admin/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f/print", "/admin_/facturen/$id_/print"],
     ["/portal/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f/print", "/portal_/facturen/$id_/print"],
+    ["/admin/herinneringen", "/admin/herinneringen"],
+    ["/admin/audit", "/admin/audit"],
   ])("serves %s", (path, routeId) => {
     expect(leaf(path)).toBe(routeId);
   });
@@ -50,6 +53,11 @@ describe("App routing", () => {
       expect(ids).not.toContain("/portal");
       expect(ids).not.toContain("/admin/facturen/$id");
     }
+  });
+
+  it("keeps the history and audit pages inside their (client-only) area layouts", () => {
+    expect(router.matchRoutes("/portal/historie").map((m) => m.routeId)).toContain("/portal");
+    expect(router.matchRoutes("/admin/audit").map((m) => m.routeId)).toContain("/admin");
   });
 
   it("renders the signed-in areas in the browser only (SPEC §35.2)", () => {

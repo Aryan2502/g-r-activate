@@ -35,6 +35,7 @@ import {
   type OrderFieldsOutput,
 } from "@/lib/portal/order-fields";
 import { lockedByRoot, newOrderDefaults } from "@/lib/portal/order-schema";
+import { emailOutcomeText, statusEmailSummary } from "@/lib/email/outcome";
 import { submitCreateOrder } from "@/lib/server-fns/admin-orders.functions";
 
 /**
@@ -279,18 +280,27 @@ function NewOrderForm({
           queryClient.invalidateQueries({ queryKey: adminKeys.orders(userId) }),
           queryClient.invalidateQueries({ queryKey: adminKeys.customers(userId) }),
         ]);
+        // What happened to "order bevestigd" (and the receipt's status e-mail).
+        const description = [
+          emailOutcomeText(created.emailOutcome),
+          statusEmailSummary(created.receiveEmailOutcomes),
+        ]
+          .filter(Boolean)
+          .join(" ");
         if (created.receiveError) {
           toast.warning(
             t("admin.newOrder.receiveFailed", {
               reference: created.reference,
               message: created.receiveError.message,
             }),
+            { description },
           );
         } else {
           toast.success(
             weight.trim()
               ? t("admin.newOrder.successReceived", { reference: created.reference })
               : t("admin.newOrder.success", { reference: created.reference }),
+            { description },
           );
         }
         await navigate({ to: "/admin/orders/$id", params: { id: created.id } });

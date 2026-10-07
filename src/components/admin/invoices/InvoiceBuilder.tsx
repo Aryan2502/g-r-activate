@@ -125,7 +125,7 @@ import { cn } from "@/lib/utils";
  * "Opslaan als concept" writes the draft with the staff member's own client
  * (RLS + triggers: totals, freight once per order); "Genereer factuur" saves
  * the draft, then issueInvoiceFn → issue_invoice (number, snapshots) and the
- * P8 hook. Nothing here claims an e-mail was sent unless the hook says so.
+ * "factuur aangemaakt" e-mail; the toast says exactly what happened to it.
  */
 
 export type BuilderMode =
@@ -476,10 +476,11 @@ function BuilderBody({
       saved = true;
       const issued = await submitIssueInvoice({ invoiceId: id });
       await invalidateInvoices(queryClient, userId);
+      // Says exactly what happened to the "factuur aangemaakt" e-mail.
       toast.success(t("toast.invoiceCreated"), {
-        description: issued.emailed
-          ? t("admin.invoiceBuilder.issuedEmailed", { number: issued.invoiceNumber })
-          : t("admin.invoiceBuilder.issuedNoEmail", { number: issued.invoiceNumber }),
+        description: t(`admin.invoiceBuilder.issuedEmail.${issued.emailOutcome}`, {
+          number: issued.invoiceNumber,
+        }),
       });
       leaving.current = true;
       await navigate({

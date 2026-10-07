@@ -17,6 +17,7 @@ import {
   type TeamLoginInput,
   type TeamMemberInput,
 } from "@/lib/admin/team";
+import type { EmailOutcome } from "@/lib/email/outcome";
 import { toTransportError, type TransportError } from "@/lib/errors";
 import { logFailure, unwrap, type Failure, type LinkSource } from "@/lib/server-fns/helpers";
 import { denied, requireAdmin } from "@/lib/server-fns/middleware";
@@ -44,7 +45,8 @@ export type InviteStaffResponse =
       expiresAt: string;
       link: string;
       linkSource: LinkSource;
-      emailed: boolean;
+      /** The "uitnodiging" e-mail; the link is shown on screen either way. */
+      emailOutcome: EmailOutcome;
     }
   | { ok: true; status: "conflict"; conflict: StaffInviteConflict }
   | Failure;
@@ -57,10 +59,11 @@ export const inviteStaffFn = createServerFn({ method: "POST" })
     const access = context.access;
     if (!access.ok) return denied(access);
 
+    let input;
     let result;
     let base;
     try {
-      const input = parseActionInput(inviteStaffSchema, data);
+      input = parseActionInput(inviteStaffSchema, data);
       base = (await import("@/server/fn-helpers")).screenBase();
       const { createInvitationToken } = await import("@/server/invitation-tokens");
       result = await inviteStaff(access.supabase, input, createInvitationToken);
@@ -70,21 +73,24 @@ export const inviteStaffFn = createServerFn({ method: "POST" })
     }
     if (result.status === "conflict") return { ok: true, ...result };
 
-    // P8 hook point: the "uitnodiging" e-mail. Never fails the invitation.
-    let emailed = false;
+    // The "uitnodiging" e-mail. Never fails the invitation.
+    let emailOutcome: EmailOutcome;
     try {
       const { onInvitationSent } = await import("@/server/invitation-notifications");
-      ({ emailed } = await onInvitationSent({
+      ({ email: emailOutcome } = await onInvitationSent({
+        db: access.supabase,
         invitationId: result.invitationId,
         kind: "staff",
         email: result.email,
         customerId: null,
+        fullName: input.fullName,
         token: result.token,
         resend: false,
         userId: access.userId,
       }));
     } catch (error) {
       console.error("[inviteStaffFn] onInvitationSent failed", error);
+      emailOutcome = "failed";
     }
     return {
       ok: true,
@@ -95,7 +101,7 @@ export const inviteStaffFn = createServerFn({ method: "POST" })
       expiresAt: result.expiresAt,
       link: invitationLink(base.base, result.token),
       linkSource: base.source,
-      emailed,
+      emailOutcome,
     };
   });
 

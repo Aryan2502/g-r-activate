@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { whatsappHref } from "@/lib/admin/invitations";
 import { adminKeys } from "@/lib/admin/keys";
 import {
   measuredWeightText,
@@ -32,6 +33,7 @@ import {
 import { errorMessage } from "@/lib/errors";
 import { formatLbs, formatNumber } from "@/lib/format";
 import { useT } from "@/lib/i18n";
+import { statusEmailSummary } from "@/lib/email/outcome";
 import { submitReceive } from "@/lib/server-fns/admin-orders.functions";
 
 /** Where the dialog was opened from may want something after it (e.g. the next scan). */
@@ -152,21 +154,45 @@ function ReceiveForm({
   const save = useMutation({
     mutationFn: async () => {
       if (mode !== "weight") {
-        await submitReceive({ orderId: order.id, measuredWeightLbs: weight });
-        return;
+        const received = await submitReceive({ orderId: order.id, measuredWeightLbs: weight });
+        return { emailOutcomes: received.emailOutcomes, followUps: received.followUps };
       }
       const lbs = weightFromText(weight);
       if (lbs === null) throw new Error("validated weight missing");
       // A staff-editable column: the staff member's own client, RLS and the audit trigger.
       await updateMeasuredWeight(supabase, { orderId: order.id, measuredWeightLbs: lbs });
+      return { emailOutcomes: [], followUps: [] };
     },
     onMutate: () => onBusyChange(true),
     onSettled: () => onBusyChange(false),
-    onSuccess: async () => {
+    onSuccess: async ({ emailOutcomes, followUps }) => {
+      // The status's own "Klant e-mailen" decides; say what happened to that
+      // e-mail, and offer WhatsApp when it did not go out (SPEC §35.12) as a
+      // toast action, so a scan loop is not interrupted.
+      const emailSummary = statusEmailSummary(emailOutcomes);
+      const followUp = followUps[0];
       toast.success(
         mode === "receive"
           ? t("admin.receive.success", { reference: order.reference })
           : t("admin.receive.corrected", { reference: order.reference }),
+        {
+          ...(emailSummary ? { description: emailSummary } : {}),
+          ...(followUp
+            ? {
+                duration: 15_000,
+                action: {
+                  label: t("admin.status.followUp.toastAction"),
+                  onClick: () => {
+                    window.open(
+                      whatsappHref(followUp.phone, followUp.text),
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  },
+                },
+              }
+            : {}),
+        },
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: adminKeys.orders(userId) }),

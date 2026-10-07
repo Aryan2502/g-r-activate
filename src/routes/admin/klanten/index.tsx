@@ -10,6 +10,7 @@ import {
   NoLoginBadge,
 } from "@/components/admin/customers/CustomerBadges";
 import { AddCustomerDialog } from "@/components/admin/customers/AddCustomerDialog";
+import { ExportCsvButton } from "@/components/admin/ExportCsvButton";
 import { InviteCustomerDialog } from "@/components/admin/customers/InviteCustomerDialog";
 import { ShellPageHeader } from "@/components/layout/AppShell";
 import { CurrencyAmounts } from "@/components/portal/CurrencyAmounts";
@@ -41,6 +42,7 @@ import {
   type CustomerListItem,
   type CustomerSearch,
 } from "@/lib/admin/customers";
+import { exportCustomers } from "@/lib/admin/exports";
 import { formatDate, formatNumber } from "@/lib/format";
 import { t, useT } from "@/lib/i18n";
 import { formatPhone } from "@/lib/phone";
@@ -138,6 +140,7 @@ function CustomersPage() {
     const failed = [orders, invoices, invitations].find((q) => q.isError);
     body = (
       <CustomersBoard
+        isAdmin={auth.role === "admin"}
         search={search}
         items={buildCustomerList(customers.data, {
           orders: orders.data,
@@ -172,11 +175,14 @@ function CustomersPage() {
 }
 
 function CustomersBoard({
+  isAdmin,
   search,
   items,
   invoicesUnknown,
   sideErrors,
 }: {
+  /** "Exporteer CSV" is for admins (SPEC §35.15). */
+  isAdmin: boolean;
   search: CustomerSearch;
   items: CustomerListItem[];
   /** The invoices could not be loaded (yet): their filter cannot answer. */
@@ -204,12 +210,28 @@ function CustomersBoard({
     <>
       <Filters search={search} invoicesUnknown={invoicesUnknown} />
       {sideErrors}
-      <p className="mb-3 text-sm text-muted-foreground tabular-nums" aria-live="polite">
-        {t(items.length === 1 ? "admin.customers.resultCountOne" : "admin.customers.resultCount", {
-          count: formatNumber(visible.length, 0),
-          total: formatNumber(items.length, 0),
-        })}
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
+          {t(
+            items.length === 1 ? "admin.customers.resultCountOne" : "admin.customers.resultCount",
+            {
+              count: formatNumber(visible.length, 0),
+              total: formatNumber(items.length, 0),
+            },
+          )}
+        </p>
+        {isAdmin && visible.length > 0 ? (
+          <ExportCsvButton
+            scope={t("admin.exports.scopeFiltered", { count: formatNumber(visible.length, 0) })}
+            options={[
+              {
+                label: t("admin.exports.what.customers"),
+                run: () => exportCustomers({ ids: visible.map((c) => c.id) }),
+              },
+            ]}
+          />
+        ) : null}
+      </div>
       {visible.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border bg-card p-6 shadow-sm">
           <p className="text-sm text-foreground">{t("admin.customers.noResults")}</p>

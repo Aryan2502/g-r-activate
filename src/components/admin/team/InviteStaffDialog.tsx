@@ -47,7 +47,8 @@ type Invited = Extract<InviteStaffResponse, { status: "invited" }>;
  * writes the staff invitation with the admin's own client and returns the
  * link, ALWAYS with "Kopieer uitnodigingslink" and "Deel via WhatsApp". A
  * team member, an open invitation or a customer's address is explained
- * instead. No e-mail goes out until P8, and the panel says so.
+ * instead. The server also e-mails the link (when e-mail is configured) and
+ * the panel says what happened to that e-mail.
  */
 export function InviteStaffDialog({
   userId,
@@ -101,8 +102,12 @@ export function InviteStaffDialog({
     for (const field of FIELDS)
       form.set(field, field === "role" ? "staff" : field === "phone" ? "+597 " : "");
   };
-  // The link is shown once: closing before it was copied or shared asks first.
-  const guard = useLinkGuard(invited?.result.link ?? null, finish);
+  // The link is shown once: closing before it was copied or shared asks first,
+  // unless the e-mail with the link went out.
+  const guard = useLinkGuard(
+    invited && invited.result.emailOutcome !== "sent" ? invited.result.link : null,
+    finish,
+  );
   const close = (next: boolean) => {
     if (invite.isPending) return;
     if (next) onOpenChange(true);
@@ -160,7 +165,8 @@ export function InviteStaffDialog({
                 link: invited.result.link,
               })}
               phone={invited.phone}
-              emailed={invited.result.emailed}
+              emailOutcome={invited.result.emailOutcome}
+              emailTo={invited.result.email}
               linkSource={invited.result.linkSource}
               notes={[
                 t("admin.invitations.linkOnce"),

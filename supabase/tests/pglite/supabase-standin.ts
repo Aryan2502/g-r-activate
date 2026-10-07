@@ -5,14 +5,15 @@
  * its own committed transaction as `authenticated` (asUser), so RLS, the
  * column grants, the triggers and the RPC guards behave as in production.
  *
- * Supported: from(table).select(columns, with many-to-one embeds such as
- * `order:orders(reference)`), insert/update/delete, eq/neq/in/is/not(…,'is',null),
+ * Supported: from(table).select(columns or `*`, with many-to-one embeds such
+ * as `order:orders(reference)`, also next to `*`), insert/upsert(…, { onConflict, ignoreDuplicates:
+ * true })/update/delete, eq/neq/in/is/not(…,'is',null)/gt/gte/lt/lte,
  * order, range, limit, single, maybeSingle; rpc(name, args) returns the row
  * (a function returning one composite) or the rows (a set-returning function)
  * as PostgREST does. Rows come back as PostgREST sends them: numeric as
  * numbers, dates as 'YYYY-MM-DD', instants as ISO strings, json as objects.
  */
-import { type Db, type Transaction, asUser, withSavepoint } from "./harness";
+import { type Db, type Transaction, asService, asUser, withSavepoint } from "./harness";
 
 type Row = Record<string, unknown>;
 export type DbResult = { data: unknown; error: unknown };
@@ -52,6 +53,7 @@ function selectSql(list: string, from: string): string {
   if (list.trim() === "*") return `${from}.*`;
   return splitColumns(list)
     .map((item) => {
+      if (item === "*") return `${from}.*`;
       const embed = /^([a-z_]+):([a-z_]+)(?:!inner)?\((.*)\)$/s.exec(item);
       if (!embed) return `${from}.${ident(item)}`;
       const [, alias = "", table = "", cols = ""] = embed;
@@ -71,6 +73,8 @@ function selectSql(list: string, from: string): string {
 
 class Query implements PromiseLike<DbResult> {
   private op: "select" | "insert" | "update" | "delete" = "select";
+  /** upsert(…, { onConflict, ignoreDuplicates: true }): on conflict (…) do nothing. */
+  private conflict: string | null = null;
   private cols = "*";
   private returning: string | null = null;
   private values: Row[] = [];
@@ -92,6 +96,16 @@ class Query implements PromiseLike<DbResult> {
   insert(rows: Row | Row[]) {
     this.op = "insert";
     this.values = Array.isArray(rows) ? rows : [rows];
+    return this;
+  }
+  upsert(rows: Row | Row[], opts: { onConflict: string; ignoreDuplicates: true }) {
+    if (!opts.ignoreDuplicates) throw new Error("upsert() supports ignoreDuplicates only");
+    this.op = "insert";
+    this.values = Array.isArray(rows) ? rows : [rows];
+    this.conflict = opts.onConflict
+      .split(",")
+      .map((c) => ident(c.trim()))
+      .join(", ");
     return this;
   }
   update(row: Row) {
@@ -122,6 +136,22 @@ class Query implements PromiseLike<DbResult> {
   is(c: string, v: null) {
     if (v !== null) throw new Error("is() supports null only");
     this.where.push(`t.${ident(c)} is null`);
+    return this;
+  }
+  gt(c: string, v: unknown) {
+    this.where.push(`t.${ident(c)} > ${this.param(v)}`);
+    return this;
+  }
+  gte(c: string, v: unknown) {
+    this.where.push(`t.${ident(c)} >= ${this.param(v)}`);
+    return this;
+  }
+  lt(c: string, v: unknown) {
+    this.where.push(`t.${ident(c)} < ${this.param(v)}`);
+    return this;
+  }
+  lte(c: string, v: unknown) {
+    this.where.push(`t.${ident(c)} <= ${this.param(v)}`);
     return this;
   }
   not(c: string, op: "is", v: null) {
@@ -168,8 +198,9 @@ class Query implements PromiseLike<DbResult> {
             })
             .join(", ")})`,
       );
+      const conflict = this.conflict ? ` on conflict (${this.conflict}) do nothing` : "";
       return {
-        sql: `insert into ${table} as t (${keys.join(", ")}) values ${tuples.join(", ")}${returning}`,
+        sql: `insert into ${table} as t (${keys.join(", ")}) values ${tuples.join(", ")}${conflict}${returning}`,
         params,
       };
     }
@@ -247,13 +278,19 @@ function pgError(error: unknown) {
 
 /** A supabase-js-like client acting as this user (or, for userId null, refusing everything). */
 export function userClient(db: Db, userId: string) {
+  return clientFor(db, (fn) => asUser(db, userId, fn, { commit: true }));
+}
+
+/** supabaseAdmin's SQL side: the service-role key (BYPASSRLS, its own grants). */
+export function serviceClient(db: Db) {
+  return clientFor(db, (fn) => asService(db, fn, { commit: true }));
+}
+
+function clientFor(db: Db, as: (fn: (tx: Transaction) => Promise<unknown>) => Promise<unknown>) {
   const run: Run = async (sql, params) => {
     try {
-      const result = (await asUser(
-        db,
-        userId,
-        (tx: Transaction) => withSavepoint(tx, () => tx.query<Row>(sql, params)),
-        { commit: true },
+      const result = (await as((tx: Transaction) =>
+        withSavepoint(tx, () => tx.query<Row>(sql, params)),
       )) as { rows: Row[]; fields: { name: string; dataTypeID: number }[] };
       return { rows: asJson(result) };
     } catch (error) {
