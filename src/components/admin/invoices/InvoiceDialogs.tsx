@@ -526,7 +526,7 @@ export function VoidPaymentDialog({
           <ReasonField
             id={`${id}-reason`}
             label={t("admin.invoices.voidPayment.reason")}
-            hint={t("admin.invoices.validation.tooLong", { max: REASON_MAX })}
+            hint={t("admin.invoices.voidPayment.reasonHint", { max: REASON_MAX })}
             value={reason}
             onChange={(v) => {
               setReason(v);

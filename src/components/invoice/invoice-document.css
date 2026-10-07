@@ -16,7 +16,10 @@
   --gr-inv-brown: #713a28;
   --gr-inv-cream: #f5f2ec;
   --gr-inv-line: #d8d2c9;
-  --gr-inv-grey: #777777;
+  /* Footer grey: the template's #777777 on paper (see @media print below); on
+     screen one step darker, #767676, which reaches WCAG AA 4.5:1 on white
+     (#777777 is 4.48:1). The two are visually identical. */
+  --gr-inv-grey: #767676;
   --gr-inv-paper: #eeebe4;
   --gr-inv-border: 0.75pt solid var(--gr-inv-line);
   /* Gap between the content and the footer on every page. */
@@ -486,6 +489,11 @@
   .gr-inv * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* On paper the footer keeps the template's exact grey. */
+  .gr-inv {
+    --gr-inv-grey: #777777;
   }
 
   /* The @page margins (0.45in 0.55in) replace the sheet's padding. */

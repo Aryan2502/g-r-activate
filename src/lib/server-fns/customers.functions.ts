@@ -6,6 +6,7 @@ import {
   invitationIdInputSchema,
   inviteCustomer,
   inviteCustomerInputSchema,
+  logRecoveryLink,
   noteRecoveryLink,
   recoveryTarget,
   resendInvitation,
@@ -272,11 +273,14 @@ export const createRecoveryLinkFn = createServerFn({ method: "POST" })
 
     let input;
     let target;
+    let audit;
     try {
       input = parseActionInput(customerIdInputSchema, data);
       const admin = await access.supabase.rpc("is_admin");
       if (admin.error) throw admin.error;
       target = await recoveryTarget(access.supabase, input.customerId, admin.data === true);
+      // Fail closed: no trace in the audit log (or the note), no link.
+      audit = await logRecoveryLink(access.supabase, target.userId, input.customerId);
     } catch (error) {
       logFailure("createRecoveryLinkFn", error);
       return { ok: false, error: toTransportError(error) };
@@ -294,10 +298,13 @@ export const createRecoveryLinkFn = createServerFn({ method: "POST" })
       return { ok: false, error: (await import("@/server/fn-helpers")).serviceFailure(error) };
     }
 
-    try {
-      await noteRecoveryLink(access.supabase, input.customerId);
-    } catch (error) {
-      console.error("[createRecoveryLinkFn] note failed", error);
+    // The note shows on the customer page; the audit row above is the record.
+    if (audit === "audited") {
+      try {
+        await noteRecoveryLink(access.supabase, input.customerId);
+      } catch (error) {
+        console.error("[createRecoveryLinkFn] note failed", error);
+      }
     }
     return {
       ok: true,

@@ -8,6 +8,7 @@ import {
   DOCUMENT_ACCEPT,
   DOCUMENT_MAX_BYTES,
   documentDownloadName,
+  documentErrorMessage,
   documentMimeType,
   documentStoragePath,
   formatFileSize,
@@ -168,5 +169,14 @@ describe("misc", () => {
     expect(formatFileSize(2.45 * MB)).toBe("2,5 MB");
     expect(formatFileSize(312 * 1024)).toBe("312 kB");
     expect(formatFileSize(10)).toBe("1 kB");
+  });
+});
+
+describe("documentErrorMessage()", () => {
+  it("names the upload limits when Storage refuses (403)", () => {
+    expect(documentErrorMessage("forbidden")).toBe(
+      "U kunt bij deze order geen documenten (meer) toevoegen. Per order zijn maximaal 20 bestanden mogelijk en per dag maximaal 40; neem contact op met G&R Solutions als u meer moet sturen.",
+    );
+    expect(documentErrorMessage("size")).toBe("Dit bestand is groter dan 10\u00a0MB.");
   });
 });

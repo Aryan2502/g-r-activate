@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -739,21 +740,94 @@ export function personName(
   return (id ? people?.get(id) : null) ?? t("admin.order.someone");
 }
 
-/** Display names of logins (profiles: staff may read all), for "door Maria". */
+type TeamMemberRow = Database["public"]["Functions"]["team_members"]["Returns"][number];
+type PersonCustomer = Pick<
+  CustomerRow,
+  "user_id" | "full_name" | "company_name" | "account_type" | "customer_code"
+>;
+
+export interface PeopleSources {
+  team: readonly Pick<TeamMemberRow, "user_id" | "display_name" | "email">[];
+  profiles: readonly { id: string; display_name: string | null }[];
+  customers: readonly PersonCustomer[];
+}
+
+/**
+ * The name shown for each login ("door Maria", the audit log's "Wie", the
+ * CSV exports). profiles.display_name is chosen by the login itself (every
+ * customer may rewrite theirs), so it is shown as-is only for team members
+ * (team_members(), blocked members included). A customer's login is named
+ * from the customer record — "Klant GR00042 · Maria Pinas" — and any other
+ * login "Login <name>" (e.g. a former team member). Without this a customer
+ * could call themselves "Maria" and appear as the admin Maria (P10 review).
+ */
+export function namePeople(
+  ids: readonly string[],
+  sources: PeopleSources,
+): Map<string, string | null> {
+  const team = new Map(sources.team.map((m) => [m.user_id, m]));
+  const profiles = new Map(sources.profiles.map((p) => [p.id, p.display_name?.trim() || null]));
+  const customers = new Map(
+    sources.customers.flatMap((c) => (c.user_id ? [[c.user_id, c] as const] : [])),
+  );
+  const names = new Map<string, string | null>();
+  for (const id of ids) {
+    const member = team.get(id);
+    const customer = customers.get(id);
+    const profile = profiles.get(id) ?? null;
+    if (member) {
+      names.set(id, profile ?? (member.display_name?.trim() || member.email?.trim() || null));
+    } else if (customer) {
+      names.set(
+        id,
+        t("admin.people.customer", {
+          name: customerDisplayName(customer),
+          code: customer.customer_code,
+        }),
+      );
+    } else {
+      names.set(id, profile ? t("admin.people.otherLogin", { name: profile }) : null);
+    }
+  }
+  return names;
+}
+
+const PEOPLE_CHUNK = 100;
+
+/** namePeople() for these ids, read with the staff member's own client. */
+export async function loadPeopleNames(
+  db: Pick<SupabaseClient<Database>, "from" | "rpc">,
+  ids: readonly (string | null)[],
+): Promise<ReadonlyMap<string, string | null>> {
+  const unique = [...new Set(ids)].filter((id): id is string => id !== null && isUuid(id));
+  if (unique.length === 0) return new Map();
+  const team = await db.rpc("team_members");
+  if (team.error) throw team.error;
+  const profiles: PeopleSources["profiles"][number][] = [];
+  const customers: PersonCustomer[] = [];
+  for (let i = 0; i < unique.length; i += PEOPLE_CHUNK) {
+    const chunk = unique.slice(i, i + PEOPLE_CHUNK);
+    const [p, c] = await Promise.all([
+      db.from("profiles").select("id, display_name").in("id", chunk),
+      db
+        .from("customers")
+        .select("user_id, full_name, company_name, account_type, customer_code")
+        .in("user_id", chunk),
+    ]);
+    if (p.error) throw p.error;
+    if (c.error) throw c.error;
+    profiles.push(...p.data);
+    customers.push(...c.data);
+  }
+  return namePeople(unique, { team: team.data ?? [], profiles, customers });
+}
+
+/** Names of logins for "door Maria" and the audit log (see namePeople). */
 export const peopleQueryOptions = (userId: string, ids: readonly string[]) =>
   queryOptions({
     queryKey: adminKeys.people(userId, ids),
     staleTime: 5 * 60_000,
-    queryFn: async (): Promise<ReadonlyMap<string, string | null>> => {
-      const unique = [...new Set(ids)].filter(isUuid);
-      if (unique.length === 0) return new Map();
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", unique);
-      if (error) throw error;
-      return new Map(data.map((p) => [p.id, p.display_name?.trim() || null]));
-    },
+    queryFn: () => loadPeopleNames(supabase, ids),
   });
 
 // ---------------------------------------------------------------------------

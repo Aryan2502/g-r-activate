@@ -131,11 +131,6 @@ function OrderCounts({ userId }: { userId: string }) {
                   to="/admin/orders"
                   search={ORDER_COUNT_SEARCH[key]}
                   className="flex h-full items-center gap-3 rounded-md border p-4 transition-colors hover:border-primary/40 hover:bg-cream/50"
-                  aria-label={
-                    value === undefined
-                      ? label
-                      : `${t("admin.home.counts.view", { label })}: ${formatNumber(value, 0)}`
-                  }
                 >
                   <span
                     className={
@@ -291,10 +286,6 @@ function TaskItem({ userId, task }: { userId: string; task: StaffTask }) {
             variant="outline"
             disabled={resolve.isPending}
             onClick={() => resolve.mutate()}
-            aria-label={t("admin.home.taskResolveLabel", {
-              kind,
-              date: formatDateTime(task.created_at),
-            })}
           >
             {resolve.isPending ? (
               <Loader2 className="animate-spin" aria-hidden />
@@ -302,6 +293,9 @@ function TaskItem({ userId, task }: { userId: string; task: StaffTask }) {
               <Check aria-hidden />
             )}
             {resolve.isPending ? t("admin.home.taskResolving") : t("admin.home.taskResolve")}
+            <span className="sr-only">
+              : {t("admin.home.taskResolveFor", { kind, date: formatDateTime(task.created_at) })}
+            </span>
           </Button>
         ) : null}
       </div>

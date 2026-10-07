@@ -90,9 +90,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: brandAssets.favicon, sizes: "48x48" },
+      { rel: "icon", href: brandAssets.favicon, sizes: "16x16 32x32 48x48" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: brandAssets.icon192 },
       { rel: "icon", type: "image/png", sizes: "512x512", href: brandAssets.icon512 },
       { rel: "apple-touch-icon", sizes: "180x180", href: brandAssets.appleTouchIcon },
+      { rel: "manifest", href: brandAssets.manifest },
     ],
   }),
   headers: () => securityHeaders(import.meta.env.DEV),

@@ -12,6 +12,7 @@ import {
   disableLoginPlan,
   inviteCustomerInputSchema,
   inviteNewCustomerSchema,
+  logRecoveryLink,
   optionalCustomerCode,
   optionalPhone,
   setCustomerDisabledInputSchema,
@@ -232,5 +233,53 @@ describe("Deactiveren: what happens to the linked login (disableLoginPlan)", () 
     expect(disableLoginPlan({ customer: { user_id: ADMIN }, teamLogin: false }, ADMIN)).toEqual({
       action: "team",
     });
+  });
+});
+
+describe("logRecoveryLink: the audit row comes before the reset link (P10 review)", () => {
+  const LOGIN = "b0b0b0b0-0000-4000-8000-000000000002";
+  const CUSTOMER = "c0c0c0c0-0000-4000-8000-000000000003";
+
+  function fakeDb(rpcError: { code?: string; message: string } | null, insertError = null) {
+    const calls: string[] = [];
+    const db = {
+      rpc: vi.fn(async (fn: string, args: unknown) => {
+        calls.push(`rpc ${fn} ${JSON.stringify(args)}`);
+        return { data: null, error: rpcError };
+      }),
+      from: vi.fn((table: string) => ({
+        insert: vi.fn(async (row: unknown) => {
+          calls.push(`insert ${table} ${JSON.stringify(row)}`);
+          return { error: insertError };
+        }),
+      })),
+    };
+    return { db: db as unknown as Parameters<typeof logRecoveryLink>[0], calls };
+  }
+
+  it("writes the audit row through log_recovery_link", async () => {
+    const { db, calls } = fakeDb(null);
+    await expect(logRecoveryLink(db, LOGIN, CUSTOMER)).resolves.toBe("audited");
+    expect(calls).toEqual([`rpc log_recovery_link {"_user_id":"${LOGIN}"}`]);
+  });
+
+  it("fails closed: an error (no access, unknown login) stops the link", async () => {
+    const { db } = fakeDb({ code: "42501", message: "Geen toegang" });
+    await expect(logRecoveryLink(db, LOGIN, CUSTOMER)).rejects.toMatchObject({ code: "42501" });
+  });
+
+  it("before the migration: the note first for a customer, and its failure stops the link", async () => {
+    const missing = { code: "PGRST202", message: "Could not find the function" };
+    const ok = fakeDb(missing);
+    await expect(logRecoveryLink(ok.db, LOGIN, CUSTOMER)).resolves.toBe("noted");
+    expect(ok.calls[1]).toBe(
+      `insert internal_notes ${JSON.stringify({ customer_id: CUSTOMER, body: t("admin.recovery.note") })}`,
+    );
+    const failing = fakeDb(missing, { code: "42501", message: "nee" } as never);
+    await expect(logRecoveryLink(failing.db, LOGIN, CUSTOMER)).rejects.toMatchObject({
+      code: "42501",
+    });
+    // A team login has no customer record to note on.
+    await expect(logRecoveryLink(fakeDb(missing).db, LOGIN, null)).resolves.toBe("unaudited");
   });
 });

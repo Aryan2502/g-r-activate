@@ -280,9 +280,9 @@ function NewOrderForm({
           queryClient.invalidateQueries({ queryKey: adminKeys.orders(userId) }),
           queryClient.invalidateQueries({ queryKey: adminKeys.customers(userId) }),
         ]);
-        // What happened to "order bevestigd" (and the receipt's status e-mail).
+        // What happened to the one e-mail: "order bevestigd", or the receipt's status e-mail.
         const description = [
-          emailOutcomeText(created.emailOutcome),
+          created.emailOutcome ? emailOutcomeText(created.emailOutcome) : null,
           statusEmailSummary(created.receiveEmailOutcomes),
         ]
           .filter(Boolean)

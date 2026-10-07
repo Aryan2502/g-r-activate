@@ -13,6 +13,7 @@ const {
   hasAdminFilters,
   indexBilling,
   matchesAdminSearch,
+  namePeople,
   normalizeTracking,
   orderBilling,
   parseCustomerCode,
@@ -371,5 +372,61 @@ describe("dialog targets", () => {
       customerLabel: "Maria Pinas (GR00042)",
     });
     expect(toReceiveTarget({ ...o, stage: null, customer: null }).customerLabel).toBeNull();
+  });
+});
+
+describe("namePeople() (who did it)", () => {
+  const ADMIN = "0b5a7c1e-0000-4000-8000-0000000000a1";
+  const CUSTOMER = "0b5a7c1e-0000-4000-8000-0000000000c1";
+  const BUSINESS = "0b5a7c1e-0000-4000-8000-0000000000c2";
+  const FORMER = "0b5a7c1e-0000-4000-8000-0000000000f1";
+  const UNKNOWN = "0b5a7c1e-0000-4000-8000-0000000000ff";
+  const sources = {
+    team: [{ user_id: ADMIN, display_name: "Maria", email: "maria@example.com" }],
+    profiles: [
+      { id: ADMIN, display_name: "Maria" },
+      // A customer may rename themselves after a team member (P10 review).
+      { id: CUSTOMER, display_name: "Maria" },
+      { id: BUSINESS, display_name: "Inkoop" },
+      { id: FORMER, display_name: "Kevin" },
+    ],
+    customers: [
+      {
+        user_id: CUSTOMER,
+        full_name: "Anita Jansen",
+        company_name: null,
+        account_type: "personal" as const,
+        customer_code: "GR00101",
+      },
+      {
+        user_id: BUSINESS,
+        full_name: "Ravi Ramdin",
+        company_name: "Ramdin Trading N.V.",
+        account_type: "business" as const,
+        customer_code: "GR00017",
+      },
+    ],
+  };
+
+  it("never names a customer after the name they chose", () => {
+    const names = namePeople([ADMIN, CUSTOMER, BUSINESS, FORMER, UNKNOWN], sources);
+    expect(Object.fromEntries(names)).toEqual({
+      [ADMIN]: "Maria",
+      [CUSTOMER]: "Klant GR00101 · Anita Jansen",
+      [BUSINESS]: "Klant GR00017 · Ramdin Trading N.V. (Ravi Ramdin)",
+      [FORMER]: "Login Kevin (geen teamlid)",
+      [UNKNOWN]: null,
+    });
+  });
+
+  it("falls back to the team list for a team member without a profile name", () => {
+    const names = namePeople([ADMIN], { ...sources, profiles: [] });
+    expect(names.get(ADMIN)).toBe("Maria");
+    const noName = namePeople([ADMIN], {
+      ...sources,
+      team: [{ user_id: ADMIN, display_name: "", email: "maria@example.com" }],
+      profiles: [],
+    });
+    expect(noName.get(ADMIN)).toBe("maria@example.com");
   });
 });

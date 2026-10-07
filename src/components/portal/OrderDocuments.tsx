@@ -19,6 +19,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import {
+  DOCUMENT_MAX_PER_ORDER,
   documentDownloadUrl,
   formatFileSize,
   orderDocumentsQueryOptions,
@@ -45,6 +46,8 @@ export function OrderDocuments({
 }) {
   const t = useT();
   const documents = useQuery(orderDocumentsQueryOptions(userId, customerId, orderId));
+  // The database refuses more than this per order (migration 20261008120000).
+  const full = (documents.data?.length ?? 0) >= DOCUMENT_MAX_PER_ORDER;
   // SPEC §35.7: B2B shipments need a commercial invoice or packing list for customs.
   const missingB2bDocs =
     isB2b &&
@@ -59,7 +62,7 @@ export function OrderDocuments({
       id="order-documents"
       description={t("portal.order.documents.intro")}
       actions={
-        canUpload ? (
+        canUpload && !full ? (
           <UploadDocumentDialog
             userId={userId}
             customerId={customerId}
@@ -104,6 +107,10 @@ export function OrderDocuments({
       {!canUpload ? (
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
           {t("portal.order.documents.closed")}
+        </p>
+      ) : full ? (
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          {t("portal.order.documents.full", { max: DOCUMENT_MAX_PER_ORDER })}
         </p>
       ) : null}
     </Section>

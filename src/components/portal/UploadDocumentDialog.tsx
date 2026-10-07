@@ -28,6 +28,7 @@ import {
   DOCUMENT_KINDS,
   DocumentUploadError,
   checkDocument,
+  documentErrorMessage,
   formatFileSize,
   uploadOrderDocument,
   type DocumentKind,
@@ -87,7 +88,7 @@ export function UploadDocumentDialog({
     onError: (error) => {
       const message =
         error instanceof DocumentUploadError
-          ? t(`portal.upload.errors.${error.reason}`)
+          ? documentErrorMessage(error.reason)
           : errorMessage(error);
       setProblem(message);
       toast.error(message);

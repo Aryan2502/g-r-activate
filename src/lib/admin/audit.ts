@@ -40,7 +40,8 @@ export const AUDIT_COLUMNS =
 
 /**
  * Every table_name the database writes: the audited tables (private.audit_row
- * triggers) and the RPCs that log themselves (numbering, team logins).
+ * triggers) and the RPCs that log themselves (numbering, team logins,
+ * password-reset links).
  */
 export const AUDIT_TABLES = [
   "customers",
@@ -59,6 +60,8 @@ export const AUDIT_TABLES = [
   "shipment_statuses",
   "customer_number_seq",
   "invoice_number_counters",
+  "internal_notes",
+  "recovery_link",
 ] as const;
 export type AuditTable = (typeof AUDIT_TABLES)[number];
 
@@ -289,6 +292,17 @@ export function auditRecordLabel(
     case "warehouse_addresses":
       label = join(str(data["label"]), str(data["city"]));
       break;
+    case "internal_notes": {
+      const body = str(data["body"]);
+      label = body && body.length > 60 ? `${body.slice(0, 59)}…` : body;
+      break;
+    }
+    case "recovery_link":
+      // A customer login ("GR00042 · Maria Pinas"), else a team login.
+      label =
+        join(str(data["customer_code"]), str(data["full_name"])) ??
+        (data["team"] === true ? t("admin.audit.teamLogin") : null);
+      break;
   }
   return label ?? entry.record_id ?? "–";
 }
@@ -324,7 +338,9 @@ export function auditRecordLink(
       const invoiceId = ref("invoice_id");
       return invoiceId ? { to: "/admin/facturen/$id", id: invoiceId } : null;
     }
-    case "invitations": {
+    case "invitations":
+    case "internal_notes":
+    case "recovery_link": {
       const customerId = ref("customer_id");
       return customerId ? { to: "/admin/klanten/$id", id: customerId } : null;
     }

@@ -1,7 +1,52 @@
 # G&R Activate — Deployment
 
-How G&R Activate is hosted and configured. This document grows per phase; sections
-marked **TODO** are filled in by the phase that needs them (SPEC §35.15).
+How G&R Activate is hosted and configured, and what the owner does once before going
+live (SPEC §35.15). Every SQL block that is marked as tested runs unchanged in the
+database tests (`supabase/tests/pglite/*`).
+
+## Go-live checklist
+
+Work from top to bottom; each line points to the section with the exact steps. Tick a line
+only when its check passes.
+
+- [ ] **Plans** (§9): Supabase project on **Pro**; Vercel project in a **Pro** team (Hobby
+      is for non-commercial use only).
+- [ ] **Vercel** (§1): import the repository; Node.js **22.x**; region **iad1**; Fluid
+      compute on with Max Duration ≥ 90 s; preview protection on; every environment
+      variable of §1.2 set (secrets marked _Sensitive_); custom domain added, and `APP_URL`
+      = `https://<prod-domain>`. Check: `https://<prod-domain>/` shows the homepage.
+- [ ] **Supabase Auth** (§3): Site URL and the **exact** redirect hosts (no `*` in a
+      host); _Confirm email_ ON; minimum password length 8; CAPTCHA off.
+- [ ] **First admin** (§4): sign up, run the SQL, land on `/admin`.
+- [ ] **Migrations** (§2.1): the migrations workflow is green for the newest commit and
+      `supabase_migrations.schema_migrations` lists all eight files (the newest
+      `20261008120000 | p10_review_hardening`).
+- [ ] **Settings** (`/admin/instellingen`): company details, the three bank accounts, the
+      US warehouse address, rates per lb, pickup hours, terms and prohibited goods. Leave
+      the numbering (invoice counter, next customer code) for after the reset: the reset
+      puts both back. Check: the dashboard's "Nog in te stellen" list is empty.
+- [ ] **E-mail** (§5, §6): Resend domain verified; `RESEND_API_KEY`, `EMAIL_FROM`,
+      `EMAIL_REPLY_TO` in Vercel; Resend as custom SMTP in Supabase Auth; the three auth
+      templates pasted. Check: Systeemstatus shows the e-mail provider as set, and an
+      invitation to your own address arrives (`email_logs` row `sent`).
+- [ ] **Daily reminders** (§7): `CRON_SECRET` in Vercel; Vault secrets `app_url` and
+      `cron_secret`; the curl test answers 200; Data API exposes only `public` and
+      `graphql_public`.
+- [ ] **RLS check** (§8.1): `supabase/tests/rls_checks.sql` in the SQL editor ends with
+      `ALLE RLS-CONTROLES GESLAAGD`.
+- [ ] **Acceptance walkthrough** (`docs/ACCEPTANCE.md`) on the production domain, every
+      step marked "eigenaar test live" ticked.
+- [ ] **Pre-go-live reset** (§8.2): test customers, orders, invoices, payments, e-mails and
+      their audit rows removed; numbering restarted; the order-documents bucket emptied.
+- [ ] **Numbering, after the reset** (`/admin/instellingen` → Nummering): set this year's
+      invoice counter if G&R continues its own invoice numbers, and the **Volgende
+      klantcode** if G&R keeps a range of codes free. Check: "De volgende factuur krijgt
+      INV-…" shows the number G&R expects (the reset alone gives INV-<year>-0001 and
+      GR00100).
+- [ ] **Repository** (§2.3): repository private; a commit made by a bot (the types commit
+      of the migrations workflow, or a Lovable edit) still deploys on Vercel.
+- [ ] **Go**: public sign-up switched on or off as G&R wants (§3.2), and the first real
+      customers invited from `/admin/klanten`.
 
 | Part                            | Where                                                                            |
 | ------------------------------- | -------------------------------------------------------------------------------- |
@@ -141,10 +186,13 @@ preview's own address.
 
 ---
 
-## 2. GitHub Actions (database migrations)
+## 2. GitHub Actions
 
-Already set up. On every push to `main` that touches `supabase/migrations/**`, the
-workflow applies new migrations with `supabase db push` and commits regenerated types to
+### 2.1 Database migrations
+
+Already set up (`.github/workflows/supabase-migrations.yml`). On every push to `main` that
+touches `supabase/migrations/**`, the workflow applies new migrations with
+`supabase db push` and commits regenerated types to
 `src/integrations/supabase/types.ts`. Repository secrets (Settings → Secrets and
 variables → Actions), both already set:
 
@@ -155,13 +203,69 @@ variables → Actions), both already set:
 
 Applied migrations are never edited; every change is a new file (SPEC §35.3).
 
-### 2.1 Migrations waiting to be applied
+**Applied so far.** The first seven migrations in `supabase/migrations/` have been applied
+to the project by the workflow: the three P2a foundation files,
+`20261007090000_order_hardening.sql`, `20261007120000_p4_order_guards.sql`,
+`20261007150000_p5_customers.sql` and `20261008090000_p8_reminders.sql`. The eighth,
+`20261008120000_p10_review_hardening.sql` (P10 review: upload limits per customer,
+`has_role()` answers customers only about themselves, the audit row for password-reset
+links, internal notes in the audit log), is applied by the workflow when it reaches
+`main`; nobody has run it against the project yet. Check in the SQL editor (eight rows,
+the newest `20261008120000 | p10_review_hardening`):
 
-| Migration                            | What it adds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | After applying                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `20261007120000_p4_order_guards.sql` | P4 review: hand-over per customer, "Toch afgeven" only on unpaid orders, shipment ↔ service type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | types do not change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `20261007150000_p5_customers.sql`    | P5: `keep_order_after_cancellation_request(_order_id, _customer_message)` ("Order behouden" clears the customer's request, closes the task and puts a message for the customer on the order's history); `handle_new_user` raises a staff task when sign-up is off or the address has an open staff invitation; `redeem_invitation` takes the profile name from the invitation for a login the invitation created or confirmed; team: a banned (deactivated) login holds no role (`has_role`/`is_staff`), `set_user_role` keeps one admin who can sign in, `team_members()` (team list for staff and admins), `log_team_login_change()` (audit entry; revokes every invitation the deactivated person made and leaves a note on each affected customer); `get_invitation` reports an invitation whose inviter lost the rights as revoked; the resend limits (1×/minute, 5×/day) hold per e-mail address, also for a new invitation after "Intrekken" | the workflow regenerates `types.ts` with the new RPCs. Until the migration is live: "Order behouden" on `/admin/orders/$id` only closes the task (the portal still shows the request, as in P4); `/admin/team` shows a reduced list from `user_roles` (no e-mail addresses or deactivation state; staff see only themselves) with a notice; deactivating a team member bans the login but writes no audit entry, and a token the person still holds keeps working until it expires (at most 1 hour). The UI detects the missing functions by PostgREST's "function not found" (`PGRST202`/`42883`), no redeploy needed |
-| `20261008090000_p8_reminders.sql`    | P8: enables pg_cron and pg_net (pg_net stays as Supabase installs it; clients are kept out because `net` is not an exposed API schema, §7.4), `private.invoke_payment_reminders()` and the daily job `gr-payment-reminders` (12:00 UTC = 09:00 Suriname), and `public.orphan_order_document_objects()` (service role only) for the clean-up of orphaned uploads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | create the two Vault secrets (§7.2) and set `CRON_SECRET` (§7.1); the workflow regenerates `types.ts` (one new function). Until then `/admin/herinneringen` and the e-mails work, but nothing runs on its own and the clean-up reports that the migration is missing                                                                                                                                                                                                                                                                                                                                                   |
+```sql
+select version, name from supabase_migrations.schema_migrations order by version;
+```
+
+The app works before and after that migration is applied (a password-reset link made
+before it writes the internal note first instead of the audit row). After any new
+migration: let the workflow run, check the row appears, then run
+`supabase/tests/rls_checks.sql` again (§8.1).
+
+### 2.2 Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request: `bun install
+--frozen-lockfile`, `bunx tsc --noEmit`, `bun run test` (unit tests and the PGlite
+database tests, including the RLS script) and `bun run build`. It needs no secrets: the
+committed `.env` holds only public values. On a private repository these runs use the
+account's GitHub Actions minutes (a run takes about five minutes on GitHub's runners).
+
+Two things CI does not do:
+
+- **It does not run on the "Regenerate Supabase types" commit.** GitHub starts no
+  workflow for a push made with the workflow's own token. That is why the migrations
+  workflow type-checks the app itself, right after pushing the new types (step "Type
+  check with the new types"). A red migrations run therefore means: the database and the
+  code no longer fit; fix the code before relying on that deployment.
+- **It does not stop Vercel.** Vercel deploys every push to `main` (also Lovable edits
+  and the types commit) whether CI is green or not; `vite build` does not type-check.
+  A red CI run on `main` means: fix it, and if the deployed app misbehaves, roll back in
+  Vercel → Deployments → the last good deployment → **Instant Rollback**. If you want
+  Vercel to wait for CI, look in Vercel → Project → Settings for deployment checks on
+  your plan and require the "CI / check" GitHub check; that was not set up or tested
+  here.
+
+### 2.3 Making the repository private
+
+The repository and the committed `.env` were written to be safe in public (no secrets),
+but nothing requires that. Before go-live:
+
+1. GitHub → repository → Settings → General → Danger Zone → **Change visibility →
+   Private**. The migrations workflow and its secrets keep working.
+2. Vercel deploys commits from a private repository only for commit authors it accepts.
+   Commits on `main` come from people and from bots: the "Regenerate Supabase types"
+   commit of the migrations workflow is authored by `github-actions[bot]`, and edits made
+   in Lovable arrive through Lovable's GitHub app. After the switch, check one deployment
+   of each kind: Vercel → Deployments, the deployment must show that commit with status
+   **Ready**. If Vercel shows it as **Blocked** (the commit author is not a member of the
+   team), choose one:
+   - redeploy it by hand (Deployments → … → Redeploy); or
+   - Vercel → Settings → Git → **Deploy Hooks**: create a hook for `main`, store its URL as
+     the repository secret `VERCEL_DEPLOY_HOOK`, and add a step at the end of the
+     migrations workflow that calls it (`curl -fsS -X POST "$VERCEL_DEPLOY_HOOK"`), so the
+     types commit always deploys.
+
+   This check was not possible from here (no Vercel project exists yet); do it once.
 
 ---
 
@@ -572,16 +676,209 @@ Check once, and after any change to the API settings: Supabase → **Project Set
 Data API → Exposed schemas** lists only `public` and `graphql_public`. Never add `net`,
 `extensions`, `private`, `cron` or `vault` there.
 
-## 8. Pre-go-live reset — TODO (P10)
+## 8. Before go-live: RLS check and reset
 
-To be written in P10: SQL that removes test data before go-live while keeping
-configuration (settings, statuses, rates, bank accounts) and the admin account.
+### 8.1 RLS check
 
-## 9. Plans before go-live — TODO (P10)
+`supabase/tests/rls_checks.sql` proves in the live database that every customer sees and
+changes only their own data (SPEC §35.15). It creates throwaway users (customers A and B,
+a deactivated customer C, a customer D without login, a staff member and an admin, all
+`rls-…@example.com`), acts as each of them exactly as the app does, tries everything that
+must fail, and rolls everything back at the end: nothing is stored, not even a customer
+number.
 
-Recommended before go-live: Supabase **Pro** (daily backups, no project pausing, leaked
-password protection) and Vercel **Pro** (commercial use is not allowed on the Hobby
-plan). Details and costs follow in P10.
+1. Supabase → **SQL Editor** → New query. Paste the **whole file** and press **Run**. The
+   editor may warn about "destructive operations": that is expected (the script tries
+   forbidden changes on purpose, and rolls back); choose to run it.
+2. Good: one row, `ALLE RLS-CONTROLES GESLAAGD`.
+3. Wrong: an error that starts with `RLS-CONTROLE MISLUKT [wie]: …`, naming who saw or
+   changed what (for example `[klant A]: ziet orders van klant B`). Nothing is stored.
+   Do not go live; send the message to whoever maintains the app. An error that does
+   not start with `RLS-CONTROLE MISLUKT` means the test data could not be created (for
+   example a migration that is not applied yet, §2.1). If the editor then says "current
+   transaction is aborted", run `rollback;` once.
+
+The script switches on air freight and raises "Maximaal aantal openstaande aanmeldingen
+per klant" to at least 50 inside its own transaction (its test customers register a few
+orders), so your settings do not get in its way and are unchanged afterwards.
+
+The script expects every migration in `supabase/migrations/` to be applied (§2.1). On a
+project without `20261008120000_p10_review_hardening.sql` it fails, correctly, with
+`[klant A]: weet via has_role() welke login beheerder of medewerker is`.
+
+Run it again after every new migration. The same file runs in the test suite
+(`supabase/tests/pglite/rls_checks_script.test.ts`), also against deliberately broken
+policies to prove it fails then.
+
+### 8.2 Pre-go-live reset
+
+Run this **once**, after the RLS check and the walkthrough of `docs/ACCEPTANCE.md`, and
+**before** the first real customer is added or invited. It removes everything customers
+and testing produced, and keeps how G&R is set up.
+
+Removed:
+
+- every customer record (also the disabled record of §4), order, document record, status
+  history, shipment, invoice (also issued ones), invoice line, payment, internal note,
+  staff task, customer invitation, e-mail log and job run, and the audit rows of all of
+  these (also those of internal notes and of the password-reset links made while
+  testing);
+- every login without a team role: the test customers' logins and their profiles.
+
+Kept: company settings, bank accounts, US warehouse addresses, rates, statuses, the team
+(logins with a role, their profiles and roles, staff invitations) and the audit rows of
+settings and team changes.
+
+Numbering starts again: new customer codes from **GR00100** (numbers given up during
+testing are forgotten; existing G&R customers keep their own GR000xx code when you add
+or invite them), orders from **ORD-<year>-00001**, invoices from **INV-<year>-0001**. To
+continue G&R's own invoice numbers, or to keep a range of customer codes free, set the
+counter and the next customer code on `/admin/instellingen` → Nummering **after** the
+reset (go-live checklist "Numbering, after the reset"); a value set before it is gone.
+
+Do not run it once real customers are in the system: it removes every customer.
+
+**Step 1 — uploaded files (Storage, not SQL).** Supabase refuses SQL deletes in its
+storage tables, and SQL would leave the files themselves behind. Supabase → **Storage**
+→ bucket `order-documents` → select every folder → **Delete**. (If you skip this, the
+daily reminder run (§7) removes files older than 24 hours that no longer have a
+document record, up to 500 per day.)
+
+**Step 2 — look first.** SQL Editor, run (changes nothing; run it again after step 3 to
+check the result):
+
+<!-- reset-overview-sql:start (tested by supabase/tests/pglite/deployment_reset.test.ts) -->
+
+```sql
+select wat, aantal from (values
+  (1, 'klantdossiers', (select count(*) from public.customers)),
+  (2, 'logins zonder teamrol (testklanten)', (select count(*) from auth.users u
+       where not exists (select 1 from public.user_roles r where r.user_id = u.id))),
+  (3, 'orders', (select count(*) from public.orders)),
+  (4, 'zendingen', (select count(*) from public.shipments)),
+  (5, 'facturen', (select count(*) from public.invoices)),
+  (6, 'betalingen', (select count(*) from public.payments)),
+  (7, 'e-maillogs', (select count(*) from public.email_logs)),
+  (8, 'auditregels', (select count(*) from public.audit_log)),
+  (9, 'bestanden in order-documents (stap 1)', (select count(*) from storage.objects
+       where bucket_id = 'order-documents')),
+  (10, 'teamleden (blijven)', (select count(distinct user_id) from public.user_roles)),
+  (11, 'volgend nieuw klantnummer', (select case when is_called then last_value + 1
+       else last_value end from private.customer_number_seq))
+) t(nr, wat, aantal)
+order by nr;
+```
+
+<!-- reset-overview-sql:end -->
+
+**Step 3 — reset.** Paste the SQL below, replace `<TYP HIER: WIS ALLE TESTGEGEVENS>` with
+`WIS ALLE TESTGEGEVENS` (without `<` and `>`), and run it. It is one transaction: an error
+changes nothing. It refuses to run without that phrase, and when no admin who can sign in
+exists (§4). The guards that normally keep issued invoices and payments forever are
+switched off only inside this transaction and on again before it ends.
+
+<!-- reset-sql:start (tested by supabase/tests/pglite/deployment_reset.test.ts) -->
+
+```sql
+do $$
+declare
+  _bevestiging constant text := '<TYP HIER: WIS ALLE TESTGEGEVENS>';
+  _klanten bigint;
+  _logins bigint;
+begin
+  if _bevestiging <> 'WIS ALLE TESTGEGEVENS' then
+    raise exception 'Niets gewist: vervang <TYP HIER: WIS ALLE TESTGEGEVENS> door WIS ALLE TESTGEGEVENS.';
+  end if;
+  if not exists (
+    select 1 from public.user_roles r join auth.users u on u.id = r.user_id
+    where r.role = 'admin' and (u.banned_until is null or u.banned_until <= now())
+  ) then
+    raise exception 'Niets gewist: er is geen beheerder die kan inloggen (DEPLOYMENT.md §4).';
+  end if;
+
+  -- Issued invoices and payments are never deleted, except here.
+  alter table public.payments disable trigger payments_guard;
+  alter table public.invoices disable trigger invoices_guard;
+  alter table public.invoice_items disable trigger invoice_items_guard;
+
+  delete from public.payments;
+  update public.invoices set replaces_invoice_id = null where replaces_invoice_id is not null;
+  delete from public.invoices;          -- and their lines
+  delete from public.email_logs;
+  delete from public.job_runs;
+  delete from public.orders;            -- and their documents, status history, notes and tasks
+  delete from public.shipments;
+  delete from public.staff_tasks;
+  delete from public.internal_notes;
+  delete from public.invitations where kind = 'customer';
+  select count(*) into _klanten from public.customers;
+  delete from public.customers;
+  -- Logins without a team role: the test customers (their profiles go with them).
+  with weg as (
+    delete from auth.users u
+    where not exists (select 1 from public.user_roles r where r.user_id = u.id)
+    returning 1
+  )
+  select count(*) into _logins from weg;
+
+  alter table public.payments enable trigger payments_guard;
+  alter table public.invoices enable trigger invoices_guard;
+  alter table public.invoice_items enable trigger invoice_items_guard;
+
+  -- Numbering starts again: GR00100, ORD-<year>-00001, INV-<year>-0001.
+  delete from private.retired_customer_numbers;
+  delete from private.order_reference_counters;
+  delete from public.invoice_number_counters;
+  perform setval('private.customer_number_seq', 100, false);
+
+  -- Audit rows of what was removed; settings and team changes stay.
+  delete from public.audit_log a
+  where a.table_name not in ('company_settings', 'company_bank_accounts', 'warehouse_addresses',
+                             'service_rates', 'shipment_statuses', 'user_roles', 'team_login')
+    and not (a.table_name = 'invitations' and coalesce(a.new_data, a.old_data) ->> 'kind' = 'staff');
+
+  raise notice 'Gewist: % klantdossiers en % logins zonder teamrol. Nieuwe klantcodes beginnen bij GR00100.',
+    _klanten, _logins;
+end
+$$;
+```
+
+<!-- reset-sql:end -->
+
+**Step 4 — check.** Run the query of step 2 again: everything is 0 except "teamleden
+(blijven)", and "volgend nieuw klantnummer" is 100. Supabase → Authentication → Users
+lists only the team. On `/admin` the dashboard shows no customers, orders or invoices,
+`/admin/instellingen` still holds every setting, and `/admin/team` the whole team. The
+Systeemstatus panel says no reminder run has happened yet until the next daily run
+(12:00 UTC); that is expected.
+
+---
+
+## 9. Plans before go-live
+
+Both free plans are fine for building and testing, not for a business that depends on the
+portal.
+
+**Supabase: Pro.** Supabase → Organization → Billing → upgrade the organisation that owns
+`blbazidqlesjokshfhiy`.
+
+- **Backups.** The Free plan has no daily backups; Pro keeps daily backups for 7 days
+  (restore from Database → Backups). Point-in-time recovery is a paid add-on if G&R wants
+  to restore to the minute.
+- **No pausing.** Free projects are paused after a week without activity; a paused
+  project means the portal, the invitation links and the daily reminders stop until
+  someone restores it by hand.
+- **Security and limits.** Leaked password protection (§3.3) is Pro only; Pro also has
+  more database and storage space and higher Auth limits.
+
+**Vercel: Pro.** Vercel's Hobby plan is for personal, non-commercial use only; a customer
+portal of a company is commercial use. Create the project in a Pro team (or move it there:
+Project → Settings → General → Transfer). Pro also gives the longer function limits the
+daily reminder run needs (§1.1) without depending on Hobby's fair-use terms.
+
+Prices change; check supabase.com/pricing and vercel.com/pricing before upgrading. When
+these docs were written Supabase Pro started at about USD 25 per month per organisation
+(compute credits included) and Vercel Pro at about USD 20 per team member per month.
 
 ---
 
@@ -591,9 +888,14 @@ plan). Details and costs follow in P10.
 bun install
 bun run dev            # http://localhost:8080
 bun run test           # unit tests + database tests (PGlite)
+bun run test:db        # only the database tests (migrations, RLS script, SQL in these docs)
 bunx tsc --noEmit
 bun run build          # VERCEL=1 bun run build for the Vercel output
 ```
+
+The same checks run in CI on every push and pull request (§2.2). The database tests apply
+every migration to an in-process Postgres (PGlite) dressed up as a Supabase project
+(`supabase/tests/pglite/harness.ts`); they never touch the real project.
 
 The app talks to the real Supabase project; `localhost:8080` must be on the redirect list
 (§3.1) for email links to come back to the local app.

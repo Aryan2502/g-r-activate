@@ -35,6 +35,7 @@ const sources: HistorySources = {
       order_type: "personal",
       status: "in_transit_air",
       store_vendor: "Amazon",
+      vendor_order_number: "112-3456789-0123456",
       description: "Sportschoenen",
       tracking_number: "1Z-999-AA1",
       created_at: "2026-09-01T12:00:00Z",
@@ -46,6 +47,7 @@ const sources: HistorySources = {
       order_type: "b2b",
       status: "in_transit_air",
       store_vendor: "Énéas Supplies",
+      vendor_order_number: null,
       description: null,
       tracking_number: null,
       created_at: "2026-09-02T12:00:00Z",
@@ -58,6 +60,7 @@ const sources: HistorySources = {
       order_type: "personal",
       status: "picked_up",
       store_vendor: "Shein",
+      vendor_order_number: "TEST-111",
       description: null,
       tracking_number: null,
       created_at: "2026-01-01T01:00:00Z",
@@ -213,6 +216,9 @@ describe("filterHistory()", () => {
     expect(keys({ q: "eneas" })).toEqual(["o:o2"]);
     // Tracking and AWB numbers also without dashes or spaces.
     expect(keys({ q: "1z999" })).toEqual(["o:o1"]);
+    // The shop's order number (ACCEPTANCE A15 searches it).
+    expect(keys({ q: "112-3456789" })).toEqual(["o:o1"]);
+    expect(keys({ q: "test-111" })).toEqual(["o:o0"]);
     expect(keys({ q: "81012345675" })).toEqual(["s:s1"]);
     expect(keys({ q: "vliegtuig" })).toEqual(["h:5", "o:o2", "o:o1"]);
     expect(keys({ q: "vlucht 123" })).toEqual(["h:5"]);

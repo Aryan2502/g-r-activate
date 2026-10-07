@@ -208,8 +208,8 @@ export type CreateOrderResponse =
       reference: string;
       /** Set when the order was created but receiving it right away failed. */
       receiveError: TransportError | null;
-      /** "Order bevestigd" to the customer. */
-      emailOutcome: EmailOutcome;
+      /** "Order bevestigd" to the customer; null when the receipt's status e-mail went instead. */
+      emailOutcome: EmailOutcome | null;
       /** "Statusupdate" of the immediate receipt (empty when not received or not e-mailed). */
       receiveEmailOutcomes: EmailOutcome[];
     }
@@ -238,26 +238,10 @@ export const createOrderForCustomerFn = createServerFn({ method: "POST" })
       return { ok: false, error: toTransportError(error) };
     }
 
-    // "Order bevestigd". Never fails the creation.
-    let emailOutcome: EmailOutcome;
-    try {
-      const { onOrderRegistered } = await import("@/server/order-notifications");
-      emailOutcome = (
-        await onOrderRegistered({
-          db: access.supabase,
-          orderId: order.id,
-          reference: order.reference,
-          customerId: order.customerId,
-          parentOrderId: order.parentOrderId,
-          userId: access.userId,
-          createdBy: "staff",
-        })
-      ).email;
-    } catch (error) {
-      console.error("[createOrderForCustomerFn] onOrderRegistered failed", error);
-      emailOutcome = "failed";
-    }
-
+    // With a measured weight the package is received straight away. The
+    // customer then gets ONE e-mail for this one action (SPEC §35.12): the
+    // status update ("Aangekomen in US-magazijn") when that status e-mails
+    // customers, else "order bevestigd". Never fails the creation.
     let receiveError: TransportError | null = null;
     let receiveEmailOutcomes: EmailOutcome[] = [];
     const weight = weightFromText(input.measuredWeightLbs);
@@ -285,6 +269,27 @@ export const createOrderForCustomerFn = createServerFn({ method: "POST" })
       } catch (error) {
         logFailure("createOrderForCustomerFn/receive", error);
         receiveError = toTransportError(error);
+      }
+    }
+
+    let emailOutcome: EmailOutcome | null = null;
+    if (receiveEmailOutcomes.length === 0) {
+      try {
+        const { onOrderRegistered } = await import("@/server/order-notifications");
+        emailOutcome = (
+          await onOrderRegistered({
+            db: access.supabase,
+            orderId: order.id,
+            reference: order.reference,
+            customerId: order.customerId,
+            parentOrderId: order.parentOrderId,
+            userId: access.userId,
+            createdBy: "staff",
+          })
+        ).email;
+      } catch (error) {
+        console.error("[createOrderForCustomerFn] onOrderRegistered failed", error);
+        emailOutcome = "failed";
       }
     }
     return {

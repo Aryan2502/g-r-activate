@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Constants, type Database } from "@/integrations/supabase/types";
+import { t } from "@/lib/i18n";
 import { portalKeys } from "@/lib/portal/orders";
 
 /**
@@ -15,6 +16,13 @@ import { portalKeys } from "@/lib/portal/orders";
 export const DOCUMENTS_BUCKET = "order-documents";
 /** Bucket file_size_limit: 10 MB. */
 export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+/**
+ * Upload limits for customers (migration 20261008120000_p10_review_hardening.sql):
+ * files per order folder, and new files per customer per 24 hours. Staff are
+ * not limited. The storage policy refuses more (HTTP 403).
+ */
+export const DOCUMENT_MAX_PER_ORDER = 20;
+export const DOCUMENT_MAX_PER_DAY = 40;
 /** Signed download links live 5 minutes (SPEC §35.7). */
 export const SIGNED_URL_SECONDS = 300;
 
@@ -137,6 +145,16 @@ export class DocumentUploadError extends Error {
     this.name = "DocumentUploadError";
     this.reason = reason;
   }
+}
+
+/** The Dutch message for a refused upload (the limits are named in "forbidden"). */
+export function documentErrorMessage(reason: DocumentErrorReason): string {
+  return reason === "forbidden"
+    ? t("portal.upload.errors.forbidden", {
+        perOrder: DOCUMENT_MAX_PER_ORDER,
+        perDay: DOCUMENT_MAX_PER_DAY,
+      })
+    : t(`portal.upload.errors.${reason}`);
 }
 
 /**

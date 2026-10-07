@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { logRecoveryLink } from "@/lib/admin/customer-actions";
 import { invitationLink } from "@/lib/admin/invitations";
 import { parseActionInput } from "@/lib/admin/order-actions";
 import {
@@ -188,6 +189,11 @@ export const createTeamRecoveryLinkFn = createServerFn({ method: "POST" })
     try {
       userId = parseActionInput(teamMemberInputSchema, data).userId;
       assertRecoveryForMember(await loadTeam(access.supabase), userId);
+      // Fail closed: the audit row comes first (see logRecoveryLink).
+      const audit = await logRecoveryLink(access.supabase, userId, null);
+      if (audit === "unaudited") {
+        console.warn("[createTeamRecoveryLinkFn] log_recovery_link missing: link not audited");
+      }
     } catch (error) {
       logFailure("createTeamRecoveryLinkFn", error);
       return { ok: false, error: toTransportError(error) };

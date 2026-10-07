@@ -1,0 +1,44 @@
+# Type check, tests (unit + PGlite database tests, including supabase/tests/rls_checks.sql)
+# and the production build, on every push and pull request. Needs no secrets: the
+# committed .env holds only public values, and the database tests run against an
+# in-process Postgres, never the real Supabase project (docs/DEPLOYMENT.md §2.2).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      # vitest and the build run on Node; production runs Node 22 on Vercel.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bunx tsc --noEmit
+
+      - name: Tests
+        run: bun run test
+
+      - name: Build
+        run: bun run build

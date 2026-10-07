@@ -1275,13 +1275,27 @@ describe("roles", () => {
       alice: { admin: false, staff: false },
       carol: { admin: false, staff: false },
     });
+    // has_role() answers a customer only about their own login (migration
+    // 20261008120000_p10_review_hardening.sql): staff ids are in columns
+    // customers can read, and must not reveal who the administrators are.
     expect(
       await asUser(db, p.alice.id, (tx) =>
-        one(tx, "select public.has_role($1, 'staff') as s, public.has_role($1, 'admin') as a", [
+        one(
+          tx,
+          "select public.has_role($1, 'staff') as s, public.has_role($1, 'admin') as a, public.has_role($2, 'admin') as own",
+          [p.staff.id, p.alice.id],
+        ),
+      ),
+    ).toEqual({ s: false, a: false, own: false });
+    // Staff still get the real answer about anyone.
+    expect(
+      await asUser(db, p.staff.id, (tx) =>
+        one(tx, "select public.has_role($1, 'admin') as a, public.has_role($2, 'staff') as s", [
+          p.admin.id,
           p.staff.id,
         ]),
       ),
-    ).toEqual({ s: true, a: false });
+    ).toEqual({ a: true, s: true });
     await expectSqlError(
       asAnon(db, (tx) => tx.query("select public.is_staff()")),
       "42501",
@@ -1365,13 +1379,27 @@ describe("roles", () => {
 
       await tx.query("select public.set_user_role($1, 'admin', true)", [p.staff.id]);
       await tx.query("select public.set_user_role($1, 'admin', false)", [p.admin.id]);
+      // The former admin holds no role any more, so has_role() answers them
+      // only about themselves; the new admin's role is read directly.
       expect(
         await one(
           tx,
-          "select public.has_role($1, 'admin') as old, public.has_role($2, 'admin') as new",
+          `select public.has_role($1, 'admin') as old,
+                  public.has_role($2, 'admin') as asked,
+                  (select pg_catalog.count(*)::int from public.user_roles
+                    where user_id = $2 and role = 'admin') as rows_seen`,
           [p.admin.id, p.staff.id],
         ),
-      ).toEqual({ old: false, new: true });
+      ).toEqual({ old: false, asked: false, rows_seen: 0 });
+      await tx.query("reset role");
+      expect(
+        await one(
+          tx,
+          "select exists (select 1 from public.user_roles where user_id = $1 and role = 'admin') as new",
+          [p.staff.id],
+        ),
+      ).toEqual({ new: true });
+      await tx.query("set local role authenticated");
       // The former admin is now a plain user and can no longer manage roles.
       await expectSqlError(
         withSavepoint(tx, () =>

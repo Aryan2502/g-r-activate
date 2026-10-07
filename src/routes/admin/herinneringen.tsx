@@ -499,7 +499,6 @@ function ReminderInvoiceItem({
             className="lg:w-full"
             disabled={!hasEmail || row.sentToday || !row.manualKind || send.isPending}
             onClick={() => (row.maxReached ? setConfirmMax(true) : send.mutate(false))}
-            aria-label={t("admin.reminders.open.sendNowLabel", { number })}
           >
             {send.isPending ? (
               <Loader2 className="animate-spin" aria-hidden />
@@ -513,6 +512,7 @@ function ReminderInvoiceItem({
                 : row.maxReached
                   ? t("admin.reminders.open.sendAnyway")
                   : t("admin.reminders.open.sendNow")}
+            <span className="sr-only"> {t("admin.reminders.open.forInvoice", { number })}</span>
           </Button>
           {whatsapp && row.manualKind ? (
             <Button
@@ -521,14 +521,10 @@ function ReminderInvoiceItem({
               variant={!emailConfigured || !hasEmail ? "outline" : "ghost"}
               className="lg:w-full"
             >
-              <a
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("admin.reminders.noEmail.whatsappLabel", { number })}
-              >
+              <a href={whatsapp} target="_blank" rel="noopener noreferrer">
                 <MessageCircle aria-hidden />
                 {t("admin.reminders.noEmail.whatsapp")}
+                <span className="sr-only"> {t("admin.reminders.open.forInvoice", { number })}</span>
               </a>
             </Button>
           ) : null}
@@ -574,17 +570,13 @@ function ReminderInvoiceItem({
       </AlertDialog>
       <Collapsible className="mt-2">
         <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="group h-8 px-2 text-xs"
-            aria-label={t("admin.reminders.open.historyLabel", { number })}
-          >
+          <Button variant="ghost" size="sm" className="group h-8 px-2 text-xs">
             <ChevronDown
               className="size-3.5 transition-transform group-data-[state=open]:rotate-180"
               aria-hidden
             />
             {t("admin.reminders.open.history", { count: row.history.length })}
+            <span className="sr-only"> {t("admin.reminders.open.forInvoice", { number })}</span>
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-2 rounded-md border bg-cream/40 p-3">
@@ -654,10 +646,13 @@ function NoEmailSection({
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={t("admin.reminders.noEmail.whatsappLabel", { number })}
                   >
                     <MessageCircle aria-hidden />
                     {t("admin.reminders.noEmail.whatsapp")}
+                    <span className="sr-only">
+                      {" "}
+                      {t("admin.reminders.open.forInvoice", { number })}
+                    </span>
                   </a>
                 </Button>
               </li>

@@ -27,7 +27,7 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: blbazidqlesjokshfhiy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check secrets
         run: |
@@ -67,3 +67,20 @@ jobs:
           git commit -m "Regenerate Supabase types"
           git pull --rebase origin main
           git push origin HEAD:main
+
+      # GitHub starts no workflow (so no CI run) for a push made with the
+      # default GITHUB_TOKEN, and Vercel deploys that commit anyway. So check
+      # here that the app still type-checks against the new types: a red run
+      # means the deployed code no longer matches the database (DEPLOYMENT §2.2).
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Type check with the new types
+        run: |
+          bun install --frozen-lockfile
+          bunx tsc --noEmit

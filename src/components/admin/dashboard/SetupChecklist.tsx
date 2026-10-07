@@ -136,9 +136,12 @@ export function SetupChecklist({
                     to="/admin/instellingen"
                     hash={`${item.section}-title`}
                     className="inline-flex min-h-8 shrink-0 items-center gap-1 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline sm:self-center"
-                    aria-label={t("admin.home.setup.openLabel", { item: text })}
                   >
                     {t("admin.home.setup.open")}
+                    <span className="sr-only">
+                      {" "}
+                      {t("admin.home.setup.openFor", { item: text })}
+                    </span>
                     <ChevronRight className="size-4" aria-hidden />
                   </Link>
                 ) : null}

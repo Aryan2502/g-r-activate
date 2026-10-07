@@ -116,10 +116,19 @@ export function StatusChangeDialog({
   useEffect(() => {
     if (!open) setFollowUps(null);
   }, [open]);
+  // Escape, X, the overlay and "Annuleren" wait while a change is saving.
   const close = (next: boolean) => {
     if (busy) return;
     if (!next) setFollowUps(null);
     onOpenChange(next);
+  };
+  // After a successful change with nothing to follow up. Called from the
+  // mutation's onSuccess, i.e. while `busy` is still true (onSettled runs
+  // after it), so it must not go through the guard above.
+  const finish = () => {
+    setBusy(false);
+    setFollowUps(null);
+    onOpenChange(false);
   };
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -147,6 +156,7 @@ export function StatusChangeDialog({
             onBusyChange={setBusy}
             onFollowUps={setFollowUps}
             onClose={() => close(false)}
+            onDone={finish}
           />
         )}
       </DialogContent>
@@ -164,6 +174,7 @@ function StatusChangeForm({
   onBusyChange,
   onFollowUps,
   onClose,
+  onDone,
 }: {
   userId: string;
   orders: readonly StatusTarget[];
@@ -174,7 +185,10 @@ function StatusChangeForm({
   onBusyChange: (busy: boolean) => void;
   /** Customers to tell via WhatsApp instead: the dialog shows them before closing. */
   onFollowUps: (followUps: StatusFollowUp[]) => void;
+  /** User-initiated close ("Annuleren"). */
   onClose: () => void;
+  /** Closes after a successful change (bypasses the busy guard). */
+  onDone: () => void;
 }) {
   const t = useT();
   const id = useId();
@@ -380,7 +394,7 @@ function StatusChangeForm({
         queryClient.invalidateQueries({ queryKey: adminKeys.tasks(userId) }),
       ]);
       if (result.followUps.length > 0) onFollowUps(result.followUps);
-      else onClose();
+      else onDone();
     },
     onError: (error) => {
       const app = toAppError(error);

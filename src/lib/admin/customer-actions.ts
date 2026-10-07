@@ -730,13 +730,47 @@ async function loginInTeam(db: Client, userId: string): Promise<boolean> {
   }>;
   const team = await (db.rpc as unknown as TeamRpc).call(db, "team_members");
   if (!team.error) return (team.data ?? []).some((m) => m.user_id === userId);
-  if (!["PGRST202", "42883"].includes(team.error.code ?? "")) throw team.error;
+  if (!MISSING_FUNCTION.includes(team.error.code ?? "")) throw team.error;
   for (const role of ["admin", "staff"] as const) {
     const { data, error } = await db.rpc("has_role", { _user_id: userId, _role: role });
     if (error) throw error;
     if (data === true) return true;
   }
   return false;
+}
+
+export type RecoveryAudit = "audited" | "noted" | "unaudited";
+
+const MISSING_FUNCTION = ["PGRST202", "42883"];
+
+/**
+ * Records "Wachtwoord-resetlink maken" BEFORE the link is created, and throws
+ * when that fails so no link is made without a trace (P10 review: the link
+ * signs in as that login). log_recovery_link() (migration
+ * 20261008120000_p10_review_hardening.sql) writes an audit_log row with the
+ * staff member as actor; it also refuses a team login unless the caller is an
+ * admin. Until that migration is applied the function does not exist: for a
+ * customer the staff-only note is then written first instead ("noted"); for
+ * a team login (no customer record) the link is made as before
+ * ("unaudited").
+ */
+export async function logRecoveryLink(
+  db: Client,
+  userId: string,
+  customerId: string | null,
+): Promise<RecoveryAudit> {
+  type LogRpc = (
+    fn: "log_recovery_link",
+    args: { _user_id: string },
+  ) => PromiseLike<{ error: { code?: string; message: string } | null }>;
+  const { error } = await (db.rpc as unknown as LogRpc).call(db, "log_recovery_link", {
+    _user_id: userId,
+  });
+  if (!error) return "audited";
+  if (!MISSING_FUNCTION.includes(error.code ?? "")) throw error;
+  if (!customerId) return "unaudited";
+  await noteRecoveryLink(db, customerId);
+  return "noted";
 }
 
 /** Leaves a staff-only trace of who made a reset link (internal_notes stamps the author). */

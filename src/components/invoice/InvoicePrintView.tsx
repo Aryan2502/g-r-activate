@@ -53,7 +53,7 @@ export function InvoicePrintView({
 
   return (
     <div className="min-h-screen bg-muted/60 print:min-h-0 print:bg-white">
-      <div className="mx-auto flex max-w-[52rem] flex-wrap items-center justify-between gap-3 px-4 py-4 print:hidden">
+      <header className="mx-auto flex max-w-[52rem] flex-wrap items-center justify-between gap-3 px-4 py-4 print:hidden">
         {back}
         <div className="flex flex-wrap items-center gap-3">
           {!ready ? (
@@ -68,9 +68,11 @@ export function InvoicePrintView({
           </Button>
         </div>
         <p className="w-full text-xs text-muted-foreground">{t("invoicePrint.hint")}</p>
-      </div>
+      </header>
       {/* On screen: true size, shrunk to fit a phone; on paper: unscaled. */}
       <main className="mx-auto max-w-[52rem] px-4 pb-10 print:max-w-none print:p-0">
+        {/* The page's heading for screen readers: the document itself has no h1. */}
+        <h1 className="sr-only">{title}</h1>
         <div ref={sheet}>
           <InvoicePreview model={model} label={t("invoicePrint.title")} />
         </div>

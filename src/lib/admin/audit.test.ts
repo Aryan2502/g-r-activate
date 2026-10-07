@@ -272,6 +272,35 @@ describe("labels", () => {
       ),
     ).toBe("Luchtvracht – Miami · Miami");
   });
+
+  it("names the P10 rows: internal notes and password-reset links", () => {
+    expect(auditTableLabel("internal_notes")).toBe("Interne notities");
+    expect(auditTableLabel("recovery_link")).toBe("Wachtwoord-resetlinks");
+    expect(
+      auditRecordLabel(
+        entry({ table_name: "internal_notes", old_data: { body: "Klant gebeld" }, new_data: null }),
+      ),
+    ).toBe("Klant gebeld");
+    expect(
+      auditRecordLabel(entry({ table_name: "internal_notes", new_data: { body: "x".repeat(80) } })),
+    ).toBe(`${"x".repeat(59)}…`);
+    expect(
+      auditRecordLabel(
+        entry({
+          table_name: "recovery_link",
+          new_data: { team: false, customer_code: "GR00042", full_name: "Maria Pinas" },
+        }),
+      ),
+    ).toBe("GR00042 · Maria Pinas");
+    expect(
+      auditRecordLabel(
+        entry({
+          table_name: "recovery_link",
+          new_data: { team: true, customer_code: null, full_name: null },
+        }),
+      ),
+    ).toBe("Teamlid");
+  });
 });
 
 describe("auditRecordLink()", () => {
@@ -301,6 +330,18 @@ describe("auditRecordLink()", () => {
         }),
       ),
     ).toEqual({ to: "/admin/facturen/$id", id: invoiceId });
+  });
+
+  it("links notes and reset links to the customer they are about", () => {
+    for (const table_name of ["internal_notes", "recovery_link"]) {
+      expect(auditRecordLink(entry({ table_name, new_data: { customer_id: id } }))).toEqual({
+        to: "/admin/klanten/$id",
+        id,
+      });
+    }
+    expect(
+      auditRecordLink(entry({ table_name: "recovery_link", new_data: { customer_id: null } })),
+    ).toBe(null);
   });
 
   it("does not link to a deleted record or to tables without a page", () => {

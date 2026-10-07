@@ -46,6 +46,8 @@ export interface OrderRecord extends RecordBase {
   storeVendor: string | null;
   description: string | null;
   trackingNumber: string | null;
+  /** The shop's order number ("112-3456789-0123456"). */
+  vendorOrderNumber: string | null;
 }
 
 export interface ShipmentRecord extends RecordBase {
@@ -114,6 +116,7 @@ export interface HistorySources {
     | "order_type"
     | "status"
     | "store_vendor"
+    | "vendor_order_number"
     | "description"
     | "tracking_number"
     | "created_at"
@@ -179,6 +182,7 @@ export function buildHistoryRecords(sources: HistorySources): HistoryRecord[] {
       storeVendor: o.store_vendor,
       description: o.description,
       trackingNumber: o.tracking_number,
+      vendorOrderNumber: o.vendor_order_number,
     });
     const s = o.shipment;
     if (!s) continue;
@@ -285,6 +289,7 @@ function searchableText(record: HistoryRecord, statuses: StatusMap): (string | n
         record.storeVendor,
         record.description,
         record.trackingNumber,
+        record.vendorOrderNumber,
         statuses.get(record.status)?.label_nl ?? null,
       ];
     case "shipments":
@@ -443,7 +448,7 @@ export async function loadHistorySources(db: Client, customerId: string): Promis
       db
         .from("orders")
         .select(
-          "id, reference, order_type, status, store_vendor, description, tracking_number, created_at, shipment:shipments(id, shipment_number, service_type, carrier, awb_or_container_number, departed_at, arrived_at, created_at)",
+          "id, reference, order_type, status, store_vendor, vendor_order_number, description, tracking_number, created_at, shipment:shipments(id, shipment_number, service_type, carrier, awb_or_container_number, departed_at, arrived_at, created_at)",
         )
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false })

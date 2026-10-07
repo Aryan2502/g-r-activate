@@ -36,7 +36,11 @@ import {
   type QueuedDocument,
   type UploadState,
 } from "@/lib/portal/document-queue";
-import { DocumentUploadError, uploadOrderDocument } from "@/lib/portal/documents";
+import {
+  DocumentUploadError,
+  documentErrorMessage,
+  uploadOrderDocument,
+} from "@/lib/portal/documents";
 import type { OrderFieldsInput, OrderFieldsOutput } from "@/lib/portal/order-fields";
 import {
   lockedByRoot,
@@ -347,7 +351,7 @@ function NewOrderFlow({
           status: "failed",
           error:
             error instanceof DocumentUploadError
-              ? t(`portal.upload.errors.${error.reason}`)
+              ? documentErrorMessage(error.reason)
               : errorMessage(error),
         });
       }

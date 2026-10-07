@@ -70,30 +70,60 @@ export const nl = {
       eyebrow: "Klantportaal G&R Activate",
       title: "Online kopen in de VS, afhalen in Paramaribo",
       intro:
-        "G&R Solutions N.V. verzorgt de verzending en douane-inklaring van uw online aankopen. In het klantportaal meldt u uw orders aan, volgt u de status van uw zendingen en bekijkt u uw facturen.",
+        "G&R Solutions N.V. is een Surinaams bedrijf voor douane-inklaring en logistiek. Uw online aankopen komen binnen op ons adres in de VS; wij verzenden ze naar Suriname, klaren ze in bij de douane en u haalt ze bij ons af.",
+      portalIntro:
+        "In het klantportaal meldt u uw orders aan, volgt u de status van elke zending en bekijkt u uw facturen.",
       ctaPortal: "Inloggen / Klantportaal",
       ctaSignup: "Account aanmaken",
       existingCustomer: "Al klant van G&R? Vraag ons om uw uitnodigingslink.",
+      highlightsLabel: "In het kort",
+      highlight1: "Persoonlijke klantcode en US-verzendadres",
+      highlight2: "Status van elke zending online",
+      highlight3: "Facturen en betaalgegevens in het portaal",
     },
     howItWorks: {
       title: "Hoe het werkt",
       intro: "Van uw online bestelling tot afhalen in Paramaribo, in vijf stappen.",
       step1Title: "Koop online",
       step1Text:
-        "Bestel zoals gewoonlijk bij webwinkels zoals Amazon, eBay of andere online winkels.",
+        "Bestel zoals gewoonlijk bij webwinkels zoals Amazon, eBay of andere online winkels, voor uzelf of voor uw bedrijf.",
       step2Title: "Gebruik uw persoonlijk US-adres",
       step2Text:
-        "U krijgt een eigen klantcode: GR gevolgd door vijf cijfers. Gebruik het US-verzendadres van G&R Solutions en zet uw klantcode achter uw naam én op adresregel 2. Het volledige US-adres krijgt u van G&R Solutions.",
+        "U krijgt een eigen klantcode: GR gevolgd door vijf cijfers. Laat de winkel uw pakket naar het US-verzendadres van G&R Solutions sturen en zet uw klantcode achter uw naam én op adresregel 2. Zo weten wij dat het pakket van u is.",
       step3Title: "Meld uw order aan",
       step3Text:
-        "Registreer uw aankoop in het klantportaal: winkel, ordernummer en het trackingnummer als u dat al heeft. Zo weten wij welk pakket van u is.",
+        "Registreer uw aankoop in het klantportaal: winkel, ordernummer en het trackingnummer als u dat al heeft. Een aankoopfactuur of ander document kunt u meteen uploaden.",
+      step3Prohibited: "Bij het aanmelden bevestigt u dat uw zending geen {link} bevat.",
+      step3ProhibitedLink: "verboden goederen",
       step4Title: "Wij verzenden en klaren in",
       step4Text:
-        "G&R Solutions verzendt uw pakket naar Suriname en verzorgt de douane-inklaring. Elke statuswijziging ziet u in het portaal.",
+        "G&R Solutions ontvangt uw pakket in het US-magazijn, verzendt het naar Suriname en verzorgt de douane-inklaring. Elke stap ziet u in het portaal.",
       step5Title: "Afhalen in Paramaribo en betalen",
       step5Text:
         "Is uw pakket klaar voor afhalen, dan ziet u dat in het portaal, samen met uw factuur. U betaalt de factuur en haalt uw pakket af.",
       pickupAddress: "Afhaaladres: {address}",
+      pickupHours: "Afhaaltijden: {hours}",
+      addressExample: {
+        title: "Voorbeeld: zo adresseert u uw pakket",
+        nameLabel: "Naam",
+        nameValue: "Uw naam",
+        line1Label: "Adresregel 1",
+        line1Value: "Het US-adres van G&R Solutions",
+        line2Label: "Adresregel 2",
+        code: "GR01234",
+        note: "GR01234 is een voorbeeld. Uw eigen klantcode en het volledige US-adres ziet u na het inloggen in het klantportaal.",
+      },
+    },
+    orderTypes: {
+      title: "Particulier of zakelijk",
+      intro:
+        "Bij elke aanmelding kiest u wat voor order het is. Zo weten wij hoe wij uw zending behandelen.",
+      personalTitle: "Persoonlijke order",
+      personalText:
+        "Uw eigen online aankoop, bijvoorbeeld bij Amazon of eBay, verzonden naar uw persoonlijk US-adres.",
+      b2bTitle: "Zakelijke order (B2B)",
+      b2bText:
+        "Goederen voor uw bedrijf: zelf ingekocht of via G&R Solutions bij een leverancier. U vermeldt de leverancier en uw inkoopnummer en uploadt de commerciële factuur of paklijst die G&R voor de douane nodig heeft.",
     },
     services: {
       title: "Onze diensten",
@@ -106,10 +136,27 @@ export const nl = {
         "Pakketten die op ons US-adres binnenkomen, verzenden wij per luchtvracht naar Suriname.",
       trackingTitle: "Zendingen volgen",
       trackingText:
-        "Volg de status van elke aangemelde order: van ontvangst in ons US-magazijn tot klaar voor afhalen.",
+        "Volg de status van elke aangemelde order: van ontvangst in ons US-magazijn tot klaar voor afhalen, met de geschiedenis van elke stap.",
       billingTitle: "Facturen en betalingen online",
       billingText:
-        "Bekijk uw facturen, openstaande bedragen en betaalstatus overzichtelijk in het klantportaal.",
+        "Bekijk uw facturen, het openstaande bedrag, de vervaldatum en de betaalgegevens in het klantportaal, en sla een factuur op als PDF.",
+    },
+    faq: {
+      title: "Veelgestelde vragen",
+      intro: "Staat uw vraag er niet bij? Neem gerust contact op met G&R Solutions.",
+      q1: "Wat is mijn klantcode en waar vind ik die?",
+      a1: "Uw klantcode is uw persoonlijke code bij G&R Solutions: GR gevolgd door vijf cijfers. U ziet hem na het inloggen in het klantportaal, samen met uw persoonlijk US-verzendadres. Zet hem op elk pakket: achter uw naam én op adresregel 2.",
+      q2: "Ik heb nog geen trackingnummer. Kan ik mijn order al aanmelden?",
+      a2: "Ja. Het trackingnummer is optioneel. U kunt het later toevoegen, zolang uw pakket nog niet in ons US-magazijn is ontvangen.",
+      q3: "Mijn bestelling komt in meerdere dozen. Wat nu?",
+      a3: "Meld de bestelling één keer aan. Voor elke extra doos kiest u op de orderpagina ‘Extra pakket toevoegen’; dat pakket wordt aan uw order gekoppeld.",
+      q4: "Ik ben al klant van G&R. Moet ik een nieuw account maken?",
+      a4: "Nee. Vraag G&R Solutions om uw persoonlijke uitnodigingslink. Daarmee maakt u een login aan die meteen aan uw bestaande klantcode gekoppeld is.",
+      q5: "Hoe weet ik wat ik moet betalen?",
+      a5: "Zodra G&R Solutions een factuur voor u heeft opgemaakt, staat die in het klantportaal, met het bedrag, de vervaldatum en de betaalgegevens. Vermeld bij betaling het factuurnummer en uw klantcode.",
+      q6: "Welke goederen kan G&R niet verzenden?",
+      a6: "Dat leest u op de pagina {link}. Bij het aanmelden van een order bevestigt u dat uw zending geen verboden goederen bevat.",
+      a6Link: "Verboden goederen",
     },
     cta: {
       title: "Klaar om te beginnen?",
@@ -117,6 +164,10 @@ export const nl = {
         "Maak een account aan. Na bevestiging van uw e-mailadres ontvangt u uw persoonlijke klantcode.",
       textNoSignup: "Bent u al klant van G&R? Log in op het klantportaal.",
       contact: "Vragen? Neem contact op met G&R Solutions.",
+    },
+    seo: {
+      description:
+        "G&R Solutions N.V. verzorgt de verzending en douane-inklaring van uw online aankopen in de VS. Meld uw orders aan, volg uw zendingen en bekijk uw facturen in het klantportaal G&R Activate.",
     },
   },
   footer: {
@@ -132,7 +183,11 @@ export const nl = {
   },
   legal: {
     termsTitle: "Algemene voorwaarden",
+    termsDescription:
+      "De algemene voorwaarden van G&R Solutions N.V. voor klanten van het klantportaal G&R Activate.",
     prohibitedTitle: "Verboden goederen",
+    prohibitedDescription:
+      "Welke goederen G&R Solutions N.V. niet verzendt of inklaart. Controleer dit voordat u een order aanmeldt.",
     version: "Versie {version}",
     notPublished:
       "Deze tekst is nog niet gepubliceerd. Neem contact op met G&R Solutions voor meer informatie.",
@@ -528,7 +583,7 @@ export const nl = {
         type: "Soort",
         allTypes: "Alles",
         search: "Zoeken",
-        searchPlaceholder: "Referentie, factuurnummer, winkel, tracking of zending",
+        searchPlaceholder: "Referentie, ordernummer, factuurnummer, winkel, tracking of zending",
         clear: "Filters wissen",
       },
       types: {
@@ -800,6 +855,7 @@ export const nl = {
         byCustomer: "Door u geüpload",
         byCompany: "Door G&R Solutions toegevoegd",
         closed: "Bij een afgeronde of geannuleerde order kunt u geen documenten meer toevoegen.",
+        full: "Deze order heeft het maximum van {max} documenten. Moet u meer sturen? Neem contact op met G&R Solutions.",
         b2bHint:
           "Upload voor een zakelijke zending een commerciële factuur of paklijst. G&R Solutions heeft die nodig voor de douane.",
         loadFailed: "De documenten konden niet worden geladen.",
@@ -917,7 +973,8 @@ export const nl = {
         type: "Dit bestandstype wordt niet geaccepteerd. Kies een PDF, JPG, PNG, WEBP of HEIC.",
         size: "Dit bestand is groter dan 10\u00a0MB.",
         empty: "Dit bestand is leeg.",
-        forbidden: "U kunt bij deze order geen documenten toevoegen.",
+        forbidden:
+          "U kunt bij deze order geen documenten (meer) toevoegen. Per order zijn maximaal {perOrder} bestanden mogelijk en per dag maximaal {perDay}; neem contact op met G&R Solutions als u meer moet sturen.",
         upload: "Het uploaden is niet gelukt. Probeer het opnieuw.",
       },
     },
@@ -1122,7 +1179,7 @@ export const nl = {
       tasksShowFewer: "Minder tonen",
       taskResolve: "Afgehandeld",
       taskResolving: "Bezig…",
-      taskResolveLabel: "Taak ‘{kind}’ van {date} afhandelen",
+      taskResolveFor: "taak ‘{kind}’ van {date}",
       taskResolved: "Taak afgehandeld.",
       taskOpenOrder: "Order openen",
       taskOpenCustomer: "Klant openen",
@@ -1151,7 +1208,6 @@ export const nl = {
         actionRequiredHint: "Wacht op de klant",
         cancellationRequests: "Annuleringsverzoeken",
         cancellationRequestsHint: "Wacht op uw beslissing",
-        view: "Bekijk orders: {label}",
       },
       overviewTitle: "Overzicht",
       overviewIntro:
@@ -1193,7 +1249,7 @@ export const nl = {
         partial:
           "Daardoor kan deze lijst onvolledig zijn: wat niet geladen is, wordt hieronder niet genoemd.",
         open: "Naar instellingen",
-        openLabel: "Instellingen openen: {item}",
+        openFor: "voor: {item}",
         deployment:
           "Punten over de server stelt u niet hier in, maar bij de hosting (Vercel); de stappen staan in de installatiehandleiding (docs/DEPLOYMENT.md).",
         bankAccounts: "Bankgegevens ontbreken – vul ze in bij Instellingen ({currencies}).",
@@ -3002,6 +3058,7 @@ export const nl = {
         title: "Betaling ongedaan maken?",
         text: "De betaling van {amount} op {date} blijft zichtbaar voor medewerkers als ongedaan gemaakt; de klant ziet hem niet meer. Het openstaande saldo gaat weer omhoog en de status van de factuur volgt.",
         reason: "Reden (alleen voor medewerkers)",
+        reasonHint: "Maximaal {max} tekens; staat in het auditlog.",
         confirm: "Betaling ongedaan maken",
         working: "Bezig…",
         cancel: "Terug",
@@ -3365,13 +3422,12 @@ export const nl = {
         daysOverdueOne: "1 dag te laat",
         sendNow: "Herinnering nu versturen",
         sendAnyway: "Toch herinneren",
-        sendNowLabel: "Herinnering voor {number} nu versturen",
+        forInvoice: "– factuur {number}",
         sending: "Bezig…",
         sentToday: "Vandaag al verstuurd",
         noEmail: "Geen e-mailadres",
         unknownCustomer: "Onbekende klant",
         history: "Geschiedenis ({count})",
-        historyLabel: "Herinneringen van {number}",
         historyEmpty: "Nog geen herinneringen verstuurd.",
         loadFailed: "De openstaande facturen konden niet worden geladen.",
       },
@@ -3396,7 +3452,6 @@ export const nl = {
           "Deze klanten krijgen geen e-mail. Herinner ze via WhatsApp; het bericht bevat het bedrag, de vervaldatum en hoe ze kunnen betalen.",
         empty: "Alle klanten met een factuur die nu aan de beurt is hebben een e-mailadres.",
         whatsapp: "Herinner via WhatsApp",
-        whatsappLabel: "Herinnering voor {number} via WhatsApp sturen",
         noPhone: "Geen bruikbaar telefoonnummer: kies in WhatsApp zelf het gesprek.",
       },
       share: {
@@ -3435,6 +3490,14 @@ export const nl = {
         to: "aan {recipient}",
         manual: "handmatig",
       },
+    },
+    /**
+     * Names of logins (namePeople in lib/admin/orders.ts): team members by
+     * their own name, everyone else by what G&R knows about them.
+     */
+    people: {
+      customer: "Klant {code} · {name}",
+      otherLogin: "Login {name} (geen teamlid)",
     },
     /** /admin/audit (P9, SPEC §28, §35.13): admins only. */
     audit: {
@@ -3491,8 +3554,11 @@ export const nl = {
         shipment_statuses: "Statussen",
         customer_number_seq: "Klantnummering",
         invoice_number_counters: "Factuurnummering",
+        internal_notes: "Interne notities",
+        recovery_link: "Wachtwoord-resetlinks",
       },
       system: "Systeem",
+      teamLogin: "Teamlid",
       empty: "leeg",
       draftInvoice: "Concept",
       paymentLabel: "Betaling {amount}",

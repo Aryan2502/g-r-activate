@@ -196,7 +196,7 @@ function InvoiceBody({
           aria-label={t("portal.invoices.detail.documentLabel")}
           className="min-w-0 rounded-lg border bg-muted/60 p-2 sm:p-4 lg:col-start-1 lg:row-start-1 print:border-0 print:bg-transparent print:p-0"
         >
-          <InvoicePreview model={model} label={t("portal.invoices.detail.documentLabel")} />
+          <InvoicePreview model={model} />
         </section>
       </div>
     </>

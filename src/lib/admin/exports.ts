@@ -11,7 +11,7 @@ import {
   type AuditEntry,
   type AuditFilters,
 } from "@/lib/admin/audit";
-import { allPages, customerDisplayName } from "@/lib/admin/orders";
+import { allPages, customerDisplayName, loadPeopleNames } from "@/lib/admin/orders";
 import { buildCsv, csvFileName, type CsvColumn } from "@/lib/csv";
 import { t } from "@/lib/i18n";
 import type { nl } from "@/lib/i18n/nl";
@@ -26,7 +26,7 @@ import type { nl } from "@/lib/i18n/nl";
  * functions use the browser client unless a client is passed (tests).
  */
 
-type Client = Pick<SupabaseClient<Database>, "from">;
+type Client = Pick<SupabaseClient<Database>, "from" | "rpc">;
 type Tables = Database["public"]["Tables"];
 type OverviewRow = Database["public"]["Views"]["invoice_overview"]["Row"];
 
@@ -39,21 +39,6 @@ export interface CsvExport {
 
 /** A column header (or fixed cell text) of the export files, from nl.ts. */
 const col = (key: keyof typeof nl.admin.exports.columns) => t(`admin.exports.columns.${key}`);
-
-const ID_CHUNK = 100;
-
-/** `.in()` in chunks, so a long id list never makes a too-long URL. */
-async function inChunks<T>(
-  ids: readonly string[],
-  load: (chunk: string[]) => Promise<T[]>,
-): Promise<T[]> {
-  const unique = [...new Set(ids)];
-  const out: T[] = [];
-  for (let i = 0; i < unique.length; i += ID_CHUNK) {
-    out.push(...(await load(unique.slice(i, i + ID_CHUNK))));
-  }
-  return out;
-}
 
 /**
  * The rows whose id is in `ids`, in the order of `ids` (the order the list
@@ -68,18 +53,12 @@ function only<T extends { id: string | null }>(rows: readonly T[], ids?: readonl
   });
 }
 
-/** Display names of logins (profiles), for "Geregistreerd door", "Wie". */
-export async function loadPeople(
+/** Names of logins for "Geregistreerd door", "Wie" (team names, "Klant GR… · …"; see namePeople). */
+export function loadPeople(
   db: Client,
   ids: readonly (string | null)[],
 ): Promise<ReadonlyMap<string, string | null>> {
-  const wanted = ids.filter((id): id is string => Boolean(id));
-  const rows = await inChunks(wanted, async (chunk) => {
-    const { data, error } = await db.from("profiles").select("id, display_name").in("id", chunk);
-    if (error) throw error;
-    return data ?? [];
-  });
-  return new Map(rows.map((p) => [p.id, p.display_name?.trim() || null]));
+  return loadPeopleNames(db, ids);
 }
 
 const personOf = (people: ReadonlyMap<string, string | null>, id: string | null) =>
