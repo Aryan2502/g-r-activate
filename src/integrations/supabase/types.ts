@@ -1484,6 +1484,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_upload_order_object: { Args: { _name: string }; Returns: boolean }
       cancel_invoice: {
         Args: { _invoice_id: string; _reason: string }
         Returns: {
