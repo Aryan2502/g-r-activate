@@ -1704,6 +1704,7 @@ export type Database = {
         Args: { _customer_message?: string; _order_id: string }
         Returns: undefined
       }
+      log_recovery_link: { Args: { _user_id: string }; Returns: undefined }
       log_team_login_change: {
         Args: { _blocked: boolean; _reason: string; _user_id: string }
         Returns: number
