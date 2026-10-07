@@ -22,7 +22,8 @@ export type AppErrorKind =
   | "unknown";
 
 /** Hints the migrations attach to errors the UI can act on. */
-export type DbErrorHint = "open_order_limit" | "invoice_dates" | "pay_before_pickup";
+export type DbErrorHint =
+  "open_order_limit" | "invoice_dates" | "pay_before_pickup" | "handover_one_customer";
 
 export interface AppError {
   kind: AppErrorKind;
@@ -35,6 +36,7 @@ const KNOWN_HINTS: readonly DbErrorHint[] = [
   "open_order_limit",
   "invoice_dates",
   "pay_before_pickup",
+  "handover_one_customer",
 ];
 
 // SQLSTATEs the migrations raise with a user-facing Dutch message.

@@ -7,6 +7,8 @@ import {
   formatMoney,
   formatNumber,
   roundHalfUp,
+  surinameDateTimeToIso,
+  toSurinameDateTimeInput,
   todayInSuriname,
 } from "./format";
 
@@ -99,5 +101,33 @@ describe("todayInSuriname", () => {
 
   it("defaults to now", () => {
     expect(todayInSuriname()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("toSurinameDateTimeInput / surinameDateTimeToIso", () => {
+  it("shows an instant as a datetime-local value in Suriname time (UTC−3)", () => {
+    expect(toSurinameDateTimeInput("2026-10-07T02:30:00Z")).toBe("2026-10-06T23:30");
+    expect(toSurinameDateTimeInput(new Date("2026-01-01T15:05:00Z"))).toBe("2026-01-01T12:05");
+  });
+
+  it("turns a typed Suriname date and time into the instant, round trip", () => {
+    expect(surinameDateTimeToIso("2026-10-06T23:30")).toBe("2026-10-07T02:30:00.000Z");
+    expect(surinameDateTimeToIso(" 2026-12-31T22:15 ")).toBe("2027-01-01T01:15:00.000Z");
+    const iso = surinameDateTimeToIso("2026-03-01T00:00");
+    expect(iso && toSurinameDateTimeInput(iso)).toBe("2026-03-01T00:00");
+  });
+
+  it("refuses text that is not a real date and time", () => {
+    for (const bad of [
+      "",
+      "2026-10-06",
+      "2026-02-30T10:00",
+      "2026-04-31T10:00",
+      "2026-10-06T24:00",
+      "2026-10-06T10:60",
+      "06-10-2026 10:00",
+    ]) {
+      expect(surinameDateTimeToIso(bad), bad).toBeNull();
+    }
   });
 });

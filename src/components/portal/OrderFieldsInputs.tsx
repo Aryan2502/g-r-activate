@@ -63,6 +63,9 @@ export function OrderFieldsInputs({
   variant = "edit",
   locked,
   lockedHint,
+  audience = "customer",
+  trackingExtra,
+  serviceTypeLockedHint,
 }: {
   form: OrderFieldsForm;
   serviceTypes: readonly ServiceType[];
@@ -70,8 +73,23 @@ export function OrderFieldsInputs({
   variant?: "edit" | "register";
   locked?: { orderType?: boolean; storeVendor?: boolean; vendorOrderNumber?: boolean } | undefined;
   lockedHint?: string | undefined;
+  /**
+   * "staff": G&R fills the form for a customer (/admin/orders/nieuw): the
+   * texts speak about the customer instead of to them, and the declared
+   * weight is clearly the customer's figure, not the scale's.
+   */
+  audience?: "customer" | "staff";
+  /** Extra fields in "Tracking en gewicht", after tracking and carrier (staff: measured weight). */
+  trackingExtra?: ReactNode;
+  /**
+   * Set when the service type may no longer change (the order travels in a
+   * shipment of that type; the database refuses a change): shown read-only
+   * with this explanation.
+   */
+  serviceTypeLockedHint?: string | undefined;
 }) {
   const t = useT();
+  const staff = audience === "staff";
   const register = variant === "register";
   const orderType = form.watch("orderType");
   const purchaseMode = form.watch("purchaseMode");
@@ -134,7 +152,9 @@ export function OrderFieldsInputs({
                             {t(`portal.orderTypes.${type}`)}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {t(`portal.orderForm.orderTypeHints.${type}`)}
+                            {staff
+                              ? t(`admin.newOrder.orderTypeHints.${type}`)
+                              : t(`portal.orderForm.orderTypeHints.${type}`)}
                           </span>
                         </span>
                       </ChoiceLabel>
@@ -146,33 +166,50 @@ export function OrderFieldsInputs({
             )}
           />
         )}
-        <FormField
-          control={form.control}
-          name="serviceType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel id={`${idPrefix}-service-type`}>
-                {t("portal.orderForm.fields.serviceType")}
-              </FormLabel>
-              <FormControl>
-                <RadioGroup
-                  aria-labelledby={`${idPrefix}-service-type`}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid gap-3 sm:grid-cols-2"
-                >
-                  {serviceOptions.map((type) => (
-                    <ChoiceLabel key={type} selected={field.value === type}>
-                      <RadioGroupItem value={type} className="mt-0.5" />
-                      <span className="font-semibold">{t(`portal.serviceTypes.${type}`)}</span>
-                    </ChoiceLabel>
-                  ))}
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {serviceTypeLockedHint ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium leading-none" id={`${idPrefix}-service-type`}>
+              {t("portal.orderForm.fields.serviceType")}
+            </p>
+            <p
+              aria-labelledby={`${idPrefix}-service-type`}
+              className="flex min-h-11 items-center rounded-md border bg-muted px-3 text-sm font-semibold sm:min-h-10"
+            >
+              {t(`portal.serviceTypes.${currentService}`)}
+            </p>
+            <p className="text-[0.8rem] text-muted-foreground">
+              <LockedHint text={serviceTypeLockedHint} />
+            </p>
+          </div>
+        ) : (
+          <FormField
+            control={form.control}
+            name="serviceType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel id={`${idPrefix}-service-type`}>
+                  {t("portal.orderForm.fields.serviceType")}
+                </FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    aria-labelledby={`${idPrefix}-service-type`}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="grid gap-3 sm:grid-cols-2"
+                  >
+                    {serviceOptions.map((type) => (
+                      <ChoiceLabel key={type} selected={field.value === type}>
+                        <RadioGroupItem value={type} className="mt-0.5" />
+                        <span className="font-semibold">{t(`portal.serviceTypes.${type}`)}</span>
+                      </ChoiceLabel>
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
       </FieldGroup>
 
       {orderType === "b2b" ? (
@@ -221,7 +258,9 @@ export function OrderFieldsInputs({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t("portal.orderForm.fields.clientPoNumberHint")}
+                    {staff
+                      ? t("admin.newOrder.fields.clientPoNumberHint")
+                      : t("portal.orderForm.fields.clientPoNumberHint")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -508,18 +547,26 @@ export function OrderFieldsInputs({
             )}
           />
         </div>
+        {trackingExtra}
         <FormField
           control={form.control}
           name="declaredWeightLbs"
           render={({ field }) => (
             <FormItem className="sm:max-w-[calc(50%-0.5rem)]">
               <FormLabel>
-                {t("portal.orderForm.fields.declaredWeight")} <OptionalMark />
+                {staff
+                  ? t("admin.newOrder.fields.declaredWeight")
+                  : t("portal.orderForm.fields.declaredWeight")}{" "}
+                <OptionalMark />
               </FormLabel>
               <FormControl>
                 <Input className={FIELD} inputMode="decimal" autoComplete="off" {...field} />
               </FormControl>
-              <FormDescription>{t("portal.orderForm.fields.declaredWeightHint")}</FormDescription>
+              <FormDescription>
+                {staff
+                  ? t("admin.newOrder.fields.declaredWeightHint")
+                  : t("portal.orderForm.fields.declaredWeightHint")}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -533,11 +580,17 @@ export function OrderFieldsInputs({
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                {t("portal.orderForm.fields.customerNote")} <OptionalMark />
+                {staff
+                  ? t("admin.newOrder.fields.customerNote")
+                  : t("portal.orderForm.fields.customerNote")}{" "}
+                <OptionalMark />
               </FormLabel>
               <FormControl>
                 <Textarea rows={3} maxLength={2000} {...field} />
               </FormControl>
+              {staff ? (
+                <FormDescription>{t("admin.newOrder.fields.customerNoteHint")}</FormDescription>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}

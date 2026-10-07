@@ -144,6 +144,9 @@ export function OrderEditForm({
               idPrefix={id}
               locked={locked}
               lockedHint={lockedHint}
+              serviceTypeLockedHint={
+                order.shipment_id ? t("portal.orderForm.fields.serviceTypeLockedHint") : undefined
+              }
             />
             <div className="mt-8 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>

@@ -31,3 +31,25 @@ describe("activeNavPath()", () => {
     expect(activeNavPath(portalNav, "/portal/ordersx")).toBeNull();
   });
 });
+
+describe("activeNavPath() in the admin area", () => {
+  const adminNav = [
+    { to: "/admin", exact: true },
+    { to: "/admin/orders" },
+    { to: "/admin/orders/nieuw" },
+    { to: "/admin/zendingen" },
+    { to: "/admin/statussen" },
+  ];
+
+  it("highlights one item per page", () => {
+    expect(activeNavPath(adminNav, "/admin")).toBe("/admin");
+    expect(activeNavPath(adminNav, "/admin/orders/nieuw")).toBe("/admin/orders/nieuw");
+    expect(activeNavPath(adminNav, "/admin/orders/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f")).toBe(
+      "/admin/orders",
+    );
+    expect(activeNavPath(adminNav, "/admin/zendingen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f")).toBe(
+      "/admin/zendingen",
+    );
+    expect(activeNavPath(adminNav, "/admin/statussen")).toBe("/admin/statussen");
+  });
+});

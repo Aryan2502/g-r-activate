@@ -388,8 +388,13 @@ async function issuedInvoice(
 
 describe("schema", () => {
   it("is idempotent: re-running changes no object, grant or function", async () => {
-    const m3 = listMigrations().find((m) => m.name === "billing");
-    if (!m3) throw new Error("billing migration not found");
+    // Later migrations replace some of this file's functions (e.g. P4's
+    // pickup_override), so replay it the way `supabase db push` would after a
+    // reset of its version: this file, then every later one again.
+    const all = listMigrations();
+    const index = all.findIndex((m) => m.name === "billing");
+    if (index < 0) throw new Error("billing migration not found");
+    const replay = all.slice(index);
     const fingerprint = `
       select (select count(*) from pg_policies where schemaname in ('public', 'storage'))::int as policies,
              (select count(*) from pg_trigger where not tgisinternal)::int as triggers,
@@ -412,7 +417,7 @@ describe("schema", () => {
              (select count(*) from public.invoice_number_counters)::int as counters`;
     await db.transaction(async (tx) => {
       const before = await one(tx, fingerprint);
-      await tx.exec(m3.sql);
+      for (const m of replay) await tx.exec(m.sql);
       expect(await one(tx, fingerprint)).toEqual(before);
       await tx.rollback();
     });

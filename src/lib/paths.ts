@@ -12,7 +12,11 @@ export const paths: Readonly<
     | "portalProfile"
     | "portalOrders"
     | "portalOrderNew"
-    | "admin",
+    | "admin"
+    | "adminOrders"
+    | "adminOrderNew"
+    | "adminShipments"
+    | "adminStatuses",
     string
   >
 > = {
@@ -28,4 +32,11 @@ export const paths: Readonly<
   /** Order registration; `?parent=<order id>` adds an extra package (see newOrderSearchSchema). */
   portalOrderNew: "/portal/orders/nieuw",
   admin: "/admin",
+  adminOrders: "/admin/orders",
+  /** "Order aanmaken voor klant"; `?customer=`, `?parent=` and `?tracking=` prefill it. */
+  adminOrderNew: "/admin/orders/nieuw",
+  /** Shipments (consolidation batches); `/admin/zendingen/<id>` is one shipment. */
+  adminShipments: "/admin/zendingen",
+  /** Order statuses: staff read, admins edit. */
+  adminStatuses: "/admin/statussen",
 };

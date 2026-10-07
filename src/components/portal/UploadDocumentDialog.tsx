@@ -38,6 +38,8 @@ import { portalKeys } from "@/lib/portal/orders";
  * "Document uploaden" for one order (SPEC §35.7): checks type and size in the
  * browser, uploads straight to the private bucket and records the file. The
  * bucket, storage policies and the order_documents trigger check it again.
+ * Staff use it too (any order folder); they pass `onUploaded` to refresh
+ * their own queries instead of the portal's.
  */
 export function UploadDocumentDialog({
   userId,
@@ -45,12 +47,15 @@ export function UploadDocumentDialog({
   orderId,
   defaultKind = "purchase_invoice",
   trigger,
+  onUploaded,
 }: {
   userId: string;
   customerId: string;
   orderId: string;
   defaultKind?: DocumentKind;
   trigger: ReactNode;
+  /** Runs after a successful upload; defaults to refreshing the portal's document list. */
+  onUploaded?: () => Promise<unknown>;
 }) {
   const t = useT();
   const id = useId();
@@ -75,7 +80,9 @@ export function UploadDocumentDialog({
       toast.success(t("portal.upload.success"));
       setOpen(false);
       reset();
-      await queryClient.invalidateQueries({ queryKey: portalKeys.orderDocuments(userId, orderId) });
+      await (onUploaded
+        ? onUploaded()
+        : queryClient.invalidateQueries({ queryKey: portalKeys.orderDocuments(userId, orderId) }));
     },
     onError: (error) => {
       const message =

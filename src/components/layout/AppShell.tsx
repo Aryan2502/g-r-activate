@@ -26,6 +26,8 @@ interface AppShellProps {
   identity: ReactNode;
   onSignOut: () => void;
   signingOut: boolean;
+  /** Wider content column, for operational tables (admin). */
+  wide?: boolean;
   children: ReactNode;
 }
 
@@ -40,6 +42,7 @@ export function AppShell({
   identity,
   onSignOut,
   signingOut,
+  wide = false,
   children,
 }: AppShellProps) {
   const t = useT();
@@ -140,7 +143,12 @@ export function AppShell({
       </header>
 
       <main className="lg:pl-72">
-        <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+        <div
+          className={cn(
+            "mx-auto w-full px-4 py-8 sm:px-6 lg:py-10",
+            wide ? "max-w-[96rem] lg:px-6" : "max-w-5xl lg:px-10",
+          )}
+        >
           {children}
         </div>
       </main>

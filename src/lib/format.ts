@@ -97,3 +97,38 @@ export function todayInSuriname(now: Date = new Date()): string {
   const p = surinameParts(now);
   return `${p.year}-${p.month}-${p.day}`;
 }
+
+/**
+ * An instant as the value of an `<input type="datetime-local">` in Suriname
+ * time ('YYYY-MM-DDTHH:mm'), e.g. a shipment's departure.
+ */
+export function toSurinameDateTimeInput(value: DateInput): string {
+  const p = surinameParts(typeof value === "string" ? new Date(value) : value);
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+const DATE_TIME_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/**
+ * A datetime-local value typed in Suriname time ('YYYY-MM-DDTHH:mm') as an
+ * ISO instant for a timestamptz column; null when it is not a real date and
+ * time. Suriname is UTC−3 all year (no DST), so the offset is fixed.
+ */
+export function surinameDateTimeToIso(value: string): string | null {
+  const m = DATE_TIME_LOCAL.exec(value.trim());
+  if (!m) return null;
+  const [, year, month, day, hour, minute] = m.map(Number);
+  if (
+    year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    hour === undefined ||
+    minute === undefined
+  ) {
+    return null;
+  }
+  const utc = new Date(Date.UTC(year, month - 1, day, hour + 3, minute));
+  // Rolled over (31 April, 24:00, …): not a real local date and time.
+  if (toSurinameDateTimeInput(utc) !== value.trim()) return null;
+  return utc.toISOString();
+}

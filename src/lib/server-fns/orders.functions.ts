@@ -47,6 +47,7 @@ export const registerOrderFn = createServerFn({ method: "POST" })
           customerId: order.customerId,
           parentOrderId: order.parentOrderId,
           userId: context.userId,
+          createdBy: "customer",
         });
       } catch (error) {
         console.error("[registerOrderFn] onOrderRegistered failed", error);

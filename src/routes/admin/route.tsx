@@ -5,7 +5,14 @@ import {
   useRouter,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { LayoutDashboard, RotateCw } from "lucide-react";
+import {
+  Container,
+  LayoutDashboard,
+  ListChecks,
+  Package,
+  PackagePlus,
+  RotateCw,
+} from "lucide-react";
 
 import { AppShell, type ShellNavItem } from "@/components/layout/AppShell";
 import { PagePending } from "@/components/layout/PagePending";
@@ -33,8 +40,14 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
+// The most specific item is highlighted: /admin/orders/nieuw → "Order aanmaken",
+// an order's page → "Orders", a shipment's page → "Zendingen".
 const nav: ShellNavItem[] = [
   { to: paths.admin, label: t("admin.nav.dashboard"), icon: LayoutDashboard, exact: true },
+  { to: paths.adminOrders, label: t("admin.nav.orders"), icon: Package },
+  { to: paths.adminOrderNew, label: t("admin.nav.newOrder"), icon: PackagePlus },
+  { to: paths.adminShipments, label: t("admin.nav.shipments"), icon: Container },
+  { to: paths.adminStatuses, label: t("admin.nav.statuses"), icon: ListChecks },
 ];
 
 function AdminLayout() {
@@ -51,6 +64,7 @@ function AdminLayout() {
       nav={nav}
       onSignOut={signOut}
       signingOut={signingOut}
+      wide
       identity={
         <div className="space-y-1.5">
           {profile.data ? (
