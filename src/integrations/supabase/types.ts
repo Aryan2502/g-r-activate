@@ -1708,6 +1708,13 @@ export type Database = {
         Args: { _blocked: boolean; _reason: string; _user_id: string }
         Returns: number
       }
+      orphan_order_document_objects: {
+        Args: { _limit?: number; _min_age_hours?: number }
+        Returns: {
+          created_at: string
+          name: string
+        }[]
+      }
       peek_next_customer_number: { Args: never; Returns: number }
       pickup_override: {
         Args: {
