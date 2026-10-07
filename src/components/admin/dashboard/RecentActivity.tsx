@@ -70,7 +70,7 @@ function itemText(
 /**
  * "Recente activiteit" (SPEC §12): status changes, new customers, accepted
  * invitations, issued/cancelled invoices and payments, newest first, each a
- * link to the order or the customer. Derived; there is no notifications
+ * link to the order, the invoice or the customer. Derived; there is no notifications
  * table (SPEC §35.7).
  */
 export function RecentActivity({ userId }: { userId: string }) {
@@ -124,6 +124,14 @@ export function RecentActivity({ userId }: { userId: string }) {
                       <Link
                         to="/admin/orders/$id"
                         params={{ id: item.orderId }}
+                        className="text-primary underline underline-offset-2"
+                      >
+                        {text}
+                      </Link>
+                    ) : "invoiceId" in item && item.invoiceId ? (
+                      <Link
+                        to="/admin/facturen/$id"
+                        params={{ id: item.invoiceId }}
                         className="text-primary underline underline-offset-2"
                       >
                         {text}

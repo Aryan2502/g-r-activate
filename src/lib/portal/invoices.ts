@@ -1,9 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
+import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Constants, type Database } from "@/integrations/supabase/types";
 import { roundHalfUp, type CurrencyCode } from "@/lib/format";
-import { portalKeys } from "@/lib/portal/orders";
+import { parseBillToSnapshot, type InvoiceItemRow, type SnapshotOrder } from "@/lib/invoice/model";
+import { isUuid, portalKeys } from "@/lib/portal/orders";
 
 /**
  * Invoices as the customer sees them (SPEC §35.9/§35.10). RLS shows only the
@@ -199,5 +201,158 @@ export const orderInvoicesQueryOptions = (userId: string, customerId: string, or
         .order("invoice_number", { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+// ---------------------------------------------------------------------------
+// /portal/facturen (SPEC §18): the customer's issued invoices, never drafts
+// ---------------------------------------------------------------------------
+
+const PORTAL_INVOICE_COLUMNS =
+  "id, invoice_number, invoice_date, due_date, currency, total_amount, amount_paid, balance_due, status, is_overdue, days_overdue, paid_at, cancelled_at, cancel_reason, bill_to_snapshot" as const;
+
+export type PortalInvoiceRow = Pick<
+  OverviewRow,
+  | "id"
+  | "invoice_number"
+  | "invoice_date"
+  | "due_date"
+  | "currency"
+  | "total_amount"
+  | "amount_paid"
+  | "balance_due"
+  | "status"
+  | "is_overdue"
+  | "days_overdue"
+  | "paid_at"
+  | "cancelled_at"
+  | "cancel_reason"
+  | "bill_to_snapshot"
+>;
+
+export type PortalInvoice = Omit<PortalInvoiceRow, "bill_to_snapshot"> & {
+  /** The orders on the invoice, as printed (bill_to_snapshot.orders). */
+  orders: SnapshotOrder[];
+};
+
+/**
+ * The customer's own issued invoices (RLS hides drafts and other customers;
+ * the query says so too, because RLS shows staff everything), newest first.
+ * "Related orders" come from the snapshot, exactly as the paper prints them.
+ */
+export const portalInvoicesQueryOptions = (userId: string, customerId: string) =>
+  queryOptions({
+    queryKey: portalKeys.invoices(userId),
+    staleTime: 30_000,
+    queryFn: async (): Promise<PortalInvoice[]> => {
+      const { data, error } = await supabase
+        .from("invoice_overview")
+        .select(PORTAL_INVOICE_COLUMNS)
+        .eq("customer_id", customerId)
+        .neq("status", "draft")
+        .order("invoice_date", { ascending: false })
+        .order("invoice_number", { ascending: false });
+      if (error) throw error;
+      return data.map(({ bill_to_snapshot, ...row }) => ({
+        ...row,
+        orders: parseBillToSnapshot(bill_to_snapshot).orders,
+      }));
+    },
+  });
+
+/** Filters of /portal/facturen (in the URL). */
+export const portalInvoiceSearchSchema = z.object({
+  show: z.enum(["unpaid", "paid"]).optional().catch(undefined),
+});
+export type PortalInvoiceSearch = z.infer<typeof portalInvoiceSearchSchema>;
+
+export function filterPortalInvoices<T extends Pick<OverviewRow, "status" | "balance_due">>(
+  invoices: readonly T[],
+  show: PortalInvoiceSearch["show"],
+): T[] {
+  if (show === "unpaid") return invoices.filter(needsPayment);
+  if (show === "paid") return invoices.filter((i) => i.status === "paid");
+  return [...invoices];
+}
+
+const PORTAL_INVOICE_VIEW_COLUMNS =
+  "id, invoice_number, status, customer_id, currency, invoice_date, due_date, customer_note, paid_at, total_lbs, subtotal_freight, total_charges, total_discount, total_amount, vat_rate, vat_amount, issuer_snapshot, bill_to_snapshot, amount_paid, balance_due, is_overdue, days_overdue, cancelled_at, cancel_reason" as const;
+
+export type PortalInvoiceView = Pick<
+  OverviewRow,
+  | "id"
+  | "invoice_number"
+  | "status"
+  | "customer_id"
+  | "currency"
+  | "invoice_date"
+  | "due_date"
+  | "customer_note"
+  | "paid_at"
+  | "total_lbs"
+  | "subtotal_freight"
+  | "total_charges"
+  | "total_discount"
+  | "total_amount"
+  | "vat_rate"
+  | "vat_amount"
+  | "issuer_snapshot"
+  | "bill_to_snapshot"
+  | "amount_paid"
+  | "balance_due"
+  | "is_overdue"
+  | "days_overdue"
+  | "cancelled_at"
+  | "cancel_reason"
+>;
+
+export type PortalPayment = Pick<
+  Database["public"]["Tables"]["payments"]["Row"],
+  "id" | "amount" | "paid_on" | "method" | "customer_note"
+>;
+
+/**
+ * One issued invoice of this customer with its lines and its payments
+ * (RLS: never a draft, never voided payments; filtered here as well). null
+ * when it does not exist or is not theirs.
+ */
+export const portalInvoiceQueryOptions = (userId: string, customerId: string, invoiceId: string) =>
+  queryOptions({
+    queryKey: portalKeys.invoice(userId, invoiceId),
+    staleTime: 30_000,
+    queryFn: async (): Promise<{
+      invoice: PortalInvoiceView;
+      items: InvoiceItemRow[];
+      payments: PortalPayment[];
+    } | null> => {
+      if (!isUuid(invoiceId)) return null;
+      const { data: invoice, error } = await supabase
+        .from("invoice_overview")
+        .select(PORTAL_INVOICE_VIEW_COLUMNS)
+        .eq("id", invoiceId)
+        .eq("customer_id", customerId)
+        .neq("status", "draft")
+        .maybeSingle();
+      if (error) throw error;
+      if (!invoice) return null;
+      const [items, payments] = await Promise.all([
+        supabase
+          .from("invoice_items")
+          .select(
+            "id, line_type, description, order_id, weight_lbs, rate_per_lb, amount, vat_exempt, sort_order",
+          )
+          .eq("invoice_id", invoiceId)
+          .order("sort_order"),
+        supabase
+          .from("payments")
+          .select("id, amount, paid_on, method, customer_note")
+          .eq("invoice_id", invoiceId)
+          .is("voided_at", null)
+          .order("paid_on", { ascending: false })
+          .order("created_at", { ascending: false }),
+      ]);
+      if (items.error) throw items.error;
+      if (payments.error) throw payments.error;
+      return { invoice, items: items.data, payments: payments.data };
     },
   });

@@ -6,6 +6,7 @@ import {
   Ban,
   CheckCircle2,
   Copy,
+  FilePlus2,
   Link2,
   PackageCheck,
   PackagePlus,
@@ -58,6 +59,7 @@ import {
   type AdminOrderSearch,
   type AdminOrderView,
 } from "@/lib/admin/orders";
+import { newInvoiceSearch } from "@/lib/admin/invoice-builder";
 import {
   DEFAULT_OPERATIONAL_SETTINGS,
   adminStatusesQueryOptions,
@@ -77,7 +79,8 @@ import { cn } from "@/lib/utils";
  * typed or scanned), GR code, reference or customer; filters and sort in the
  * URL; a table from 1280 px, cards below; per-row actions and a bulk status
  * change for a selection. Invoice and payment columns show the existing
- * invoices read-only (generating them is P6).
+ * invoices; "Genereer factuur" opens the builder for a selection of one
+ * customer's orders.
  */
 export const Route = createFileRoute("/admin/orders/")({
   validateSearch: (search: Record<string, unknown>): AdminOrderSearch =>
@@ -300,6 +303,7 @@ function OrdersBoard({
               <Plane aria-hidden />
               {t("admin.order.shipment.add")}
             </Button>
+            <GenerateInvoiceButton orders={selectedVisible} />
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
               {t("admin.orders.clearSelection")}
             </Button>
@@ -1063,5 +1067,37 @@ function OrderCards({
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * "Genereer factuur" for a selection (SPEC §35.9): one invoice is for one
+ * customer, so only a selection of one customer's orders opens the builder.
+ */
+function GenerateInvoiceButton({
+  orders,
+}: {
+  orders: readonly { id: string; customer_id: string }[];
+}) {
+  const t = useT();
+  const customers = new Set(orders.map((o) => o.customer_id));
+  const [customerId] = [...customers];
+  if (customers.size !== 1 || !customerId) {
+    return (
+      <span className="max-w-xs text-xs leading-5 text-muted-foreground">
+        {t("admin.actions.generateInvoiceOneCustomer")}
+      </span>
+    );
+  }
+  return (
+    <Button asChild size="sm" variant="outline">
+      <Link
+        to="/admin/facturen/nieuw"
+        search={newInvoiceSearch({ customerId, orderIds: orders.map((o) => o.id), from: "orders" })}
+      >
+        <FilePlus2 aria-hidden />
+        {t("admin.actions.generateInvoiceSelection", { count: orders.length })}
+      </Link>
+    </Button>
   );
 }

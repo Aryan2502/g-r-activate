@@ -11,6 +11,7 @@ import {
   LogOut,
   Package,
   PackagePlus,
+  Receipt,
   RotateCw,
   UserRound,
 } from "lucide-react";
@@ -48,6 +49,7 @@ const nav: ShellNavItem[] = [
   { to: paths.portal, label: t("portal.nav.dashboard"), icon: LayoutDashboard, exact: true },
   { to: paths.portalOrders, label: t("portal.nav.orders"), icon: Package },
   { to: paths.portalOrderNew, label: t("portal.nav.newOrder"), icon: PackagePlus },
+  { to: paths.portalInvoices, label: t("portal.nav.invoices"), icon: Receipt },
   { to: paths.portalProfile, label: t("portal.nav.profile"), icon: UserRound },
 ];
 

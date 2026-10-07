@@ -82,6 +82,29 @@ export const adminKeys = {
   openTasks: (userId: string, scope: "first" | "all" = "first") =>
     ["admin", userId, "tasks", "open", scope] as const,
 
+  /**
+   * Invoices (builder drafts, an invoice's page). Saving, issuing or deleting
+   * an invoice also invalidates `orders` (billing columns, the builder's
+   * order list), `customers` (a customer's invoices) and `dashboard`.
+   */
+  invoices: (userId: string) => ["admin", userId, "invoices"] as const,
+  /** /admin/facturen: every invoice (invoice_overview) with its order references. */
+  invoiceList: (userId: string) => ["admin", userId, "invoices", "list"] as const,
+  invoice: (userId: string, invoiceId: string) =>
+    ["admin", userId, "invoices", "id", invoiceId] as const,
+  /** The payments of one invoice (voided ones too: staff see them). */
+  invoicePayments: (userId: string, invoiceId: string) =>
+    ["admin", userId, "invoices", "id", invoiceId, "payments"] as const,
+  /** The invoice this one replaces and the invoices that replace it ("Corrigeren"). */
+  invoiceRelations: (userId: string, invoiceId: string) =>
+    ["admin", userId, "invoices", "id", invoiceId, "relations"] as const,
+  /** The customer as the invoice prints them (address, KKF, …). */
+  invoiceCustomer: (userId: string, customerId: string) =>
+    ["admin", userId, "customers", "id", customerId, "bill-to"] as const,
+  /** A customer's orders for the builder, with freight already billed elsewhere. */
+  invoiceBuilderOrders: (userId: string, customerId: string, invoiceId: string | null) =>
+    ["admin", userId, "orders", "invoice-builder", customerId, invoiceId ?? "new"] as const,
+
   orders: (userId: string) => ["admin", userId, "orders"] as const,
   orderList: (userId: string) => ["admin", userId, "orders", "list"] as const,
   orderBilling: (userId: string) => ["admin", userId, "orders", "billing"] as const,

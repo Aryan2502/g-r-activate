@@ -39,8 +39,8 @@ import { resolveStatus } from "@/lib/portal/orders";
 /**
  * The customer page's history sections (SPEC §13: "a complete history"):
  * orders (each links to /admin/orders/$id), the shipments they travel in,
- * invoices and payments (read-only; generating invoices is P6/P7) and the
- * documents of all their orders. Everything is read with the staff member's
+ * invoices and payments (each invoice links to /admin/facturen/$id, where
+ * payments are recorded) and the documents of all their orders. Everything is read with the staff member's
  * own client.
  */
 
@@ -181,9 +181,14 @@ export function CustomerShipmentsSection({ orders }: { orders: CustomerOrder[] |
 export function CustomerInvoicesSection({
   userId,
   customerId,
+  customerCode,
+  actions,
 }: {
   userId: string;
   customerId: string;
+  /** For "Alle facturen" (/admin/facturen?q=GR…). */
+  customerCode?: string;
+  actions?: ReactNode;
 }) {
   const t = useT();
   const query = useQuery(customerInvoicesQueryOptions(userId, customerId));
@@ -198,6 +203,19 @@ export function CustomerInvoicesSection({
       icon={Receipt}
       id="customer-invoices"
       description={t("admin.customers.detail.invoicesIntro")}
+      actions={
+        <>
+          {customerCode && invoices.length > 0 ? (
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/admin/facturen" search={{ q: customerCode }}>
+                <Receipt aria-hidden />
+                {t("admin.customers.detail.allInvoices")}
+              </Link>
+            </Button>
+          ) : null}
+          {actions}
+        </>
+      }
     >
       {query.isError ? (
         <LoadError
@@ -238,7 +256,17 @@ export function CustomerInvoicesSection({
               >
                 <div className="min-w-0">
                   <p className="font-semibold tabular-nums text-foreground">
-                    {invoice.invoice_number ?? t("admin.customers.detail.draft")}
+                    {invoice.id ? (
+                      <Link
+                        to="/admin/facturen/$id"
+                        params={{ id: invoice.id }}
+                        className="rounded-sm text-primary underline-offset-4 hover:underline"
+                      >
+                        {invoice.invoice_number ?? t("admin.customers.detail.draft")}
+                      </Link>
+                    ) : (
+                      (invoice.invoice_number ?? t("admin.customers.detail.draft"))
+                    )}
                   </p>
                   <p className="text-xs text-muted-foreground tabular-nums">
                     {invoice.invoice_date

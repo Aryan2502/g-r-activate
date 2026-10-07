@@ -4,7 +4,39 @@ Bron: `docs/SPEC.md` (§1–§35). §35 gaat voor bij verschillen.
 
 ## Status per sectie
 
-Laatst bijgewerkt: P5 reviewronde (2026-10-07): 23 reviewbevindingen nagelopen (21 opgelost,
+Laatst bijgewerkt: P6/P7 reviewronde (2026-10-07): 17 reviewbevindingen nagelopen (alle echt;
+6 en 12 zijn dezelfde): 15 opgelost, 6/12 deels (de bouwer houdt het voorbeeld naast het
+formulier vanaf 1024 px zoals §35.11 zegt, met een knop "Vergroten" voor ware grootte). Factuurdocument: tot 8 regels plus
+BTW-regel, opmerking, bedrijfsnaam en KKF-regel passen op één Letter-pagina; de totaalregels
+horen nu bij de itemtabel (kop herhaalt op een nieuwe pagina, de laatste itemregel gaat mee);
+stempel "BETAALD" in een vrije marge; footer loopt door op twee regels; meldingen (toasts)
+worden nooit mee geprint. Bouwer: opslaan in een volgorde die het totaal nooit onder 0 laat
+zakken, mislukte eerste opslag laat geen leeg concept achter, "Corrigeren" waarschuwt bij
+weggaan en een geannuleerde factuur zonder vervanger krijgt "Vervangende factuur maken",
+opslaan/uitgeven ook onder het voorbeeld (tabs), pijlen alleen waar de volgorde op papier
+telt, omschrijving vooraf ingevuld. Betalingen: "1.250" wordt geweigerd i.p.v. als 1,25
+geboekt, "Markeer als betaald" boekt het saldo dat de medewerker zag. Klantlijst: kolom
+"Datum". Geen migratie; zie "Bewijs P6/P7 reviewronde". Daarvoor P6/P7 deel B (2026-10-07): factuurlijst `/admin/facturen` (zoeken op
+nummer, klant, GR-code en orderreferentie; filters status incl. "Achterstallig" uit
+`invoice_overview`, valuta en periode; sorteren; totalen per valuta), de factuurpagina
+`/admin/facturen/$id` met betalingen ("Betaling registreren", "Markeer als betaald"),
+"Betaling ongedaan maken", "Factuur annuleren", "Corrigeren" en "Opslag 15% toepassen"
+(beheerders), herinneringsadministratie (alleen-lezen), "Deel via WhatsApp" en afdrukken/PDF;
+de klantkant `/portal/facturen` en `/portal/facturen/$id` (nooit concepten, saldo per valuta,
+betaalinstructie prominent, "Opslaan als PDF"); de print-routes
+`/admin/facturen/$id/print` en `/portal/facturen/$id/print` (alleen het document, buiten de
+app-shell); links vanaf dashboards, orders en klantpagina's; navigatie "Facturen" in beide
+gebieden. Server functions `recordPaymentFn`, `markPaidFn`, `voidPaymentFn`,
+`cancelInvoiceFn`, `applyLateFeeFn`, `invoiceShareFn` en P8-haak `onPaymentRecorded`. Geen
+nieuwe migratie (geen gat gevonden). P6 en P7 zijn daarmee klaar; zie "Bewijs P6/P7 deel B".
+Daarvoor P6/P7 deel A (2026-10-07): één factuurrenderer `InvoiceDocument` (exacte
+nabouw van het Word-sjabloon, §35.11) met de modelbouwers `fromDraftForm` en
+`fromIssuedInvoice`, `computeInvoiceTotals` (bewezen gelijk aan de SQL op 300+ gegenereerde
+facturen), de factuurbouwer `/admin/facturen/nieuw` met live voorbeeld, concepten opslaan en
+bewerken (`/admin/facturen/$id`), `issueInvoiceFn` met P8-haak en de knoppen "Genereer factuur"
+op orders, de orderpagina en de klantpagina. Geen nieuwe migratie (geen gat gevonden). Deel B
+(lijst, betalingen, klantpagina's, print-routes) volgt; zie "Bewijs P6/P7 deel A". Daarvoor:
+P5 reviewronde (2026-10-07): 23 reviewbevindingen nagelopen (21 opgelost,
 1 bewust anders opgelost, 1 dubbel), met wijzigingen in dezelfde, nog niet toegepaste migratie
 `20261007150000_p5_customers.sql` (geen teamlogin bannen vanaf een klantpagina, uitnodiging van
 een gedeactiveerde uitnodiger telt als ingetrokken, verstuurlimiet per e-mailadres, profielnaam
@@ -60,22 +92,272 @@ axe 0 overtredingen op alle publieke en auth-pagina's.
 | 11 | Statusbeheer | klaar (P4; e-mail P8) | P4-B: `/admin/statussen` toont alle statussen per fase (in reisvolgorde, ook lege fasen) met naam, code, omschrijving voor de klant, zichtbaar voor klant, klant e-mailen, volgorde, actief/inactief, "Standaard" (eerste actieve status van de fase: daar starten nieuwe orders, daarheen gaat ontvangen en afgeven) en het aantal orders dat nu op elke status staat; staff lezen (melding "Alleen een beheerder …", geen knoppen), beheerders voegen toe (fase + code, beide daarna vast; code wordt uit de naam voorgesteld, uniek, `^[a-z][a-z0-9_]{1,49}$`; volgorde voorgesteld achter de fase), wijzigen naam/omschrijving/volgorde/zichtbaar/e-mailen (onzichtbare status mailt nooit) en deactiveren/activeren (nooit verwijderen; orders en historie houden de status; waarschuwing bij de laatste actieve status van een fase, de laatste "Aangemeld" wordt geweigerd zoals de database doet, 55000); alles met de eigen client (RLS `is_admin`), fouten inline + toast. Statuswijziging enkel en in bulk via één `change_order_status`-aanroep (`changeOrderStatusFn`, staff-client, nooit service role): dialoog met alleen actieve statussen per fase, "Bezorgd" alleen bij `delivery_available`, huidige status uitgeschakeld, bericht voor de klant ("Zichtbaar voor klant"; verplicht bij "Actie vereist"), "Klant e-mailen" (start op `notify_customer`, uit bij niet-zichtbare status; P8-haak `onOrderStatusChanged`, max. één e-mail per klant per actie via `planStatusEmails`), afhalen met naam ophaler + `pay_before_pickup`-blokkade (vooraf gecontroleerd én op de `pay_before_pickup`-hint van de database) en "Toch afgeven" met verplichte reden (`pickupFn` → `pickup_override`, reden in `audit_log`), B2B-waarschuwing (niet blokkerend) zonder commerciële factuur/paklijst richting douane, "Documenten opvragen" = "Actie vereist" voorgeselecteerd; volledige historie met namen ("door Maria", profiles), van → naar, tijd, bericht en "Niet zichtbaar voor klant". Tests: `admin/order-actions`, `admin/statuses`, `admin/orders`, `admin/status-config`, PGlite `admin_contract` en `shipments_contract`; P4-review: afgeven per klant (dialoog + database), "Toch afgeven" audit alleen op onbetaalde orders, nieuw bericht bij "Actie vereist" (eigen historieregel), niet-ontvangen orders blijven staan voorbij het US-magazijn, volgende status voorgeselecteerd, melding "E-mail is nog niet geconfigureerd" (migratie `20261007120000_p4_order_guards.sql`) |
 | 12 | Admin-dashboard | klaar (P5-B) | `/admin`: "Nog in te stellen" (bankgegevens ontbreken per valuta, geen actief US-adres, geen verzendwijze aan, geen tarief per lb, afhaaltijden leeg, voorwaarden/verboden goederen nog voorbeeldtekst; voor beheerders ook servicesleutel, APP_URL en e-mail), elk met "Naar instellingen" naar de juiste sectie (scrolt en focust); "Overzicht": klanten totaal + nieuw in 30 dagen + actief/uitgenodigd/gedeactiveerd, nieuwe orders (30 dagen) + lopende orders, openstaande facturen (aantal + openstaand bedrag PER VALUTA, link naar klanten met openstaande facturen), achterstallig (aantal + bedrag per valuta, uit `invoice_overview.is_overdue`), betaalde facturen (+ laatste 30 dagen, concepten); ordertellingen per fase (P4); open taken met "Order openen" en nu ook "Klant openen" (`customer_id`); "Recente activiteit" (statuswijzigingen met "door …", nieuwe klanten, geaccepteerde uitnodigingen, uitgegeven/geannuleerde facturen, betalingen; links naar order en klant); "Systeemstatus" (beheerders, `systemStatusFn`: alleen booleans voor servicesleutel, APP_URL (of Vercel-adres), e-mailprovider, CRON_SECRET, plus de laatste herinneringsronde uit `job_runs`). Tests `admin/dashboard` (`summarizeInvoiceStats`, `mergeStaffActivity`, `daysAgo`), `admin/system-status` (`setupChecklist`), `server/system-status` (alleen booleans, nooit een waarde); P5-review: "Open taken" bovenaan, medewerkers zien de setup-lijst als één regel, laadfout in de setup-lijst zichtbaar met "Opnieuw proberen" |
 | 13 | Klantbeheer | klaar (P5-A, P5-B) | `/admin/klanten`: zoeken op naam, bedrijf, GR-code ("gr 17", "17"), e-mail, telefoon (met/zonder +597), filters status, soort, login ja/nee, "Openstaande facturen", sorteren (GR-code, naam, nieuwste, oudste), alles in de URL; tabel Klant \| Contact \| Status \| Login \| Orders \| Openstaand \| Klant sinds vanaf 1280 px, kaarten daaronder. `/admin/klanten/$id`: contactgegevens (wijzigen; e-mail alleen beheerder, met waarschuwing bij login/open uitnodiging), account en login, uitnodigingsstatus met acties, orders (links), zendingen, facturen + betalingen (alleen-lezen, per valuta), documenten (download), interne notities, Nederlandse geschiedenis (beheerder: uit `audit_log`; staff: uit de rijen), "Order aanmaken voor deze klant" (`/admin/orders/nieuw?customer=`), wachtwoord-resetlink; P5-B: teampagina `/admin/team` en instellingen `/admin/instellingen` (zie §35 hieronder) |
-| 14–20 | Facturen t/m klanthistorie | niet gestart | P6–P9 (database staat er, P2a); de klantpagina toont facturen en betalingen al alleen-lezen |
-| 21 | Admin order-/zendingbeheer | deels (P4 klaar, klantpagina P5-A; facturen genereren/wijzigen P6/P7) | P4-B zendingen: `/admin/zendingen` (zoeken op zendingnummer, vervoerder of AWB/container ook zonder streepjes, filter verzendwijze en "Alleen lopende zendingen", in de URL; tabel Zending \| Verzendwijze \| Vervoerder \| Vertrokken \| Aangekomen \| Orders (aantal, klanten, gemeten lbs) \| Status van de orders (aantal per fase, "Zending afgerond") vanaf 1280 px, past op 1280 zonder scrollen, kaarten daaronder; "Zending aanmaken" → de nieuwe zendingpagina). `/admin/zendingen/$id`: gegevens (alles zichtbaar voor klanten met een order erin, ook het bericht), inhoud (orders, klanten, gemeten gewicht, nog niet gewogen, per fase), waarschuwingen (order nog niet ontvangen, andere verzendwijze), orders met rij-acties (status, ontvangen, afgeven, "Uit zending halen") en selectie (status wijzigen, uit zending halen); "Orders toevoegen": alleen orders met dezelfde verzendwijze die niet afgehaald/bezorgd/geannuleerd zijn, ontvangen eerst, scannen + Enter vinkt de order met dat trackingnummer aan (anders zegt de melding waarom niet: andere verzendwijze, al afgerond, al in deze zending, onbekend, meerdere), een order uit een andere zending verhuist (badge "Nu in zending …"); één `PATCH orders` met `service_type=eq.<zending>` in het filter zelf; "Status voor hele zending wijzigen" = één `change_order_status` (via `changeOrderStatusFn`, P8-haak, max. één e-mail per klant) met alle lopende orders, afgeronde orders blijven staan; "Gegevens wijzigen" (verzendwijze vast zolang er orders in zitten); zendingnummer uniek ongeacht hoofdletters (eigen melding). "Aan zending toevoegen" ook vanuit een selectie op `/admin/orders` en op de orderpagina (vooraf: hoeveel orders meegaan en welke worden overgeslagen); de orderpagina toont de zending met "Uit zending halen" en een link. P4-A `/admin/orders`: groot zoek-/scanveld (tracking genormaliseerd, GR-code "gr 17", referentie, klantnaam/bedrijf zonder accenten, winkel, ordernummer, omschrijving), filters status-fase, soort (Zakelijk), "Wacht op ontvangst", "Openstaande factuur", "Annulering aangevraagd", sorteren (nieuwste, oudste, klant, status); tabel Order \| Klant \| Type \| Tracking \| Status \| Factuur \| Betaling vanaf 1280 px (past op 1280 zonder scrollen), kaarten daaronder; factuur/betaling alleen-lezen uit `invoice_items` → `invoice_overview` (concepten zichtbaar, per valuta); rij-acties openen, status wijzigen, ontvangen/gewicht corrigeren, afgeven; selectie → één bulk-statuswijziging; klantnaam zonder link (P5-A: klantnamen op `/admin/orders`, `/admin/orders/$id` en `/admin/zendingen/$id` linken naar `/admin/klanten/$id`). Ontvangen zonder scanner (§35.7): exacte trackingmatch → "Ontvangen in US-magazijn" direct vanuit het zoekresultaat (`receiveOrderFn` → `receive_order`, gewicht ≤ 2 decimalen, Nederlandse komma), dubbel trackingnummer → waarschuwing + badge "Dubbel", geen match → "Order aanmaken voor klant" met het nummer. `/admin/orders/nieuw` (`createOrderForCustomerFn`): elke klant ook zonder login (gedeactiveerde niet kiesbaar), dezelfde velden als het portaal, optioneel direct ontvangen met gemeten gewicht, extra pakket via `?parent=`. `/admin/orders/$id`: klant, alle ordervelden, ontvangen/afgegeven door wie, zending (link naar `/admin/zendingen/$id`), facturen (ook concepten), documenten (upload in elke fase, download onder veilige naam, verwijderen), pakketten van de aankoop + "Extra pakket aanmaken", interne notities, voortgang en historie, banners voor annuleringsverzoek (annuleren of behouden), actie vereist, klaar voor afhalen (openstaand per valuta), ontbrekende douanedocumenten; P4-review: scanlus zonder klikken (veld leeg + focus na ontvangen), zoekresultaat direct onder het zoekveld met status en volgende stap, selectiebalk blijft in beeld, "Onbekend" als facturen niet laden, gewicht invullen na het magazijn, verzendwijze van een order in een zending vast (database) |
+| 14 | Factuur genereren | klaar (P6-A) | `/admin/facturen/nieuw`: klant kiezen (GR-code/naam), orders van die klant (standaard zonder vracht op een niet-geannuleerde factuur; schakelaar toont de rest), per order één vrachtregel ('{winkel} – order {nummer}', tracking/ref-regel, gemeten gewicht na afronding en minimum van `service_rates`, anders het opgegeven gewicht met waarschuwing, tarief uit `service_rates` in de factuurvaluta), regels toevoegen/verwijderen/verplaatsen (inklaring, handling, goederen, servicekosten, overige met omschrijving, korting), valuta (één per factuur), factuurdatum (vandaag in Suriname) en vervaldatum (+ `payment_term_days`, volgt de factuurdatum tot hij zelf gewijzigd wordt), OPMERKINGEN; validatie volgens de CHECKs en `issue_invoice` vóór het verzenden (alle fouten tegelijk, focus op de eerste, "Datums bijwerken"); waarschuwingen bankgegevens en tarief; "Genereer factuur" vanaf `/admin/orders` (selectie van één klant), `/admin/orders/$id` en `/admin/klanten/$id` (`?customer=&orders=&from=`); tests `admin/invoice-builder`, PGlite `invoice_builder_contract` |
+| 15 | Live factuurvoorbeeld | klaar (P6-A, review) | links formulier, rechts het echte `InvoiceDocument` op ware grootte geschaald met `transform: scale()` (≥ 1024 px), daaronder tabs "Gegevens" \| "Voorbeeld"; het voorbeeld rekent met `computeInvoiceTotals` en de live instellingen; review: "Vergroten" toont het op ware grootte, onder 1024 px staan totaal, "Genereer factuur" en "Opslaan als concept" ook onder het voorbeeld; zie "Bewijs P6/P7 deel A" en "reviewronde" |
+| 16 | Factuur genereren & opslaan | klaar (P6-A, P7-B) | "Opslaan als concept" (eigen client, RLS; regels worden bijgewerkt, niet vervangen) en "Genereer factuur" (opslaan, dan `issueInvoiceFn` → `issue_invoice`: nummer, totalen, snapshots; P8-haak `onInvoiceIssued`, UI zegt dat er géén e-mail is verstuurd); `/admin/facturen/$id`: concept → bouwer (ook "Concept verwijderen"), uitgegeven → document uit de snapshots met alle acties (P7-B); P7-B: `/admin/facturen` (alle facturen, ook concepten; zoeken op nummer "2026-0012"/"0012", GR-code "gr 42", naam/bedrijf zonder accenten, orderreferentie; filters status (Nog te betalen, Openstaand, Deels betaald, Achterstallig, Betaald, Concept, Geannuleerd; "Achterstallig" uit `invoice_overview.is_overdue`), valuta, periode (deze/vorige maand, 30 dagen, dit/vorig jaar, zelf kiezen); sorteren nieuwste/oudste/vervaldatum/bedrag/klant; alles in de URL; totalen van de selectie per valuta: gefactureerd, betaald, openstaand, achterstallig; tabel vanaf 1280 px, kaarten daaronder); tests `admin/invoices`, PGlite `invoices_contract` |
+| 17 | Factuurstatus | klaar (P7-B) | status alleen via de database: betalingen leiden de status af (`record_payment` → 'Deels betaald'/'Betaald' met `paid_at`), "Betaling ongedaan maken" (`void_payment`, beheerder, reden), "Factuur annuleren" (`cancel_invoice`, beheerder, reden zichtbaar voor de klant, geweigerd zolang er betalingen op staan), "Corrigeren" (annuleren, dan een nieuw concept met `replaces_invoice_id`, dezelfde klant, orders en valuta), "Opslag 15% toepassen" (`apply_late_fee`, beheerder, alleen achterstallig, één keer; het bedrag staat vóór het bevestigen in de dialoog, berekend als de database: `lateFeeAmount`); "Achterstallig" nooit opgeslagen (overal `invoice_overview`); badges tekst + icoon (Openstaand, Deels betaald, Betaald, Achterstallig, Geannuleerd, Concept); stempel "BETAALD dd-mm-jjjj" en watermerk "GEANNULEERD" op het document; tests `admin/invoice-actions`, `InvoiceDialogs.test.tsx`, PGlite `invoices_contract` |
+| 18 | Klantfacturen | klaar (P7-B) | `/portal/facturen`: alleen uitgegeven facturen van de klant (RLS + eigen filters), nummer, datum, vervaldatum, orders (uit `bill_to_snapshot`, links naar de orders), bedrag, nog te betalen, badge, "N dagen te laat"/"Betaald op"; bovenaan "Nog te betalen" per valuta + aantal achterstallig; filter Alle / Nog te betalen / Betaald (`?show=`); `/portal/facturen/$id`: het document uit de snapshots, "Zo betaalt u deze factuur" (te betalen, uiterlijk, al betaald, achterstallig, betaalreferentie `{nummer} / {code}` met kopieerknop, rekening van de factuurvaluta uit de snapshot met kopieerknop, of "neem contact op" als die ontbreekt), ontvangen betalingen (niet de ongedaan gemaakte), "Opslaan als PDF"; concept of factuur van een ander → "Factuur niet gevonden"; links vanaf het dashboard (KPI "Facturen bekijken en betalen", recente activiteit) en de orderpagina; nav "Facturen" |
+| 19 | Betalingsherinneringen | deels (P7-B) | P8: e-mail en herinneringen. P7-B toont op `/admin/facturen/$id` de administratie alleen-lezen (aantal, eerste en laatste herinnering) en "N× herinnerd" in de lijst |
+| 20 | Klanthistorie | niet gestart | P9 |
+| 21 | Admin order-/zendingbeheer | klaar (P4, klantpagina P5-A, facturen P6/P7; P7-B: kolom "Factuur" linkt naar de factuur) | P4-B zendingen: `/admin/zendingen` (zoeken op zendingnummer, vervoerder of AWB/container ook zonder streepjes, filter verzendwijze en "Alleen lopende zendingen", in de URL; tabel Zending \| Verzendwijze \| Vervoerder \| Vertrokken \| Aangekomen \| Orders (aantal, klanten, gemeten lbs) \| Status van de orders (aantal per fase, "Zending afgerond") vanaf 1280 px, past op 1280 zonder scrollen, kaarten daaronder; "Zending aanmaken" → de nieuwe zendingpagina). `/admin/zendingen/$id`: gegevens (alles zichtbaar voor klanten met een order erin, ook het bericht), inhoud (orders, klanten, gemeten gewicht, nog niet gewogen, per fase), waarschuwingen (order nog niet ontvangen, andere verzendwijze), orders met rij-acties (status, ontvangen, afgeven, "Uit zending halen") en selectie (status wijzigen, uit zending halen); "Orders toevoegen": alleen orders met dezelfde verzendwijze die niet afgehaald/bezorgd/geannuleerd zijn, ontvangen eerst, scannen + Enter vinkt de order met dat trackingnummer aan (anders zegt de melding waarom niet: andere verzendwijze, al afgerond, al in deze zending, onbekend, meerdere), een order uit een andere zending verhuist (badge "Nu in zending …"); één `PATCH orders` met `service_type=eq.<zending>` in het filter zelf; "Status voor hele zending wijzigen" = één `change_order_status` (via `changeOrderStatusFn`, P8-haak, max. één e-mail per klant) met alle lopende orders, afgeronde orders blijven staan; "Gegevens wijzigen" (verzendwijze vast zolang er orders in zitten); zendingnummer uniek ongeacht hoofdletters (eigen melding). "Aan zending toevoegen" ook vanuit een selectie op `/admin/orders` en op de orderpagina (vooraf: hoeveel orders meegaan en welke worden overgeslagen); de orderpagina toont de zending met "Uit zending halen" en een link. P4-A `/admin/orders`: groot zoek-/scanveld (tracking genormaliseerd, GR-code "gr 17", referentie, klantnaam/bedrijf zonder accenten, winkel, ordernummer, omschrijving), filters status-fase, soort (Zakelijk), "Wacht op ontvangst", "Openstaande factuur", "Annulering aangevraagd", sorteren (nieuwste, oudste, klant, status); tabel Order \| Klant \| Type \| Tracking \| Status \| Factuur \| Betaling vanaf 1280 px (past op 1280 zonder scrollen), kaarten daaronder; factuur/betaling alleen-lezen uit `invoice_items` → `invoice_overview` (concepten zichtbaar, per valuta); rij-acties openen, status wijzigen, ontvangen/gewicht corrigeren, afgeven; selectie → één bulk-statuswijziging; klantnaam zonder link (P5-A: klantnamen op `/admin/orders`, `/admin/orders/$id` en `/admin/zendingen/$id` linken naar `/admin/klanten/$id`). Ontvangen zonder scanner (§35.7): exacte trackingmatch → "Ontvangen in US-magazijn" direct vanuit het zoekresultaat (`receiveOrderFn` → `receive_order`, gewicht ≤ 2 decimalen, Nederlandse komma), dubbel trackingnummer → waarschuwing + badge "Dubbel", geen match → "Order aanmaken voor klant" met het nummer. `/admin/orders/nieuw` (`createOrderForCustomerFn`): elke klant ook zonder login (gedeactiveerde niet kiesbaar), dezelfde velden als het portaal, optioneel direct ontvangen met gemeten gewicht, extra pakket via `?parent=`. `/admin/orders/$id`: klant, alle ordervelden, ontvangen/afgegeven door wie, zending (link naar `/admin/zendingen/$id`), facturen (ook concepten), documenten (upload in elke fase, download onder veilige naam, verwijderen), pakketten van de aankoop + "Extra pakket aanmaken", interne notities, voortgang en historie, banners voor annuleringsverzoek (annuleren of behouden), actie vereist, klaar voor afhalen (openstaand per valuta), ontbrekende douanedocumenten; P4-review: scanlus zonder klikken (veld leeg + focus na ontvangen), zoekresultaat direct onder het zoekveld met status en volgende stap, selectiebalk blijft in beeld, "Onbekend" als facturen niet laden, gewicht invullen na het magazijn, verzendwijze van een order in een zending vast (database) |
 | 22 | Databaseontwerp | klaar (P2a) | `supabase/migrations/*.sql` (3 bestanden), `m1/m2/m3_*.test.ts` in PGlite |
 | 23 | Row Level Security | klaar in DB (P2a) | RLS + grants per tabel, PGlite-tests; live RLS-tests P10 |
 | 24 | E-mailsysteem | deels | auth-templates (P2b); Resend/herinneringen P8 |
-| 25 | Responsive design | basis (P2b, P3-A, P3-B, P4) | publieke, auth-, portal- en admin-layouts gecontroleerd op 320–1440 px zonder horizontale scroll; P3-A: dashboard, orderlijst (tabel → kaarten) en orderdetail (facturentabel → kaarten via container query) op 320/390/768/1024/1440 px; P3-B: aanmeldformulier op dezelfde breedtes, velden 44 px hoog op telefoons, `inputmode` numeric/decimal, datumvelden; reviewronde: dialoogvensters krimpen met lange bestandsnamen mee (`grid-cols-[minmax(0,1fr)]`), orderlijst tabel pas vanaf 1280 px; eindronde P10; P4-A: admin-layout breder (`AppShell wide`), orderoverzicht tabel vanaf 1280 px (past op 1280 en 1440 zonder horizontaal scrollen, tabelkaart is `relative overflow-x-auto` als vangnet), kaarten met selectievakje daaronder, dialogen binnen 320–1440 px; P4-B: zendingenlijst, zendingpagina (orders als tabel vanaf 1280 px, kaarten daaronder) en statussen (tabel per fase vanaf 1280 px met de omschrijving onder de naam, kaarten daaronder) passen op 1280 px; dialogen (zending, orders toevoegen, aan zending toevoegen, status toevoegen/wijzigen/deactiveren) binnen 320–1440 px, knoppen op telefoons volle breedte; eindronde P10; P5-B: dashboard (KPI-kaarten 1/2/3/5 kolommen), team (tabel vanaf 1280 px, kaarten daaronder) en instellingen (secties, bankrekeningen 3 kolommen vanaf 1024 px, dialoog US-adres) op 320–1440 px zonder horizontale scroll |
-| 26 | UX-eisen | deels (P2b, P3-A, P3-B, P4) | alle fouten bij eerste verzending zichtbaar, inline loginfouten, laad-/fout-/leegstaten, toasts; P3-A: elke kaart/sectie heeft eigen laad-, fout- (met "Opnieuw proberen") en leegstaat; P3-B: order aanmelden in twee stappen, alle veldfouten bij de eerste verzending (ook de regels over meerdere velden: validatie in twee lagen, `refineOrderFields`), focus op het eerste foute veld; P4-A: staff vinden een order met één zoekveld (Enter = direct zoeken, voor scanners), ontvangen vanuit het zoekresultaat, bulk-statuswijziging, statusdialoog toont alle fouten tegelijk en focust het eerste veld; P4-B: een hele zending in één keer van status wisselen, orders in een zending scannen, zending- en statusformulieren tonen alle fouten tegelijk met focus op het eerste veld; P5-A: klantdialogen tonen alle veldfouten bij de eerste verzending met focus op het eerste foute veld, live GR-code-controle, conflicten als uitleg met een knop naar de juiste klant, "Opnieuw versturen kan over N seconden" / daglimiet uitgelegd, `/invite` met één duidelijke stap per toestand; P5-B: instellingen per sectie opslaan (alleen gewijzigde kolommen, "Er was niets gewijzigd"), alle veldfouten tegelijk met focus op het eerste veld (ook regels over meerdere velden, zoals BTW-uitsplitsing zonder tarief), live waarschuwing als de betalingsvoorwaarden een andere termijn of opslag noemen dan ingesteld, live voorbeeld factuurnummer, live voorbeeld van het persoonlijke US-adres van een gekozen klant, live rekenvoorbeeld van het tarief; medewerkers zien de instellingen en het team alleen-lezen ("Nog niet ingesteld" bij lege waarden) |
+| 25 | Responsive design | basis (P2b, P3-A, P3-B, P4) | publieke, auth-, portal- en admin-layouts gecontroleerd op 320–1440 px zonder horizontale scroll; P3-A: dashboard, orderlijst (tabel → kaarten) en orderdetail (facturentabel → kaarten via container query) op 320/390/768/1024/1440 px; P3-B: aanmeldformulier op dezelfde breedtes, velden 44 px hoog op telefoons, `inputmode` numeric/decimal, datumvelden; reviewronde: dialoogvensters krimpen met lange bestandsnamen mee (`grid-cols-[minmax(0,1fr)]`), orderlijst tabel pas vanaf 1280 px; eindronde P10; P4-A: admin-layout breder (`AppShell wide`), orderoverzicht tabel vanaf 1280 px (past op 1280 en 1440 zonder horizontaal scrollen, tabelkaart is `relative overflow-x-auto` als vangnet), kaarten met selectievakje daaronder, dialogen binnen 320–1440 px; P4-B: zendingenlijst, zendingpagina (orders als tabel vanaf 1280 px, kaarten daaronder) en statussen (tabel per fase vanaf 1280 px met de omschrijving onder de naam, kaarten daaronder) passen op 1280 px; dialogen (zending, orders toevoegen, aan zending toevoegen, status toevoegen/wijzigen/deactiveren) binnen 320–1440 px, knoppen op telefoons volle breedte; eindronde P10; P5-B: dashboard (KPI-kaarten 1/2/3/5 kolommen), team (tabel vanaf 1280 px, kaarten daaronder) en instellingen (secties, bankrekeningen 3 kolommen vanaf 1024 px, dialoog US-adres) op 320–1440 px zonder horizontale scroll; P7-B: factuurlijst (tabel vanaf 1280 px), factuurpagina, dialogen (betaling, WhatsApp, opslag, corrigeren), klantfacturen (tabel vanaf 1280 px) en klantfactuur, print-routes op 320/390/768/1024/1280/1440 px zonder horizontale scroll (document geschaald, nooit opnieuw opgemaakt) |
+| 26 | UX-eisen | deels (P2b, P3-A, P3-B, P4) | alle fouten bij eerste verzending zichtbaar, inline loginfouten, laad-/fout-/leegstaten, toasts; P3-A: elke kaart/sectie heeft eigen laad-, fout- (met "Opnieuw proberen") en leegstaat; P3-B: order aanmelden in twee stappen, alle veldfouten bij de eerste verzending (ook de regels over meerdere velden: validatie in twee lagen, `refineOrderFields`), focus op het eerste foute veld; P4-A: staff vinden een order met één zoekveld (Enter = direct zoeken, voor scanners), ontvangen vanuit het zoekresultaat, bulk-statuswijziging, statusdialoog toont alle fouten tegelijk en focust het eerste veld; P4-B: een hele zending in één keer van status wisselen, orders in een zending scannen, zending- en statusformulieren tonen alle fouten tegelijk met focus op het eerste veld; P5-A: klantdialogen tonen alle veldfouten bij de eerste verzending met focus op het eerste foute veld, live GR-code-controle, conflicten als uitleg met een knop naar de juiste klant, "Opnieuw versturen kan over N seconden" / daglimiet uitgelegd, `/invite` met één duidelijke stap per toestand; P5-B: instellingen per sectie opslaan (alleen gewijzigde kolommen, "Er was niets gewijzigd"), alle veldfouten tegelijk met focus op het eerste veld (ook regels over meerdere velden, zoals BTW-uitsplitsing zonder tarief), live waarschuwing als de betalingsvoorwaarden een andere termijn of opslag noemen dan ingesteld, live voorbeeld factuurnummer, live voorbeeld van het persoonlijke US-adres van een gekozen klant, live rekenvoorbeeld van het tarief; medewerkers zien de instellingen en het team alleen-lezen ("Nog niet ingesteld" bij lege waarden); P7-B: betaling registreren met alle fouten tegelijk (bedrag boven saldo, datum in de toekomst, ontvangen bedrag zonder valuta) en focus op het eerste veld, bedrag vooraf ingevuld met het saldo, opslag eerst als bedrag getoond, klant ziet in één blok of en hoe hij moet betalen (§26 punt 6) |
 | 27 | Beveiliging | deels (P2b) | geen geheimen in code (`server-boundary.test.ts`), `frame-ancestors`/nosniff/referrer-policy (`security-headers.test.ts`), adres-enumeratie verborgen op reset/resend; P5-A: service role alleen in `src/server/*` (dynamische import in server-function handlers) voor `auth.admin.*` en voor het opzoeken/inwisselen van een uitnodiging nadat het token is gecontroleerd en gehasht; uitnodigen zelf met de eigen sessie van staff (RLS); alleen de SHA-256 van het token in de database, het ruwe token één keer in de link; resetlinks voor logins die ook staff/beheerder zijn alleen door een beheerder; P5-B: een gedeactiveerde (gebande) login heeft in de database geen rol meer (`has_role`/`is_staff` negeren `auth.users.banned_until` in de toekomst), dus een nog geldig toegangstoken verliest direct alle rechten en uitnodigingen van die persoon werken niet meer; `set_user_role` houdt altijd een beheerder die kan inloggen; teamacties alleen voor beheerders (UI, server function én database); Systeemstatus geeft nooit een waarde of lengte van een geheim terug; P5-review: een login die bij het team hoort wordt nooit vanaf een klantpagina gebannen/ontbannen of gereset (ook niet de eigen), een uitnodiging van een gedeactiveerde uitnodiger telt als ingetrokken vóórdat Auth wordt aangeraakt, profielnaam en `user_metadata` komen uit de uitnodiging (niet van een vreemde die het adres vooraf registreerde), deactiveren van een teamlid trekt al diens uitnodigingen in met notitie per klant |
 | 28 | Audit trail | deels (P4) | audit-triggers in DB (P2a); P4-A: statuswijzigingen leesbaar op de orderpagina met wie/wanneer ("door Maria", `shipment_status_history.changed_by` → profiles), ontvangen door, afgegeven door, reden van "Toch afgeven" in `audit_log.reason`; P4-B: aanmaken/wijzigen van zendingen, verhuizen van orders tussen zendingen en elke statusconfiguratie-wijziging staan in `audit_log` via de bestaande triggers (bewezen in `shipments_contract`); generieke auditweergave P9; P5-A: klantpagina "Geschiedenis" in het Nederlands uit `audit_log` (beheerder): aangemaakt met code, code gewijzigd (oud → nieuw + reden), gegevens gewijzigd (welke velden), uitgenodigd, opnieuw verstuurd, ingetrokken, login gekoppeld, gedeactiveerd/geactiveerd (reden), met wie en wanneer; staff zien dezelfde gebeurtenissen afgeleid uit de rijen; deactiveren/activeren en resetlinks laten ook een interne notitie achter; P5-B: elke instellingswijziging in `audit_log` via de bestaande triggers (alleen gewijzigde kolommen; bewezen in `team_settings_contract`), factuurteller en volgende klantcode via hun RPC's (eigen auditregel), rolwijzigingen (`user_roles`-trigger), deactiveren/activeren van een teamlid als auditregel `team_login` met reden (`log_team_login_change`) |
-| 29 | Foutafhandeling | deels (P2b, P3-A, P3-B) | `src/lib/errors.ts` (Postgres/PostgREST → Nederlands), `auth-errors.ts`, 404- en foutpagina, Nederlandse toasts; P3-A: opslaan/annuleren/upload met succes- en fouttoast, uploadfouten (type/grootte/leeg/geweigerd) inline in het dialoogvenster; P3-B: aanmeldfouten als toast én blijvende melding boven de knop (o.a. 54000 `open_order_limit` met de Nederlandse databasetekst); server functions geven fouten terug als data (`TransportError` in `errors.ts`), omdat TanStack Start bij een gegooide fout alleen de `message` meestuurt; P4-A: `requireStaff`/`requireAdmin` gooien niet meer maar geven `context.access` door (de staff-client zit alleen in de geslaagde uitkomst), de handler geeft de 42501 als data terug, dus "U heeft geen toegang tot deze actie." komt in de browser aan; staff-dialogen tonen fouten inline én als toast; P5-B: instellingen- en teamfouten inline én als toast; servergedeelde helpers (`serviceFailure`, `screenBase`) staan nu in `src/server/fn-helpers.ts` (de import-bescherming van TanStack Start weigerde ze in een gedeelde module die ook in de browser zit) |
+| 29 | Foutafhandeling | deels (P2b, P3-A, P3-B) | `src/lib/errors.ts` (Postgres/PostgREST → Nederlands), `auth-errors.ts`, 404- en foutpagina, Nederlandse toasts; P3-A: opslaan/annuleren/upload met succes- en fouttoast, uploadfouten (type/grootte/leeg/geweigerd) inline in het dialoogvenster; P3-B: aanmeldfouten als toast én blijvende melding boven de knop (o.a. 54000 `open_order_limit` met de Nederlandse databasetekst); server functions geven fouten terug als data (`TransportError` in `errors.ts`), omdat TanStack Start bij een gegooide fout alleen de `message` meestuurt; P4-A: `requireStaff`/`requireAdmin` gooien niet meer maar geven `context.access` door (de staff-client zit alleen in de geslaagde uitkomst), de handler geeft de 42501 als data terug, dus "U heeft geen toegang tot deze actie." komt in de browser aan; staff-dialogen tonen fouten inline én als toast; P5-B: instellingen- en teamfouten inline én als toast; servergedeelde helpers (`serviceFailure`, `screenBase`) staan nu in `src/server/fn-helpers.ts` (de import-bescherming van TanStack Start weigerde ze in een gedeelde module die ook in de browser zit); P7-B: alle factuuracties als server function met fouten als data (de Nederlandse databasemelding, bijv. "Op factuur … staan betalingen; maak die eerst ongedaan"), inline in de dialoog én als toast; succes-toasts zeggen dat er géén e-mail is verstuurd |
 | 30 | Geen statische demo | ok (P2b, P3-A, P3-B) | geen placeholder-cijfers; alles uit Supabase met de client van de klant (RLS), query-keys `["portal", userId, …]`, plus een expliciet filter op `customer_id`; enige "binnenkort"-tekst is de door §35.8 voorgeschreven melding zonder US-adres |
 | 31 | End-to-end acceptatietest | niet gestart | P10 |
 | 32 | Ontwikkelaanpak | lopend | fasen volgens §35.1 |
 | 33 | Ontwerpprincipe | ok (P2b, P3-A, P4) | geen gradients/glas/paars; tabellen met crème kop en vette bruine labels (orderlijst, facturen, zendingen, statussen), kaarten op mobiel |
 | 34 | Alleen vragen indien nodig | lopend | |
-| 35 | Aanvullende specificaties | deels | §35.0 (UI alleen Nederlands, `src/lib/i18n/nl.ts`), §35.2, §35.3 (P2a), §35.4, §35.6, §35.14 klaar; P3-A: §35.7 klantkant (orders lezen/wijzigen, annulering aanvragen, documenten, statussen per fase), §35.8 US-adreskaart en `service_rates.enabled` in het wijzigformulier, §35.10 factuurbadges en saldo per valuta; P3-B: §35.7 klant-INSERT (alleen klant-bewerkbare kolommen + `customer_id` uit de database + `parent_order_id`), §35.8 `service_rates.enabled` in het aanmeldformulier en `max_open_orders_per_customer` (fout 54000 netjes getoond), §35.14 verplicht vinkje verboden goederen; overige subsecties in latere fasen; P4-A: §35.2 (privileged writes via server functions met `requireStaff`, staff-client, geen service role), §35.4 (staff doen alle orderwerk; geen admin-only actie geraakt), §35.7 staff-kant (statusvoorwaarden, ontvangen, afhalen met `pay_before_pickup` + override, actie vereist, B2B-waarschuwing, orders voor klanten zonder login, extra pakketten), §35.8 `delivery_available` en `pay_before_pickup`, §35.12 haakpunt "max. één e-mail per klant per actie", §35.13 leesbare statushistorie; P4-B: §35.4 (statussen wijzigen alleen beheerders, zendingen alle staff), §35.7 zendingen (staff-only batches, zelfde verzendwijze, "Status voor hele zending wijzigen" via `change_order_status`, klanten zien een zending alleen met een eigen order erin) en statussen (flexibel, per fase, deactiveren in plaats van verwijderen, "Bezorgd" alleen bij `delivery_available`); P5-A: §35.5 (klant toevoegen, code wijzigen, deactiveren met `ban_duration`), §35.6 (uitnodigen, opnieuw versturen/intrekken, `/invite` paden a/b/c, staff-uitnodiging inwisselen), §35.12 WhatsApp-delen van uitnodigings- en resetlinks (e-mail P8: geen e-mail, de dialoog zegt dat); P5-B: §35.2 Systeemstatus (alleen booleans), §35.4 teampagina (staff lezen, beheerders: medewerker/beheerder uitnodigen met dezelfde tokenregels als klanten, rol wijzigen via `set_user_role` met bescherming van de laatste beheerder, login deactiveren/activeren met reden, resetlink), §35.8 volledig (`/admin/instellingen`: bedrijfsgegevens, facturen, herinneringen, werkwijze, afhalen, voorwaarden/verboden goederen, nummering, bankrekeningen, US-adressen, tarieven; beheerders wijzigen, staff lezen; setup-checklist op het dashboard), §35.9 `set_invoice_counter` (huidig jaar, geweigerd zodra er een factuur is), §35.5 `set_next_customer_number` |
+| 35 | Aanvullende specificaties | deels | §35.0 (UI alleen Nederlands, `src/lib/i18n/nl.ts`), §35.2, §35.3 (P2a), §35.4, §35.6, §35.14 klaar; P3-A: §35.7 klantkant (orders lezen/wijzigen, annulering aanvragen, documenten, statussen per fase), §35.8 US-adreskaart en `service_rates.enabled` in het wijzigformulier, §35.10 factuurbadges en saldo per valuta; P3-B: §35.7 klant-INSERT (alleen klant-bewerkbare kolommen + `customer_id` uit de database + `parent_order_id`), §35.8 `service_rates.enabled` in het aanmeldformulier en `max_open_orders_per_customer` (fout 54000 netjes getoond), §35.14 verplicht vinkje verboden goederen; overige subsecties in latere fasen; P4-A: §35.2 (privileged writes via server functions met `requireStaff`, staff-client, geen service role), §35.4 (staff doen alle orderwerk; geen admin-only actie geraakt), §35.7 staff-kant (statusvoorwaarden, ontvangen, afhalen met `pay_before_pickup` + override, actie vereist, B2B-waarschuwing, orders voor klanten zonder login, extra pakketten), §35.8 `delivery_available` en `pay_before_pickup`, §35.12 haakpunt "max. één e-mail per klant per actie", §35.13 leesbare statushistorie; P4-B: §35.4 (statussen wijzigen alleen beheerders, zendingen alle staff), §35.7 zendingen (staff-only batches, zelfde verzendwijze, "Status voor hele zending wijzigen" via `change_order_status`, klanten zien een zending alleen met een eigen order erin) en statussen (flexibel, per fase, deactiveren in plaats van verwijderen, "Bezorgd" alleen bij `delivery_available`); P5-A: §35.5 (klant toevoegen, code wijzigen, deactiveren met `ban_duration`), §35.6 (uitnodigen, opnieuw versturen/intrekken, `/invite` paden a/b/c, staff-uitnodiging inwisselen), §35.12 WhatsApp-delen van uitnodigings- en resetlinks (e-mail P8: geen e-mail, de dialoog zegt dat); P5-B: §35.2 Systeemstatus (alleen booleans), §35.4 teampagina (staff lezen, beheerders: medewerker/beheerder uitnodigen met dezelfde tokenregels als klanten, rol wijzigen via `set_user_role` met bescherming van de laatste beheerder, login deactiveren/activeren met reden, resetlink), §35.8 volledig (`/admin/instellingen`: bedrijfsgegevens, facturen, herinneringen, werkwijze, afhalen, voorwaarden/verboden goederen, nummering, bankrekeningen, US-adressen, tarieven; beheerders wijzigen, staff lezen; setup-checklist op het dashboard), §35.9 `set_invoice_counter` (huidig jaar, geweigerd zodra er een factuur is), §35.5 `set_next_customer_number`; P6/P7-A: §35.9 bouwer, concepten, uitgeven via `issueInvoiceFn`, vracht één keer per order, totalen TS == SQL; §35.10 één valuta per factuur, BTW inclusief ("Waarvan BTW"), `formatMoney`/`formatLbs`/dd-mm-jjjj op de factuur; §35.11 factuurdocument (één renderer, exacte sjabloonkleuren, papierformaat, print-CSS, statusmarkeringen); §35.12 P8-haak "factuur aangemaakt" zonder e-mailclaim; P7-B: §35.9 annuleren/corrigeren (`replaces_invoice_id`), zichtbaarheid (klant nooit concepten, nooit ongedaan gemaakte betalingen); §35.10 betalingen (bedrag in factuurvaluta, ontvangen bedrag/valuta ter informatie, "Markeer als betaald" = volledig saldo), ongedaan maken, afgeleide status, achterstallig uit de view, opslag, totalen en saldo per valuta, betaalinstructie; §35.11 print-routes (alleen het document, `document.fonts.ready` + logo, `window.print()`, titel `{nummer} - G&R Solutions`, app-chrome verborgen bij printen); §35.12 "Deel via WhatsApp" voor uitgegeven facturen (portallink alleen voor klanten met login, op APP_URL), P8-haak "betaling ontvangen" zonder e-mailclaim |
+
+## Bewijs P6/P7 reviewronde (2026-10-07)
+
+Geen migratie: elke bevinding is in de app op te lossen (de database weigerde al terecht een
+negatief tussentotaal; de app schrijft nu in een veilige volgorde). Review-testbestanden
+`review_p6_save_order.test.ts` en `review_p6_amount.test.ts` zijn omgezet naar vaste tests en
+verwijderd.
+
+| # | Bevinding | Uitkomst |
+|---|---|---|
+| 1 | 8 regels + BTW/opmerking/bedrijf/KKF → 2 pagina's (Letter) | opgelost: verticale ruimte strakker (logoband 1in, rijen 0,3in, kop/samenvatting/bank/kopjes compacter); lege opvulrijen tellen elke extra samenvattingsregel mee (`itemPaddingRows`); kleine facturen (≤ 5 items, ≤ 3 samenvattingsregels) blijven ruim zoals het sjabloon (`documentDensity` "roomy": logoband 1,3in, rijen 0,36in). 8 vrachtregels + BTW + opmerking + bedrijfsnaam (2 regels) + KKF/BTW-regel: 1 pagina Letter (12 px over), 1 pagina A4 |
+| 5 | Totaalregels zonder herhaalde kop op pagina 2 | opgelost: samenvatting is de tweede `<tbody class="gr-inv-totals">` van de itemtabel; `break-before: avoid` op de totaalrijen (op de tbody zelf verschuift Chromium de hele tabel) houdt minstens de laatste itemregel bij de totalen; betaalblok en voorwaarden blijven samen en bij de totalen |
+| 2 | Toast geprint op de PDF | opgelost: `styles.css` verbergt `[data-sonner-toaster]` bij printen; de print-route roept `toast.dismiss()` vóór `window.print()` |
+| 3 | Stempel BETAALD over lange adresregels | opgelost: stempel "BETAALD" boven de datum (twee regels, ±1,2in breed) in de contactblok-marge; bij een betaalde factuur houdt het contactblok links en rechts 1,3in vrij (symmetrisch, regels blijven gecentreerd en lopen door) |
+| 4 | Footer afgekapt (`white-space: pre`) | opgelost: `pre-wrap` (dubbele spaties blijven); de ruimte onderaan elke pagina is een onzichtbare kopie van de footertekst, dus een footer van twee regels krijgt twee regels ruimte |
+| 6, 12 | Voorbeeld onleesbaar op 1024–1279 px | deels: kolommen gelijk verdeeld (schaal 0,365 → 0,375 op 1024) en knop "Vergroten" opent het document op ware grootte in een venster (schaal 0,985); de tabs blijven onder 1024 px zoals §35.11 voorschrijft |
+| 7 | `saveDraft` weigert geldige bewerkingen (tussentotaal < 0) | opgelost: kortingen eerst op 0/verwijderd, dan kostenregels verwijderen/kop/bijwerken/toevoegen, kortingen als laatste; het lopende totaal komt nooit onder het eindtotaal |
+| 9 | Mislukte eerste opslag laat leeg concept achter | opgelost: worden de regels geweigerd, dan verwijdert `saveDraft` de net gemaakte factuurrij weer; de foutmelding zegt nu "niet (volledig) opgeslagen" i.p.v. "opgeslagen" bij een mislukte opslag |
+| 8 | "1.250" geboekt als USD 1,25 | opgelost: `parseMoneyInput` (punt + precies 3 cijfers is onduidelijk → "Bedoelt u USD 1.250,00? Typ het bedrag zonder punt, bijv. 1250 of 1250,00."; "1.250,00", "1.250.000", "1250.50" en "1,250.50" werken); onder het veld "Wordt geregistreerd als …" |
+| 10 | "Markeer als betaald" betaalt een nieuw saldo | opgelost: `markPaidFn` stuurt het saldo uit de dialoog als bedrag; gedaald → database weigert, gestegen → deels betaald met uitleg in de toast; het formulier wordt alleen bij openen gevuld, een saldowijziging terwijl het open is geeft een melding |
+| 11 | "Corrigeren" verlaten zonder waarschuwing, geen herstel | opgelost: een correctie blijft "Niet opgeslagen" tot het concept is opgeslagen (waarschuwing bij weggaan, met uitleg); een geannuleerde factuur zonder vervanger toont "Vervangende factuur maken" (bouwer met `replaces`, klant en orders) |
+| 13 | Opslaan/uitgeven niet op het tabblad Voorbeeld | opgelost: totaal + "Genereer factuur" + "Opslaan als concept" ook onder het voorbeeld (alleen < 1024 px); een fout springt terug naar Gegevens |
+| 14 | Intro "links … rechts" klopt niet op telefoon | opgelost: "Kies een klant en de orders en vul de factuur in. Het voorbeeld toont hem zoals de klant hem krijgt." |
+| 15 | Pijlen veranderen niets op papier | opgelost: pijlen alleen bij vrachtregels (onderling) en "Overige kosten" (onderling, slaan andere regels over); uitleg in de intro van Regels |
+| 16 | Lege omschrijving verplicht bij handmatige regel | opgelost: omschrijving = de soort (behalve "Overige kosten", die op papier staat); bij wisselen van soort volgt een standaardtekst de soort, getypte tekst blijft |
+| 17 | Factuurdatum zonder zichtbaar label in de klantlijst | opgelost: eigen kolom "Datum" |
+
+Tests: `InvoiceDocument.test.tsx` (totalen in de itemtabel, opvulling, stempel in het
+contactblok, footer-kopie), `model.test.ts` (`itemPaddingRows`, `documentDensity`, stempeldatum),
+`InvoicePrintView.test.tsx` (`toast.dismiss` vóór `print`), `invoice-builder.test.ts` (verplaatsen
+per groep, standaardomschrijvingen, soort wisselen), `invoice-actions.test.ts` (geldbedragen,
+"1.250"/"1.000" onduidelijk, `_amount` bij markeren), `InvoiceDialogs.test.tsx` ("1.250" geweigerd
++ echo, saldowijziging tijdens open dialoog, markeren met bedrag); PGlite
+`invoice_builder_contract` (drie bewerkingen die naïef < 0 zouden gaan, nu opgeslagen met het
+juiste totaal; geweigerde eerste opslag laat geen factuurrij achter), `invoices_contract`
+("Markeer als betaald" met verouderd saldo: gedaald → 22023, gestegen na ongedaan maken →
+deels betaald met 7,00 open).
+
+Gecontroleerd: `bun run test` 70 bestanden, 880 tests groen (1 skipped, tijdsafhankelijk);
+`bunx tsc --noEmit` schoon; eslint en prettier op de gewijzigde bestanden schoon; `bun run build`
+en `VERCEL=1 bun run build` slagen. Print (Chromium `page.pdf`, `preferCSSPageSize`, echte CSS,
+fixtures via `fromIssuedInvoice`): Letter 1 pagina voor 8 vracht, 8 + BTW, 8 + opmerking,
+8 zakelijk, 8 + alles (BTW, opmerking, bedrijfsnaam van 2 regels, KKF/BTW-regel, ook betaald),
+5 + douane/korting/opslag, 1 vracht + 7 kosten + alles, 4 + 4 + alles, 5 + alles met lange
+adresregel en stempel; 2 pagina's voor 9, 12, 12 + kosten, 24 vracht en 3 + 8 kosten: pagina 2
+begint steeds met de bruine kop, minstens één itemregel, dan totalen, opmerkingen, betaalblok en
+voorwaarden; lange footer op 2 regels, niets afgekapt. In de app (dev-server naar een lokale
+mock, niets naar het live project): `/admin/facturen/$id/print` met 8 regels + BTW + opmerking
+→ Letter 1 pagina, A4 1 pagina; 12 regels → Letter 2 pagina's (11 | 1 + totalen, kop herhaald);
+klant kopieert de referentie, "Opslaan als PDF" → toast niet in de PDF; "Corrigeren" →
+weggaan geeft de waarschuwing, de geannuleerde factuur toont "Vervangende factuur maken" →
+bouwer met "vervangt …"; 390/768: knoppen zichtbaar op Voorbeeld; 1024/1440: "Vergroten" →
+schaal 0,985; betaling "1.250" geweigerd, niets geboekt; klantlijst met kolom Datum.
+
+## Niet geverifieerd / open punten na P6/P7 reviewronde
+
+- Een concept opslaan blijft meerdere verzoeken (geen transactie). Mislukt een latere stap van
+  een bestaand concept (bijv. vracht al op een ander concept), dan kan het concept half
+  bijgewerkt zijn (kortingen tijdelijk 0); de bouwer houdt alles in beeld en opnieuw opslaan
+  brengt het in orde. Een transactionele opslag-RPC zou een migratie vragen.
+- "Corrigeren" blijft twee stappen (annuleren, dan het nieuwe concept opslaan); weggaan
+  waarschuwt nu en de geannuleerde factuur biedt "Vervangende factuur maken", maar wie toch
+  weggaat laat de klant even zonder vervangende factuur.
+- Op 1024–1279 px is het voorbeeld naast het formulier klein (schaal ±0,38); "Vergroten" toont
+  het op ware grootte.
+- De paginacontrole (aantal PDF-pagina's) draait met Playwright in de scratchpad
+  (`review-6/shoot.mjs`, `variant.mjs`, `specux/fixcheck.mjs`), niet in `bun run test`
+  (Playwright is geen projectafhankelijkheid).
+- Heel lange bedrijfsnamen, beschrijvingen of adressen kunnen een factuur van 8 regels nog
+  steeds naar 2 pagina's duwen; dan blijven totalen, betaalblok en voorwaarden samen met de
+  laatste itemregel onder een herhaalde kop.
+- Printen alleen in Chromium gecontroleerd; Safari/Firefox niet. Live Supabase niet aangeraakt.
+
+## Bewijs P6/P7 deel B (2026-10-07)
+
+Geen migratie: elke actie bestaat al als RPC of view (P2a + reviewrondes). Alle schrijfacties
+via server functions met de eigen client van de medewerker (`requireStaff`/`requireAdmin`,
+zod, fouten als data); nooit de service role.
+
+Server functions (`src/lib/server-fns/invoices.functions.ts`, werk in
+`src/lib/admin/invoice-actions.ts`):
+
+| Functie | Wie | RPC / tabel | Haak |
+|---|---|---|---|
+| `recordPaymentFn` | staff | `record_payment` met bedrag (≤ saldo, niet in de toekomst) | `onPaymentRecorded` (P8: e-mail alleen bij 'paid') |
+| `markPaidFn` | staff | `record_payment` met het saldo uit de dialoog (reviewronde; eerst zonder bedrag) | idem |
+| `voidPaymentFn` | beheerder | `void_payment` (reden) | — |
+| `cancelInvoiceFn` | beheerder | `cancel_invoice` (reden, zichtbaar voor de klant) | — |
+| `applyLateFeeFn` | beheerder | `apply_late_fee` | — |
+| `invoiceShareFn` | staff | leest `invoices` + `customers` (RLS) | geeft de portallink (APP_URL, anders de origin) alleen bij een login |
+
+Pagina's: `src/routes/admin/facturen/index.tsx` (lijst), `admin/facturen/$id.tsx` →
+`components/admin/invoices/IssuedInvoiceView.tsx` + `InvoiceDialogs.tsx`,
+`routes/portal/facturen/index.tsx`, `portal/facturen/$id.tsx`, print-routes
+`routes/admin_.facturen.$id_.print.tsx` en `routes/portal_.facturen.$id_.print.tsx` (de
+underscores houden ze buiten de `/admin`- en `/portal`-layout; eigen `requireArea`, `ssr:
+false`, loader zet de titel) met `components/invoice/InvoicePrintView.tsx`. Queries:
+`lib/admin/invoices.ts` (lijst, zoeken, filters, periode, totalen), `lib/admin/invoice-queries.ts`
+(betalingen, vervangen/vervangt), `lib/portal/invoices.ts` (klantlijst en -factuur).
+"Corrigeren" houdt de valuta van de geannuleerde factuur (kleine aanvulling in de bouwer).
+Afdrukken van een factuurpagina (Ctrl+P) drukt ook alleen het document af: `AppShell` verbergt
+zijbalk en kop bij printen, de pagina's verbergen alles behalve het document.
+
+Tests: `admin/invoices.test.ts` (zoeken, filters, periodes, sorteren, totalen per valuta),
+`admin/invoice-actions.test.ts` (schema's, RPC-argumenten, "Markeer als betaald" zonder bedrag,
+formulierfouten, opslag half-up, WhatsApp-tekst met/zonder portallink),
+`InvoiceDialogs.test.tsx` (alle fouten + focus, geen e-mailclaim, betalingen geblokkeerd bij
+annuleren, "Corrigeren" navigeert met `replaces`, opslagbedrag vooraf, WhatsApp zonder login
+zonder link), `InvoicePrintView.test.tsx` (titel, één `window.print()` ook in StrictMode),
+`totals.test.ts` (`lateFeeAmount`), `portal/invoices.test.ts`, `keys.test.ts`, `nav.test.ts`,
+`app-routing.test.tsx` (routes, print-routes zonder layout, client-only),
+`invoice-notifications.test.ts`. PGlite `supabase/tests/pglite/invoices_contract.test.ts` draait
+de app-code ongewijzigd met de eigen client van elke persoon (`supabase-standin.ts`: embeds,
+filters, `rpc` set/rij zoals PostgREST): concepten in de staff-lijst maar nooit bij de klant (ook
+niet per id of zonder app-filters), uitgeven → klant ziet de factuur uit de snapshots,
+deelbetaling → 'Deels betaald', te veel/toekomst geweigerd (22023), "Markeer als betaald" →
+'Betaald' met `paid_at`, nog eens betalen 55000, klant ziet betalingen met bericht; ongedaan
+maken: staff 42501, beheerder met reden → 'Openstaand', klant ziet de betaling niet meer, staff
+wel met reden, tweede keer 55000; annuleren: staff 42501, met betalingen 55000 (Nederlandse
+melding), daarna geannuleerd met reden zichtbaar voor de klant, betaling daarna 55000,
+vervangend concept met `replaces_invoice_id` uitgegeven, relaties beide kanten; opslag: niet
+achterstallig 55000, na veroudering is `lateFeePreview` == wat de database toevoegt (saldo 45,10
+→ 6,77, het half-up-randgeval; gecontroleerd dat de test faalt met afkappen), één keer, staff
+42501, klant ziet het nieuwe totaal; klant: uitgeven, betalen, markeren, ongedaan maken,
+annuleren en opslag 42501, direct in `payments` 42501, `invoices` bijwerken raakt geen rij;
+lijsttotalen USD en SRD apart.
+
+Gecontroleerd: `bun run test` 70 bestanden, 869 tests groen (1 skipped); `bunx tsc --noEmit`
+schoon; `bun run build` en `VERCEL=1 bun run build` slagen; eslint op de gewijzigde bestanden
+schoon. Browser (Playwright/Chromium, dev-server met `SUPABASE_URL` naar een lokale mock,
+Supabase in de browser gestubd; niets naar het live project; scripts in de scratchpad
+`p7b/`): lijst met totalen per valuta, zoeken "gr 42" en op orderreferentie, filters
+achterstallig/SRD/periode/concepten; als medewerker op INV-2026-0007 (achterstallig): bedrag
+boven saldo → foutmelding + focus, USD 45,00 met referentie, SRD-ontvangst en bericht →
+'Deels betaald' (`record_payment` vanaf de server), toast "geen e-mail verstuurd";
+WhatsApp-bericht met portallink en wa.me/5978897500; als beheerder: opslag toont USD 30,00 en
+het nieuwe totaal vóór bevestigen, daarna regel "Opslag te late betaling (15%)" op het document;
+betaling ongedaan maken (reden verplicht), "Markeer als betaald" → stempel "BETAALD
+07-10-2026"; annuleren met betalingen → uitleg, geen knop; "Corrigeren" van een SRD-factuur →
+geannuleerd met reden, bouwer met "vervangt … INV-2026-0011", valuta SRD en de order; print-route:
+titel "INV-2026-0009 - G&R Solutions", `window.print()` één keer, geen shell; PDF Letter 1
+pagina, 21 regels = 2 pagina's (Letter en A4 uit de snapshot) met herhaalde kop en footer;
+Ctrl+P op de factuurpagina = alleen het document; klant: nav en KPI-link, lijst zonder
+concepten, "Nog te betalen" per valuta, filter, factuurpagina met betaalblok (SRD zonder
+rekening → "neem contact op"), betaalde factuur "volledig betaald op …", eigen concept en
+andermans factuur → niet gevonden, print-route; orderpagina en activiteit linken naar de factuur.
+320/390/768/1024/1280/1440 px zonder horizontale scroll (ook alle dialogen); axe (390/1280):
+alleen color-contrast op de footer (zie open punten).
+
+## Niet geverifieerd / open punten na P6/P7 deel B
+
+- De footer houdt de voorgeschreven #777777 (4,48:1, axe meldt het; zie deel A). De grijze
+  naam onder een bedrijfsnaam op de factuur is nu #6B6B6B (4,5:1), net als de tracking-regel.
+- Zonder APP_URL gebruikt de WhatsApp-portallink het adres waarop de medewerker werkt (de
+  dialoog zegt dat, zoals bij uitnodigingen).
+- "Corrigeren" zet de orders van de geannuleerde factuur opnieuw in de bouwer (vracht met het
+  huidige gewicht en tarief); andere regels (douane, korting, …) worden niet gekopieerd.
+- `payments.reference` is via RLS leesbaar voor de klant (zo in de migratie); de klantpagina
+  toont alleen bedrag, datum, betaalwijze en het bericht voor de klant.
+- E-mail ("factuur aangemaakt", "betaling ontvangen") en herinneringen: P8; de haken melden
+  `emailed: false` en de UI zegt dat er geen e-mail is verstuurd.
+- Printen alleen in Chromium gecontroleerd (ook `page.pdf`); Safari/Firefox niet.
+- Live Supabase niet aangeraakt.
+
+## Bewijs P6/P7 deel A (2026-10-07)
+
+Geen migratie: elke regel van de bouwer bestaat al in de database (P2a + reviewrondes).
+Alle schrijfacties met de eigen client van de medewerker; geen service role.
+
+Factuurdocument (§35.11), `src/components/invoice/InvoiceDocument.tsx` +
+`invoice-document.css` (vanuit `styles.css`, ook Inter 700):
+
+- Eén renderer `InvoiceDocument({ model })` en `InvoicePreview` (ware grootte Letter 816×1056 /
+  A4 794×1123 px, geschaald met `transform: scale()`, nooit opnieuw opgemaakt; print zonder
+  schaal). Model in `src/lib/invoice/model.ts`: `fromDraftForm(form, liveSettings,
+  bankAccounts, customer)` en `fromIssuedInvoice(row, items, snapshots)` (uitgegeven facturen
+  alleen uit `issuer_snapshot`/`bill_to_snapshot` + opgeslagen totalen). Template-teksten
+  letterlijk in `src/lib/invoice/labels.ts` (bewust niet in `nl.ts`: een factuur blijft
+  Nederlands, ook als de UI later Engels krijgt).
+- Blokken: logoband #EEEBE4 (1,1 in, max 1,9 in) met `gr-logo-banner.jpg`, titel 26 pt,
+  contactregels 10 pt (KKF/BTW-regel alleen als ingevuld), infotabel 16/34/16/34 met
+  "Naam klant:", "Unieke code:", "Datum:", "Invoicenummer:" (of CONCEPT), "Vervaldatum:",
+  "Referentie:" (vanaf 4 orders met gedeeld voorvoegsel), items 54/22/24 met bruine kop
+  (herhaald op elke pagina), alleen vrachtregels met grijze tracking/ref-regel, minimaal 5
+  rijen, "Totaal lbs" in de Gewicht-kolom, overige kosten alleen als ≠ 0 (met "Vrachtkosten"
+  als er andere rijen zijn, "Korting" als '– USD 10,00'), "Totaal prijs", optioneel "Waarvan
+  BTW (x%)", OPMERKINGEN, BETALINGSGEGEVENS (USD – Dollar | EUR – Euro | SRD, lege waarde
+  "________________"), betaalinstructie, BETALINGSVOORWAARDEN, footer op elke pagina;
+  CONCEPT- en GEANNULEERD-watermerk, stempel "BETAALD dd-mm-jjjj". `@page` per papierformaat,
+  marges 0,45 in 0,55 in, `print-color-adjust: exact`, slotblok blijft bij elkaar.
+- Getrouwheid: met Playwright (Chromium) gerenderd en naast `invoice-template-p1/p2.png`
+  vergeleken op 110 dpi (scripts in de scratchpad, `p6a/render.tsx`, `shoot.mjs`): kleuren
+  #713A28/#F5F2EC/#D8D2C9 per pixel gelijk, geen haarlijn tussen de kopcellen. Afwijking
+  bewust volgens §35.11: de logoband is maximaal 1,9 in (in het sjabloon ~4,5 in), daardoor
+  past een factuur met vracht op één pagina. Printproef (`page.pdf`): 8 vrachtregels = 1
+  pagina, 20 regels = 2 pagina's met herhaalde kop en footer op beide, alle kostensoorten =
+  slotblok samen op pagina 2; A4 = 1 pagina.
+- `src/lib/invoice/print.ts` `waitForInvoiceAssets()` (fonts + logo) voor de print-routes.
+
+Totalen (§35.9): `src/lib/invoice/totals.ts` `computeInvoiceTotals(lines, vatRate)` in hele
+centen met BigInt (half-up zoals Postgres `round`), vracht = round(gewicht × tarief, 2), BTW
+inclusief over niet-vrijgestelde regels (basis ≥ 0), negatief totaal gemarkeerd.
+`supabase/tests/pglite/invoice_totals.test.ts`: 5 randgevallen + 300 gegenereerde facturen
+(vast zaadje) door de echte triggers als beheerder, ook geweigerde negatieve totalen, plus 40
+na `issue_invoice` met een ander BTW-tarief: TS == SQL tot op de cent. Gecontroleerd dat de
+test faalt als de afronding half-down is.
+
+Bouwer: `src/lib/admin/invoice-builder.ts` (status, vrachtregels, validatie, `saveDraft`,
+`loadDraft`, `deleteDraft`, `loadBuilderOrders`), `invoice-queries.ts`,
+`src/components/admin/invoices/*`, routes `admin/facturen/nieuw.tsx` en
+`admin/facturen/$id.tsx`; server function `issueInvoiceFn` in
+`src/lib/server-fns/invoices.functions.ts` (`requireStaff`, zod, `issue_invoice` met de eigen
+client, fouten als data met hint `invoice_dates`), haak `src/server/invoice-notifications.ts`
+(`emailed: false` tot P8). PGlite `invoice_builder_contract.test.ts` draait de bibliotheekcode
+ongewijzigd als medewerker: opslaan = voorbeeldtotalen, bewerken werkt regels bij (ids blijven,
+volgorde), vracht twee keer → 23505 Nederlands, order van andere klant → 22023, na uitgeven
+55000 bij opslaan/verwijderen, oude datums → hint `invoice_dates`, concept verwijderen maakt de
+vracht vrij, klant krijgt 42501.
+
+Gecontroleerd: `bun run test` 65 bestanden, 806 tests groen (1 skipped); `bunx tsc --noEmit`
+schoon; `bun run build` en `VERCEL=1 bun run build` slagen; eslint op de gewijzigde bestanden
+schoon. Browser (Playwright, dev-server met `SUPABASE_URL` naar een lokale mock, Supabase in de
+browser gestubd; niets naar het live project): orderpagina → "Genereer factuur" → vrachtregel
+3,40 → 3,50 lbs (afronding 0,5) × USD 4,50, voorbeeld live bijgewerkt met inklaring, korting
+en OPMERKINGEN, "Opslaan als concept" → `/admin/facturen/<id>`, gewicht wijzigen en opnieuw
+opslaan (één concept, totaal bijgewerkt), "Genereer factuur" → bevestiging → INV-2026-0013
+(`issue_invoice` vanaf de server), toast "Factuur succesvol aangemaakt." + "Er is geen e-mail
+verstuurd", document zonder CONCEPT; validatie zonder klant (focus op klant, alle fouten),
+datums uit vorig jaar → "Datums bijwerken"; weggaan met wijzigingen vraagt eerst; selectie van
+twee orders van één klant → "Genereer factuur (2)", gemengde klanten → uitleg; klantpagina →
+bouwer. 390/1024/1440 px zonder horizontale scroll; tabs onder 1024 px. axe: alleen
+color-contrast op de footer (zie open punten).
+
+## Niet geverifieerd / open punten na P6/P7 deel A
+
+- De footer gebruikt de voorgeschreven #777777 (§35.11): 4,48:1 op wit, net onder WCAG AA
+  4,5:1 (axe meldt het). De footer is `aria-hidden` (herhaling van de bedrijfsnaam); #767676
+  zou het oplossen als de eigenaar dat goedvindt. De grijze tracking-regel gebruikt #6B6B6B.
+- Printen alleen in Chromium (Playwright `page.pdf`) gecontroleerd; Safari/Firefox (footer
+  `position: fixed`, herhaalde tabelkop) niet.
+- Opslaan van een concept bestaat uit meerdere PostgREST-verzoeken (kop, verwijderde regels,
+  gewijzigde regels, nieuwe regels in één insert); mislukt er een halverwege, dan staat een deel
+  in het concept en blijft het formulier staan om opnieuw te proberen.
+- Live Supabase niet aangeraakt.
 
 ## Bewijs P5 reviewronde (2026-10-07)
 

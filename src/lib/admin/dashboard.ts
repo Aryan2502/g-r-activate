@@ -371,6 +371,8 @@ export type StaffActivity =
       kind: "invoice_issued" | "invoice_cancelled";
       key: string;
       at: string;
+      /** Links to /admin/facturen/<id>. */
+      invoiceId: string;
       invoiceNumber: string | null;
       amount: number;
       currency: CurrencyCode;
@@ -382,6 +384,7 @@ export type StaffActivity =
       at: string;
       amount: number;
       currency: CurrencyCode | null;
+      invoiceId: string | null;
       invoiceNumber: string | null;
       customer: ActivityCustomer;
     };
@@ -419,6 +422,8 @@ export interface StaffActivitySources {
   }[];
   payments: readonly {
     id: string;
+    /** The invoice paid (links to /admin/facturen/<id>). */
+    invoice_id?: string | null;
     amount: number;
     created_at: string;
     invoice: {
@@ -465,6 +470,7 @@ export function mergeStaffActivity(
   }
   for (const i of sources.invoices) {
     const base = {
+      invoiceId: i.id,
       invoiceNumber: i.invoice_number,
       amount: i.total_amount,
       currency: i.currency,
@@ -483,6 +489,7 @@ export function mergeStaffActivity(
       at: p.created_at,
       amount: p.amount,
       currency: p.invoice?.currency ?? null,
+      invoiceId: p.invoice_id ?? null,
       invoiceNumber: p.invoice?.invoice_number ?? null,
       customer: p.invoice?.customer ?? null,
     });
@@ -538,7 +545,7 @@ export const recentActivityQueryOptions = (userId: string) =>
         supabase
           .from("payments")
           .select(
-            `id, amount, created_at, invoice:invoices(invoice_number, currency, ${ACTIVITY_CUSTOMER})`,
+            `id, invoice_id, amount, created_at, invoice:invoices(invoice_number, currency, ${ACTIVITY_CUSTOMER})`,
           )
           .order("created_at", { ascending: false })
           .limit(n),

@@ -28,6 +28,9 @@ import { Route as PortalProfielRouteImport } from './routes/portal/profiel'
 import { Route as AuthAuthConfirmRouteImport } from './routes/_auth/auth/confirm'
 import { Route as AuthAuthSetPasswordRouteImport } from './routes/_auth/auth/set-password'
 import { Route as AuthInviteTokenRouteImport } from './routes/_auth/invite/$token'
+import { Route as AdminFacturenIndexRouteImport } from './routes/admin/facturen/index'
+import { Route as AdminFacturenIdRouteImport } from './routes/admin/facturen/$id'
+import { Route as AdminFacturenNieuwRouteImport } from './routes/admin/facturen/nieuw'
 import { Route as AdminKlantenIndexRouteImport } from './routes/admin/klanten/index'
 import { Route as AdminKlantenIdRouteImport } from './routes/admin/klanten/$id'
 import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
@@ -35,9 +38,13 @@ import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders/$id'
 import { Route as AdminOrdersNieuwRouteImport } from './routes/admin/orders/nieuw'
 import { Route as AdminZendingenIndexRouteImport } from './routes/admin/zendingen/index'
 import { Route as AdminZendingenIdRouteImport } from './routes/admin/zendingen/$id'
+import { Route as PortalFacturenIndexRouteImport } from './routes/portal/facturen/index'
+import { Route as PortalFacturenIdRouteImport } from './routes/portal/facturen/$id'
 import { Route as PortalOrdersIndexRouteImport } from './routes/portal/orders/index'
 import { Route as PortalOrdersIdRouteImport } from './routes/portal/orders/$id'
 import { Route as PortalOrdersNieuwRouteImport } from './routes/portal/orders/nieuw'
+import { Route as AdminFacturenIdPrintRouteImport } from './routes/admin_.facturen.$id_.print'
+import { Route as PortalFacturenIdPrintRouteImport } from './routes/portal_.facturen.$id_.print'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -132,6 +139,21 @@ const AuthInviteTokenRoute = AuthInviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => AuthRoute,
 } as any)
+const AdminFacturenIndexRoute = AdminFacturenIndexRouteImport.update({
+  id: '/facturen/',
+  path: '/facturen/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminFacturenIdRoute = AdminFacturenIdRouteImport.update({
+  id: '/facturen/$id',
+  path: '/facturen/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminFacturenNieuwRoute = AdminFacturenNieuwRouteImport.update({
+  id: '/facturen/nieuw',
+  path: '/facturen/nieuw',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminKlantenIndexRoute = AdminKlantenIndexRouteImport.update({
   id: '/klanten/',
   path: '/klanten/',
@@ -167,6 +189,16 @@ const AdminZendingenIdRoute = AdminZendingenIdRouteImport.update({
   path: '/zendingen/$id',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const PortalFacturenIndexRoute = PortalFacturenIndexRouteImport.update({
+  id: '/facturen/',
+  path: '/facturen/',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalFacturenIdRoute = PortalFacturenIdRouteImport.update({
+  id: '/facturen/$id',
+  path: '/facturen/$id',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
 const PortalOrdersIndexRoute = PortalOrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
@@ -181,6 +213,16 @@ const PortalOrdersNieuwRoute = PortalOrdersNieuwRouteImport.update({
   id: '/orders/nieuw',
   path: '/orders/nieuw',
   getParentRoute: () => PortalRouteRoute,
+} as any)
+const AdminFacturenIdPrintRoute = AdminFacturenIdPrintRouteImport.update({
+  id: '/admin_/facturen/$id_/print',
+  path: '/admin/facturen/$id/print',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalFacturenIdPrintRoute = PortalFacturenIdPrintRouteImport.update({
+  id: '/portal_/facturen/$id_/print',
+  path: '/portal/facturen/$id/print',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -201,16 +243,23 @@ export interface FileRoutesByFullPath {
   '/auth/confirm': typeof AuthAuthConfirmRoute
   '/auth/set-password': typeof AuthAuthSetPasswordRoute
   '/invite/$token': typeof AuthInviteTokenRoute
+  '/admin/facturen/$id': typeof AdminFacturenIdRoute
+  '/admin/facturen/nieuw': typeof AdminFacturenNieuwRoute
   '/admin/klanten/$id': typeof AdminKlantenIdRoute
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
+  '/portal/facturen/$id': typeof PortalFacturenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/admin/facturen/': typeof AdminFacturenIndexRoute
   '/admin/klanten/': typeof AdminKlantenIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/zendingen/': typeof AdminZendingenIndexRoute
+  '/portal/facturen/': typeof PortalFacturenIndexRoute
   '/portal/orders/': typeof PortalOrdersIndexRoute
+  '/admin/facturen/$id/print': typeof AdminFacturenIdPrintRoute
+  '/portal/facturen/$id/print': typeof PortalFacturenIdPrintRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -228,16 +277,23 @@ export interface FileRoutesByTo {
   '/auth/confirm': typeof AuthAuthConfirmRoute
   '/auth/set-password': typeof AuthAuthSetPasswordRoute
   '/invite/$token': typeof AuthInviteTokenRoute
+  '/admin/facturen/$id': typeof AdminFacturenIdRoute
+  '/admin/facturen/nieuw': typeof AdminFacturenNieuwRoute
   '/admin/klanten/$id': typeof AdminKlantenIdRoute
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
+  '/portal/facturen/$id': typeof PortalFacturenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/admin/facturen': typeof AdminFacturenIndexRoute
   '/admin/klanten': typeof AdminKlantenIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/zendingen': typeof AdminZendingenIndexRoute
+  '/portal/facturen': typeof PortalFacturenIndexRoute
   '/portal/orders': typeof PortalOrdersIndexRoute
+  '/admin/facturen/$id/print': typeof AdminFacturenIdPrintRoute
+  '/portal/facturen/$id/print': typeof PortalFacturenIdPrintRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -260,16 +316,23 @@ export interface FileRoutesById {
   '/_auth/auth/confirm': typeof AuthAuthConfirmRoute
   '/_auth/auth/set-password': typeof AuthAuthSetPasswordRoute
   '/_auth/invite/$token': typeof AuthInviteTokenRoute
+  '/admin/facturen/$id': typeof AdminFacturenIdRoute
+  '/admin/facturen/nieuw': typeof AdminFacturenNieuwRoute
   '/admin/klanten/$id': typeof AdminKlantenIdRoute
   '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/orders/nieuw': typeof AdminOrdersNieuwRoute
   '/admin/zendingen/$id': typeof AdminZendingenIdRoute
+  '/portal/facturen/$id': typeof PortalFacturenIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRoute
   '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/admin/facturen/': typeof AdminFacturenIndexRoute
   '/admin/klanten/': typeof AdminKlantenIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/zendingen/': typeof AdminZendingenIndexRoute
+  '/portal/facturen/': typeof PortalFacturenIndexRoute
   '/portal/orders/': typeof PortalOrdersIndexRoute
+  '/admin_/facturen/$id_/print': typeof AdminFacturenIdPrintRoute
+  '/portal_/facturen/$id_/print': typeof PortalFacturenIdPrintRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -291,16 +354,23 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/auth/set-password'
     | '/invite/$token'
+    | '/admin/facturen/$id'
+    | '/admin/facturen/nieuw'
     | '/admin/klanten/$id'
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
+    | '/portal/facturen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
+    | '/admin/facturen/'
     | '/admin/klanten/'
     | '/admin/orders/'
     | '/admin/zendingen/'
+    | '/portal/facturen/'
     | '/portal/orders/'
+    | '/admin/facturen/$id/print'
+    | '/portal/facturen/$id/print'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -318,16 +388,23 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/auth/set-password'
     | '/invite/$token'
+    | '/admin/facturen/$id'
+    | '/admin/facturen/nieuw'
     | '/admin/klanten/$id'
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
+    | '/portal/facturen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
+    | '/admin/facturen'
     | '/admin/klanten'
     | '/admin/orders'
     | '/admin/zendingen'
+    | '/portal/facturen'
     | '/portal/orders'
+    | '/admin/facturen/$id/print'
+    | '/portal/facturen/$id/print'
   id:
     | '__root__'
     | '/admin'
@@ -349,16 +426,23 @@ export interface FileRouteTypes {
     | '/_auth/auth/confirm'
     | '/_auth/auth/set-password'
     | '/_auth/invite/$token'
+    | '/admin/facturen/$id'
+    | '/admin/facturen/nieuw'
     | '/admin/klanten/$id'
     | '/admin/orders/$id'
     | '/admin/orders/nieuw'
     | '/admin/zendingen/$id'
+    | '/portal/facturen/$id'
     | '/portal/orders/$id'
     | '/portal/orders/nieuw'
+    | '/admin/facturen/'
     | '/admin/klanten/'
     | '/admin/orders/'
     | '/admin/zendingen/'
+    | '/portal/facturen/'
     | '/portal/orders/'
+    | '/admin_/facturen/$id_/print'
+    | '/portal_/facturen/$id_/print'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -366,6 +450,8 @@ export interface RootRouteChildren {
   PortalRouteRoute: typeof PortalRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
+  AdminFacturenIdPrintRoute: typeof AdminFacturenIdPrintRoute
+  PortalFacturenIdPrintRoute: typeof PortalFacturenIdPrintRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -503,6 +589,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthInviteTokenRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/admin/facturen/': {
+      id: '/admin/facturen/'
+      path: '/facturen'
+      fullPath: '/admin/facturen/'
+      preLoaderRoute: typeof AdminFacturenIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/facturen/$id': {
+      id: '/admin/facturen/$id'
+      path: '/facturen/$id'
+      fullPath: '/admin/facturen/$id'
+      preLoaderRoute: typeof AdminFacturenIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/facturen/nieuw': {
+      id: '/admin/facturen/nieuw'
+      path: '/facturen/nieuw'
+      fullPath: '/admin/facturen/nieuw'
+      preLoaderRoute: typeof AdminFacturenNieuwRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/klanten/': {
       id: '/admin/klanten/'
       path: '/klanten'
@@ -552,6 +659,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminZendingenIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/portal/facturen/': {
+      id: '/portal/facturen/'
+      path: '/facturen'
+      fullPath: '/portal/facturen/'
+      preLoaderRoute: typeof PortalFacturenIndexRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/facturen/$id': {
+      id: '/portal/facturen/$id'
+      path: '/facturen/$id'
+      fullPath: '/portal/facturen/$id'
+      preLoaderRoute: typeof PortalFacturenIdRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
     '/portal/orders/': {
       id: '/portal/orders/'
       path: '/orders'
@@ -573,6 +694,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalOrdersNieuwRouteImport
       parentRoute: typeof PortalRouteRoute
     }
+    '/admin_/facturen/$id_/print': {
+      id: '/admin_/facturen/$id_/print'
+      path: '/admin/facturen/$id/print'
+      fullPath: '/admin/facturen/$id/print'
+      preLoaderRoute: typeof AdminFacturenIdPrintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal_/facturen/$id_/print': {
+      id: '/portal_/facturen/$id_/print'
+      path: '/portal/facturen/$id/print'
+      fullPath: '/portal/facturen/$id/print'
+      preLoaderRoute: typeof PortalFacturenIdPrintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -581,10 +716,13 @@ interface AdminRouteRouteChildren {
   AdminStatussenRoute: typeof AdminStatussenRoute
   AdminTeamRoute: typeof AdminTeamRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminFacturenIdRoute: typeof AdminFacturenIdRoute
+  AdminFacturenNieuwRoute: typeof AdminFacturenNieuwRoute
   AdminKlantenIdRoute: typeof AdminKlantenIdRoute
   AdminOrdersIdRoute: typeof AdminOrdersIdRoute
   AdminOrdersNieuwRoute: typeof AdminOrdersNieuwRoute
   AdminZendingenIdRoute: typeof AdminZendingenIdRoute
+  AdminFacturenIndexRoute: typeof AdminFacturenIndexRoute
   AdminKlantenIndexRoute: typeof AdminKlantenIndexRoute
   AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   AdminZendingenIndexRoute: typeof AdminZendingenIndexRoute
@@ -595,10 +733,13 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminStatussenRoute: AdminStatussenRoute,
   AdminTeamRoute: AdminTeamRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminFacturenIdRoute: AdminFacturenIdRoute,
+  AdminFacturenNieuwRoute: AdminFacturenNieuwRoute,
   AdminKlantenIdRoute: AdminKlantenIdRoute,
   AdminOrdersIdRoute: AdminOrdersIdRoute,
   AdminOrdersNieuwRoute: AdminOrdersNieuwRoute,
   AdminZendingenIdRoute: AdminZendingenIdRoute,
+  AdminFacturenIndexRoute: AdminFacturenIndexRoute,
   AdminKlantenIndexRoute: AdminKlantenIndexRoute,
   AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   AdminZendingenIndexRoute: AdminZendingenIndexRoute,
@@ -611,16 +752,20 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface PortalRouteRouteChildren {
   PortalProfielRoute: typeof PortalProfielRoute
   PortalIndexRoute: typeof PortalIndexRoute
+  PortalFacturenIdRoute: typeof PortalFacturenIdRoute
   PortalOrdersIdRoute: typeof PortalOrdersIdRoute
   PortalOrdersNieuwRoute: typeof PortalOrdersNieuwRoute
+  PortalFacturenIndexRoute: typeof PortalFacturenIndexRoute
   PortalOrdersIndexRoute: typeof PortalOrdersIndexRoute
 }
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
   PortalProfielRoute: PortalProfielRoute,
   PortalIndexRoute: PortalIndexRoute,
+  PortalFacturenIdRoute: PortalFacturenIdRoute,
   PortalOrdersIdRoute: PortalOrdersIdRoute,
   PortalOrdersNieuwRoute: PortalOrdersNieuwRoute,
+  PortalFacturenIndexRoute: PortalFacturenIndexRoute,
   PortalOrdersIndexRoute: PortalOrdersIndexRoute,
 }
 
@@ -668,6 +813,8 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRouteRoute: PortalRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
+  AdminFacturenIdPrintRoute: AdminFacturenIdPrintRoute,
+  PortalFacturenIdPrintRoute: PortalFacturenIdPrintRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

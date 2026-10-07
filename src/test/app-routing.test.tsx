@@ -27,14 +27,37 @@ describe("App routing", () => {
     ["/portal/orders/nieuw", "/portal/orders/nieuw"],
     ["/portal/orders/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f", "/portal/orders/$id"],
     ["/admin", "/admin/"],
+    ["/portal/facturen", "/portal/facturen/"],
+    ["/portal/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f", "/portal/facturen/$id"],
+    ["/admin/facturen", "/admin/facturen/"],
+    // The static segment wins over $id: "nieuw" is the builder, never an invoice id.
+    ["/admin/facturen/nieuw", "/admin/facturen/nieuw"],
+    ["/admin/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f", "/admin/facturen/$id"],
+    // Print routes: the document alone, outside the area layouts (SPEC §35.11).
+    ["/admin/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f/print", "/admin_/facturen/$id_/print"],
+    ["/portal/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f/print", "/portal_/facturen/$id_/print"],
   ])("serves %s", (path, routeId) => {
     expect(leaf(path)).toBe(routeId);
+  });
+
+  it("prints an invoice without the app shell: no /admin or /portal layout in between", () => {
+    for (const path of [
+      "/admin/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f/print",
+      "/portal/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f/print",
+    ]) {
+      const ids = router.matchRoutes(path).map((m) => m.routeId);
+      expect(ids).not.toContain("/admin");
+      expect(ids).not.toContain("/portal");
+      expect(ids).not.toContain("/admin/facturen/$id");
+    }
   });
 
   it("renders the signed-in areas in the browser only (SPEC §35.2)", () => {
     for (const id of [
       "/portal",
       "/admin",
+      "/admin_/facturen/$id_/print",
+      "/portal_/facturen/$id_/print",
       "/_auth/auth/confirm",
       "/_auth/auth/set-password",
     ] as const) {

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardList,
+  FilePlus2,
   FileWarning,
   Link2,
   Loader2,
@@ -71,6 +72,7 @@ import {
   type CancellationTask,
   type OrderInvoiceRow,
 } from "@/lib/admin/orders";
+import { newInvoiceSearch } from "@/lib/admin/invoice-builder";
 import { KEEP_ORDER_MESSAGE_MAX, keepOrderAfterCancellation } from "@/lib/admin/order-actions";
 import { removeOrdersFromShipment } from "@/lib/admin/shipments";
 import {
@@ -296,6 +298,19 @@ function OrderView({
               {t("admin.actions.requestDocuments")}
             </Button>
           ) : null}
+          <Button asChild variant="outline">
+            <Link
+              to="/admin/facturen/nieuw"
+              search={newInvoiceSearch({
+                customerId: order.customer_id,
+                orderIds: [order.id],
+                from: "order",
+              })}
+            >
+              <FilePlus2 aria-hidden />
+              {t("admin.actions.generateInvoice")}
+            </Link>
+          </Button>
         </div>
       </header>
 
@@ -1079,9 +1094,19 @@ function InvoiceRow({ invoice, customerCode }: { invoice: OrderInvoiceRow; custo
     <li className="grid gap-2 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold tabular-nums">
-            {invoice.invoice_number ?? t("admin.order.invoices.draft")}
-          </span>
+          {invoice.id ? (
+            <Link
+              to="/admin/facturen/$id"
+              params={{ id: invoice.id }}
+              className="font-semibold text-primary tabular-nums underline-offset-4 hover:underline"
+            >
+              {invoice.invoice_number ?? t("admin.order.invoices.draft")}
+            </Link>
+          ) : (
+            <span className="font-semibold tabular-nums">
+              {invoice.invoice_number ?? t("admin.order.invoices.draft")}
+            </span>
+          )}
           <InvoiceStatusBadge invoice={invoice} />
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">

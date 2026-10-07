@@ -12,6 +12,7 @@ export const paths: Readonly<
     | "portalProfile"
     | "portalOrders"
     | "portalOrderNew"
+    | "portalInvoices"
     | "admin"
     | "adminOrders"
     | "adminOrderNew"
@@ -19,7 +20,9 @@ export const paths: Readonly<
     | "adminStatuses"
     | "adminCustomers"
     | "adminTeam"
-    | "adminSettings",
+    | "adminSettings"
+    | "adminInvoices"
+    | "adminInvoiceNew",
     string
   >
 > = {
@@ -34,6 +37,8 @@ export const paths: Readonly<
   portalOrders: "/portal/orders",
   /** Order registration; `?parent=<order id>` adds an extra package (see newOrderSearchSchema). */
   portalOrderNew: "/portal/orders/nieuw",
+  /** The customer's invoices; `/portal/facturen/<id>` is one invoice (never a draft). */
+  portalInvoices: "/portal/facturen",
   admin: "/admin",
   adminOrders: "/admin/orders",
   /** "Order aanmaken voor klant"; `?customer=`, `?parent=` and `?tracking=` prefill it. */
@@ -48,4 +53,8 @@ export const paths: Readonly<
   adminTeam: "/admin/team",
   /** Settings (SPEC §35.8): admins edit, staff read. `#<section id>` jumps to a section. */
   adminSettings: "/admin/instellingen",
+  /** Invoices (search, filters, totals per currency); `/admin/facturen/<id>` is one invoice (a draft opens the builder). */
+  adminInvoices: "/admin/facturen",
+  /** The invoice builder; `?customer=<id>&orders=<id,id>` prefills it (SPEC §35.9). */
+  adminInvoiceNew: "/admin/facturen/nieuw",
 };

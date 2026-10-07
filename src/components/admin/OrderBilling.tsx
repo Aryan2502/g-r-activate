@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { CircleCheck, CircleAlert } from "lucide-react";
 
 import { CurrencyAmounts } from "@/components/portal/CurrencyAmounts";
@@ -9,8 +10,8 @@ import { useT } from "@/lib/i18n";
 
 /**
  * The "Factuur" column (SPEC §21): the order's newest issued invoice (or its
- * draft) with its status from invoice_overview, read-only until the invoice
- * pages exist (P6/P7).
+ * draft) with its status from invoice_overview; the number (or "Concept")
+ * opens /admin/facturen/$id, where payments and the other actions are.
  */
 export function InvoiceSummary({ billing }: { billing: OrderBilling }) {
   const t = useT();
@@ -23,18 +24,24 @@ export function InvoiceSummary({ billing }: { billing: OrderBilling }) {
         {t("admin.orders.moreInvoices", { count: rest.length })}
       </span>
     ) : null;
+  const label = first.invoice_number ?? t("admin.invoices.draftNumber");
   return (
     <span className="flex flex-col items-start gap-1">
-      {/* A draft has no number yet; its badge says "Concept". */}
-      {first.invoice_number ? (
-        <span className="font-semibold tabular-nums">
-          <span className="whitespace-nowrap">{first.invoice_number}</span> {more}
-        </span>
-      ) : null}
-      <span className="inline-flex items-center">
-        <InvoiceStatusBadge invoice={first} />
-        {first.invoice_number ? null : <span className="ml-1">{more}</span>}
+      <span className="font-semibold tabular-nums">
+        {first.id ? (
+          <Link
+            to="/admin/facturen/$id"
+            params={{ id: first.id }}
+            className="whitespace-nowrap rounded-sm text-primary underline-offset-4 hover:underline"
+          >
+            {label}
+          </Link>
+        ) : (
+          <span className="whitespace-nowrap">{label}</span>
+        )}{" "}
+        {more}
       </span>
+      <InvoiceStatusBadge invoice={first} />
     </span>
   );
 }

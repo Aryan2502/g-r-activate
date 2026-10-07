@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Receipt } from "lucide-react";
 
 import { LoadError, Section } from "@/components/portal/Section";
@@ -11,7 +12,8 @@ import { needsPayment, orderInvoicesQueryOptions, type OrderInvoice } from "@/li
 /**
  * Invoices with a line for this order (SPEC §10, §35.9): invoice_items →
  * invoice_overview, so status, balance and "Achterstallig" come from the
- * database. Customers only see their own issued invoices (no drafts).
+ * database. Customers only see their own issued invoices (no drafts); each
+ * number opens the invoice (/portal/facturen/$id).
  */
 export function OrderInvoices({
   userId,
@@ -58,6 +60,22 @@ export function OrderInvoices({
 
 const money = (amount: number | null, currency: OrderInvoice["currency"]) =>
   amount !== null && currency ? formatMoney(amount, currency) : "";
+
+/** The invoice number, to the invoice's page. */
+function NumberLink({ invoice }: { invoice: OrderInvoice }) {
+  const t = useT();
+  if (!invoice.id) return <>{invoice.invoice_number}</>;
+  return (
+    <Link
+      to="/portal/facturen/$id"
+      params={{ id: invoice.id }}
+      className="rounded-sm text-primary underline underline-offset-4"
+      aria-label={t("portal.order.invoices.open", { number: invoice.invoice_number ?? "" })}
+    >
+      {invoice.invoice_number}
+    </Link>
+  );
+}
 
 function InvoiceNotes({ invoice, customerCode }: { invoice: OrderInvoice; customerCode: string }) {
   const t = useT();
@@ -131,7 +149,7 @@ function InvoiceTable({
             <tr key={invoice.id} className="align-top">
               <td className="px-3 py-2.5">
                 <span className="block font-semibold whitespace-nowrap tabular-nums">
-                  {invoice.invoice_number}
+                  <NumberLink invoice={invoice} />
                 </span>
                 {invoice.invoice_date ? (
                   <span className="block text-xs text-muted-foreground tabular-nums">
@@ -173,7 +191,9 @@ function InvoiceCards({
       {invoices.map((invoice) => (
         <li key={invoice.id} className="rounded-md border p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-semibold tabular-nums">{invoice.invoice_number}</span>
+            <span className="font-semibold tabular-nums">
+              <NumberLink invoice={invoice} />
+            </span>
             <InvoiceStatusBadge invoice={invoice} />
           </div>
           <dl className="mt-2 grid grid-cols-[7rem_1fr] gap-x-2 gap-y-1">

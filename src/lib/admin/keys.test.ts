@@ -127,4 +127,18 @@ describe("adminKeys", () => {
     // The order pages' operational settings are a separate key: settings pages refresh both.
     expect(same(adminKeys.settings(user).slice(0, 3), config)).toBe(false);
   });
+
+  it("an invoice id from the URL never lands on the invoice list's key (/admin/facturen/list)", () => {
+    for (const id of ["list", "payments", "relations"]) {
+      expect(same(adminKeys.invoice(user, id), adminKeys.invoiceList(user))).toBe(false);
+    }
+    // Payments and relations hang under their invoice; everything under "invoices".
+    const id = "6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f";
+    const invoice = adminKeys.invoice(user, id);
+    for (const key of [adminKeys.invoicePayments(user, id), adminKeys.invoiceRelations(user, id)]) {
+      expect(key.slice(0, invoice.length)).toEqual([...invoice]);
+    }
+    const invoices = adminKeys.invoices(user);
+    expect(adminKeys.invoiceList(user).slice(0, invoices.length)).toEqual([...invoices]);
+  });
 });

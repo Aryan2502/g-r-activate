@@ -6,6 +6,7 @@ import {
   Ban,
   CircleCheck,
   ClipboardList,
+  FilePlus2,
   KeyRound,
   Pencil,
   PackagePlus,
@@ -51,6 +52,7 @@ import {
   type CustomerRow,
 } from "@/lib/admin/customers";
 import { invitationState } from "@/lib/admin/invitations";
+import { newInvoiceSearch } from "@/lib/admin/invoice-builder";
 import { peopleQueryOptions, personName } from "@/lib/admin/orders";
 import { adminStatusesQueryOptions } from "@/lib/admin/statuses";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -243,6 +245,17 @@ function CustomerView({
               </Link>
             </Button>
           )}
+          {disabled ? null : (
+            <Button asChild variant="outline">
+              <Link
+                to="/admin/facturen/nieuw"
+                search={newInvoiceSearch({ customerId: customer.id, from: "customer" })}
+              >
+                <FilePlus2 aria-hidden />
+                {t("admin.actions.generateInvoice")}
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setDialog("contact")}>
             <Pencil aria-hidden />
             {t("admin.customers.detail.edit")}
@@ -377,7 +390,11 @@ function CustomerView({
             }
           />
           <CustomerShipmentsSection orders={orders.data} />
-          <CustomerInvoicesSection userId={userId} customerId={customer.id} />
+          <CustomerInvoicesSection
+            userId={userId}
+            customerId={customer.id}
+            customerCode={customer.customer_code}
+          />
           <CustomerDocumentsSection
             userId={userId}
             customerId={customer.id}

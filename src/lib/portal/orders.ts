@@ -59,6 +59,10 @@ export const portalKeys = {
   orderDocuments: (userId: string, orderId: string) =>
     ["portal", userId, "orders", orderId, "documents"] as const,
   invoiceSummary: (userId: string) => ["portal", userId, "invoices", "summary"] as const,
+  /** /portal/facturen; one invoice sits behind its own "id" segment (never on a list key). */
+  invoices: (userId: string) => ["portal", userId, "invoices", "list"] as const,
+  invoice: (userId: string, invoiceId: string) =>
+    ["portal", userId, "invoices", "id", invoiceId] as const,
   /** Includes order registrations, so it lives under "orders". */
   activity: (userId: string) => ["portal", userId, "orders", "activity"] as const,
 };

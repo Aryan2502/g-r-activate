@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
 import {
+  filterPortalInvoices,
   invoiceBadgeKey,
   invoiceBadgeTone,
+  portalInvoiceSearchSchema,
   summarizeOpenInvoices,
   totalsByCurrency,
   unpaidByCurrency,
@@ -141,5 +143,25 @@ describe("invoice badges (SPEC §35.10)", () => {
     expect(invoiceBadgeTone("overdue")).toBe("danger");
     expect(invoiceBadgeTone("cancelled")).toBe("neutral");
     expect(invoiceBadgeTone("draft")).toBe("neutral");
+  });
+});
+
+describe("/portal/facturen filters", () => {
+  const rows = [
+    { id: "a", status: "open" as const, balance_due: 45 },
+    { id: "b", status: "partially_paid" as const, balance_due: 10 },
+    { id: "c", status: "paid" as const, balance_due: 0 },
+    { id: "d", status: "cancelled" as const, balance_due: 0 },
+  ];
+
+  it("'Nog te betalen' are open invoices with a balance; 'Betaald' the paid ones", () => {
+    expect(filterPortalInvoices(rows, undefined).map((r) => r.id)).toEqual(["a", "b", "c", "d"]);
+    expect(filterPortalInvoices(rows, "unpaid").map((r) => r.id)).toEqual(["a", "b"]);
+    expect(filterPortalInvoices(rows, "paid").map((r) => r.id)).toEqual(["c"]);
+  });
+
+  it("drops an unknown ?show= instead of failing", () => {
+    expect(portalInvoiceSearchSchema.parse({ show: "drafts" })).toEqual({});
+    expect(portalInvoiceSearchSchema.parse({ show: "unpaid" })).toEqual({ show: "unpaid" });
   });
 });

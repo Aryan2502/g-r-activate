@@ -184,6 +184,7 @@ function Kpis({ userId, customerId }: { userId: string; customerId: string }) {
         error={invoices.error}
         onRetry={() => void invoices.refetch()}
         tone={invoices.data && invoices.data.overdueCount > 0 ? "danger" : "default"}
+        link={{ label: t("portal.kpi.viewInvoices"), to: "/portal/facturen" }}
       >
         {invoices.data ? (
           <>
@@ -315,7 +316,7 @@ function KpiCard({
   failed: boolean;
   error: unknown;
   onRetry: () => void;
-  link?: { label: string; stage?: OrderStageFilter };
+  link?: { label: string; stage?: OrderStageFilter; to?: "/portal/orders" | "/portal/facturen" };
   tone?: keyof typeof KPI_TONES;
   children?: ReactNode;
 }) {
@@ -351,7 +352,7 @@ function KpiCard({
           <div className="mt-1 flex-1 text-sm leading-6 text-muted-foreground">{children}</div>
           {link && value > 0 ? (
             <Link
-              to="/portal/orders"
+              to={link.to ?? "/portal/orders"}
               search={link.stage ? { stage: link.stage } : {}}
               className="mt-3 inline-flex items-center gap-1 self-start rounded-sm text-sm font-semibold text-primary underline-offset-4 hover:underline"
             >
@@ -515,6 +516,7 @@ function ActivityRow({ item, statuses }: { item: ActivityItem; statuses: StatusM
   let text: string;
   let detail: string | null = null;
   let orderId: string | null = null;
+  let invoiceId: string | null = null;
 
   switch (item.kind) {
     case "order_registered":
@@ -549,6 +551,7 @@ function ActivityRow({ item, statuses }: { item: ActivityItem; statuses: StatusM
       );
       detail =
         item.amount !== null && item.currency ? formatMoney(item.amount, item.currency) : null;
+      invoiceId = item.invoiceId;
       break;
     case "payment_received":
       icon = <Wallet className="size-4" aria-hidden />;
@@ -559,6 +562,7 @@ function ActivityRow({ item, statuses }: { item: ActivityItem; statuses: StatusM
       ]
         .filter(Boolean)
         .join(" · ");
+      invoiceId = item.invoiceId;
       break;
   }
 
@@ -573,6 +577,14 @@ function ActivityRow({ item, statuses }: { item: ActivityItem; statuses: StatusM
             <Link
               to="/portal/orders/$id"
               params={{ id: orderId }}
+              className="rounded-sm underline-offset-4 hover:text-primary hover:underline"
+            >
+              {text}
+            </Link>
+          ) : invoiceId ? (
+            <Link
+              to="/portal/facturen/$id"
+              params={{ id: invoiceId }}
               className="rounded-sm underline-offset-4 hover:text-primary hover:underline"
             >
               {text}

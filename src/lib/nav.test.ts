@@ -6,6 +6,7 @@ const portalNav = [
   { to: "/portal", exact: true },
   { to: "/portal/orders" },
   { to: "/portal/orders/nieuw" },
+  { to: "/portal/facturen" },
   { to: "/portal/profiel" },
 ];
 
@@ -27,6 +28,13 @@ describe("activeNavPath()", () => {
     expect(activeNavPath(portalNav, "/portal/orders/nieuw")).toBe("/portal/orders/nieuw");
   });
 
+  it("keeps Facturen active on an invoice's page", () => {
+    expect(activeNavPath(portalNav, "/portal/facturen")).toBe("/portal/facturen");
+    expect(activeNavPath(portalNav, "/portal/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f")).toBe(
+      "/portal/facturen",
+    );
+  });
+
   it("does not match on a shared prefix that is not a path segment", () => {
     expect(activeNavPath(portalNav, "/portal/ordersx")).toBeNull();
   });
@@ -39,6 +47,7 @@ describe("activeNavPath() in the admin area", () => {
     { to: "/admin/orders" },
     { to: "/admin/orders/nieuw" },
     { to: "/admin/zendingen" },
+    { to: "/admin/facturen" },
     { to: "/admin/statussen" },
     { to: "/admin/team" },
     { to: "/admin/instellingen" },
@@ -54,6 +63,10 @@ describe("activeNavPath() in the admin area", () => {
       "/admin/zendingen",
     );
     expect(activeNavPath(adminNav, "/admin/statussen")).toBe("/admin/statussen");
+    expect(activeNavPath(adminNav, "/admin/facturen/nieuw")).toBe("/admin/facturen");
+    expect(activeNavPath(adminNav, "/admin/facturen/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f")).toBe(
+      "/admin/facturen",
+    );
     expect(activeNavPath(adminNav, "/admin/klanten")).toBe("/admin/klanten");
     expect(activeNavPath(adminNav, "/admin/klanten/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f")).toBe(
       "/admin/klanten",

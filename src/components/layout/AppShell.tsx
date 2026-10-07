@@ -97,8 +97,8 @@ export function AppShell({
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r bg-card lg:flex">
+    <div className="min-h-screen bg-background print:min-h-0 print:bg-white">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r bg-card lg:flex print:hidden">
         <div className="flex h-16 items-center border-b px-4">
           <Link to={homePath} className="rounded-md">
             <BrandLogo variant="lockup" size="sm" priority />
@@ -116,7 +116,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b bg-card px-4 lg:hidden">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b bg-card px-4 lg:hidden print:hidden">
         <Link to={homePath} className="flex items-center gap-3 rounded-md">
           <BrandLogo variant="monogram" size="md" priority />
           <span className="font-heading text-sm font-bold text-primary">{areaName}</span>
@@ -142,10 +142,11 @@ export function AppShell({
         </Sheet>
       </header>
 
-      <main className="lg:pl-72">
+      {/* Printing a page prints its content only (SPEC §35.11: no app chrome on paper). */}
+      <main className="lg:pl-72 print:pl-0">
         <div
           className={cn(
-            "mx-auto w-full px-4 py-8 sm:px-6 lg:py-10",
+            "mx-auto w-full px-4 py-8 sm:px-6 lg:py-10 print:max-w-none print:p-0",
             wide ? "max-w-[96rem] lg:px-6" : "max-w-5xl lg:px-10",
           )}
         >

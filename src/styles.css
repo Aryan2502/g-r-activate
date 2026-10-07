@@ -6,6 +6,10 @@
 @import "@fontsource/inter/400.css";
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
+/* Inter Bold: the invoice document's title, labels and totals (SPEC §35.11). */
+@import "@fontsource/inter/700.css";
+/* The invoice document keeps its own template colours (not these tokens). */
+@import "./components/invoice/invoice-document.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -179,5 +183,13 @@
     font-family: var(--font-heading);
     font-weight: 700;
     letter-spacing: -0.01em;
+  }
+}
+
+/* App toasts never print: a "Gekopieerd" toast still on screen must not end
+   up on an invoice saved as PDF (or on any other printed page). */
+@media print {
+  [data-sonner-toaster] {
+    display: none !important;
   }
 }

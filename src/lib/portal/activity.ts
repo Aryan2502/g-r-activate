@@ -25,6 +25,8 @@ export type ActivityItem =
       kind: "invoice_issued" | "invoice_cancelled";
       key: string;
       at: string;
+      /** Links to /portal/facturen/<id>. */
+      invoiceId: string;
       invoiceNumber: string | null;
       amount: number | null;
       currency: CurrencyCode | null;
@@ -34,6 +36,7 @@ export type ActivityItem =
       key: string;
       at: string;
       paidOn: string;
+      invoiceId: string | null;
       invoiceNumber: string | null;
       amount: number;
       currency: CurrencyCode | null;
@@ -59,6 +62,8 @@ export interface ActivitySources {
   }[];
   payments: readonly {
     id: string;
+    /** The invoice paid (links to /portal/facturen/<id>). */
+    invoice_id?: string | null;
     amount: number;
     paid_on: string;
     created_at: string;
@@ -96,7 +101,12 @@ export function mergeActivity(sources: ActivitySources, limit = ACTIVITY_LIMIT):
   }
   for (const i of sources.invoices) {
     if (!i.id) continue;
-    const base = { invoiceNumber: i.invoice_number, amount: i.total_amount, currency: i.currency };
+    const base = {
+      invoiceId: i.id,
+      invoiceNumber: i.invoice_number,
+      amount: i.total_amount,
+      currency: i.currency,
+    };
     if (i.issued_at)
       items.push({ kind: "invoice_issued", key: `i:${i.id}`, at: i.issued_at, ...base });
     if (i.cancelled_at) {
@@ -109,6 +119,7 @@ export function mergeActivity(sources: ActivitySources, limit = ACTIVITY_LIMIT):
       key: `p:${p.id}`,
       at: p.created_at,
       paidOn: p.paid_on,
+      invoiceId: p.invoice_id ?? null,
       invoiceNumber: p.invoice?.invoice_number ?? null,
       amount: p.amount,
       currency: p.invoice?.currency ?? null,
@@ -167,7 +178,7 @@ export const activityQueryOptions = (userId: string, customerId: string) =>
         supabase
           .from("payments")
           .select(
-            "id, amount, paid_on, created_at, invoice:invoices!inner(invoice_number, currency, customer_id)",
+            "id, invoice_id, amount, paid_on, created_at, invoice:invoices!inner(invoice_number, currency, customer_id)",
           )
           .eq("invoice.customer_id", customerId)
           .order("created_at", { ascending: false })

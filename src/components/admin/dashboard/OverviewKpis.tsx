@@ -91,9 +91,9 @@ export function OverviewKpis({ userId }: { userId: string }) {
           query={invoices}
           value={(d) => d.openCount}
           link={{
-            to: "/admin/klanten",
-            search: { openInvoice: true },
-            label: t("admin.home.kpi.openInvoicesLink"),
+            to: "/admin/facturen",
+            search: { status: "unpaid" },
+            label: t("admin.home.kpi.openInvoicesList"),
           }}
         >
           {(d) => (
@@ -110,6 +110,11 @@ export function OverviewKpis({ userId }: { userId: string }) {
           query={invoices}
           value={(d) => d.overdueCount}
           attention={(d) => d.overdueCount > 0}
+          link={{
+            to: "/admin/facturen",
+            search: { status: "overdue", sort: "due" },
+            label: t("admin.home.kpi.overdueInvoicesList"),
+          }}
         >
           {(d) => (
             <>
@@ -123,6 +128,11 @@ export function OverviewKpis({ userId }: { userId: string }) {
           label={t("admin.home.kpi.invoicesPaid")}
           query={invoices}
           value={(d) => d.paidCount}
+          link={{
+            to: "/admin/facturen",
+            search: { status: "paid" },
+            label: t("admin.home.kpi.paidInvoicesList"),
+          }}
         >
           {(d) => (
             <>
@@ -171,7 +181,13 @@ function Kpi<D>({
   query: QueryLike<D>;
   value: (data: D) => number;
   attention?: (data: D) => boolean;
-  link?: { to: "/admin/klanten" | "/admin/orders"; search?: { openInvoice: true }; label: string };
+  link?:
+    | { to: "/admin/klanten" | "/admin/orders"; search?: { openInvoice: true }; label: string }
+    | {
+        to: "/admin/facturen";
+        search: { status: "unpaid" | "overdue" | "paid"; sort?: "due" };
+        label: string;
+      };
   children: (data: D) => ReactNode;
 }) {
   const data = query.data;
