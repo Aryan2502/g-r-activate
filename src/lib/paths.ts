@@ -10,6 +10,8 @@ export const paths: Readonly<
     | "setPassword"
     | "portal"
     | "portalProfile"
+    | "portalOrders"
+    | "portalOrderNew"
     | "admin",
     string
   >
@@ -22,5 +24,8 @@ export const paths: Readonly<
   setPassword: "/auth/set-password",
   portal: "/portal",
   portalProfile: "/portal/profiel",
+  portalOrders: "/portal/orders",
+  /** Order registration; `?parent=<order id>` adds an extra package (see newOrderSearchSchema). */
+  portalOrderNew: "/portal/orders/nieuw",
   admin: "/admin",
 };

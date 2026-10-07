@@ -10,6 +10,7 @@ import { type Db, createDb } from "./harness";
 
 // Read-only helpers and public data that need no access guard (SPEC §35.4, §35.3).
 const UNGUARDED_DEFINER_FUNCTIONS = [
+  "can_upload_order_object",
   "current_customer_id",
   "has_role",
   "is_admin",

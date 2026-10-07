@@ -144,3 +144,42 @@ export function toAppError(error: unknown): AppError {
 export function errorMessage(error: unknown): string {
   return toAppError(error).message;
 }
+
+/**
+ * An error with a Dutch message and a SQLSTATE (and maybe a hint);
+ * toAppError reads it like a database error.
+ */
+export class CodedError extends Error {
+  readonly code: string;
+  readonly hint: DbErrorHint | null;
+
+  constructor(message: string, code: string, hint: DbErrorHint | null = null) {
+    super(message);
+    this.name = "CodedError";
+    this.code = code;
+    this.hint = hint;
+  }
+}
+
+/**
+ * A failure a server function RETURNS instead of throwing. TanStack Start
+ * sends a thrown error to the browser with its message only (router-core's
+ * ShallowErrorPlugin), so the SQLSTATE and hint (e.g. open_order_limit)
+ * would be lost. Only the Dutch message, the code and a known hint travel,
+ * never Postgres' own (English) text, details or stack.
+ */
+export interface TransportError {
+  message: string;
+  code: string | null;
+  hint: DbErrorHint | null;
+}
+
+export function toTransportError(error: unknown): TransportError {
+  const app = toAppError(error);
+  return { message: app.message, code: app.code, hint: app.hint };
+}
+
+/** Back in the browser: the returned failure as an error for toasts and alerts. */
+export function fromTransportError(error: TransportError): CodedError {
+  return new CodedError(error.message, error.code ?? "", error.hint);
+}

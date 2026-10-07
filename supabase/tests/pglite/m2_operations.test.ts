@@ -1784,9 +1784,11 @@ describe("order documents and storage", () => {
     });
 
     await moveAs(p.staff.id, [o.id], "cancelled");
+    // Storage itself refuses the upload into a closed order (order_hardening
+    // migration), before the order_documents check is reached.
     await expectSqlError(
       asUser(db, p.alice.id, (tx) => addDocument(tx, o)),
-      "55000",
+      "42501",
     );
     // Staff can still file paperwork on a closed order; the customer always
     // comes from the order, whatever the client sends.

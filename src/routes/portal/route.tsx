@@ -5,7 +5,15 @@ import {
   useRouter,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { LayoutDashboard, Loader2, LogOut, RotateCw, UserRound } from "lucide-react";
+import {
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Package,
+  PackagePlus,
+  RotateCw,
+  UserRound,
+} from "lucide-react";
 
 import { AppShell, type ShellNavItem } from "@/components/layout/AppShell";
 import { PagePending } from "@/components/layout/PagePending";
@@ -38,6 +46,8 @@ export const Route = createFileRoute("/portal")({
 
 const nav: ShellNavItem[] = [
   { to: paths.portal, label: t("portal.nav.dashboard"), icon: LayoutDashboard, exact: true },
+  { to: paths.portalOrders, label: t("portal.nav.orders"), icon: Package },
+  { to: paths.portalOrderNew, label: t("portal.nav.newOrder"), icon: PackagePlus },
   { to: paths.portalProfile, label: t("portal.nav.profile"), icon: UserRound },
 ];
 

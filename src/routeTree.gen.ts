@@ -24,6 +24,9 @@ import { Route as PortalIndexRouteImport } from './routes/portal/index'
 import { Route as PortalProfielRouteImport } from './routes/portal/profiel'
 import { Route as AuthAuthConfirmRouteImport } from './routes/_auth/auth/confirm'
 import { Route as AuthAuthSetPasswordRouteImport } from './routes/_auth/auth/set-password'
+import { Route as PortalOrdersIndexRouteImport } from './routes/portal/orders/index'
+import { Route as PortalOrdersIdRouteImport } from './routes/portal/orders/$id'
+import { Route as PortalOrdersNieuwRouteImport } from './routes/portal/orders/nieuw'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -98,6 +101,21 @@ const AuthAuthSetPasswordRoute = AuthAuthSetPasswordRouteImport.update({
   path: '/auth/set-password',
   getParentRoute: () => AuthRoute,
 } as any)
+const PortalOrdersIndexRoute = PortalOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalOrdersIdRoute = PortalOrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalOrdersNieuwRoute = PortalOrdersNieuwRouteImport.update({
+  id: '/orders/nieuw',
+  path: '/orders/nieuw',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
@@ -113,6 +131,9 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/auth/confirm': typeof AuthAuthConfirmRoute
   '/auth/set-password': typeof AuthAuthSetPasswordRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRoute
+  '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/portal/orders/': typeof PortalOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -126,6 +147,9 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/auth/confirm': typeof AuthAuthConfirmRoute
   '/auth/set-password': typeof AuthAuthSetPasswordRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRoute
+  '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/portal/orders': typeof PortalOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,6 +168,9 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/_auth/auth/confirm': typeof AuthAuthConfirmRoute
   '/_auth/auth/set-password': typeof AuthAuthSetPasswordRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRoute
+  '/portal/orders/nieuw': typeof PortalOrdersNieuwRoute
+  '/portal/orders/': typeof PortalOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +188,9 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/auth/confirm'
     | '/auth/set-password'
+    | '/portal/orders/$id'
+    | '/portal/orders/nieuw'
+    | '/portal/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -174,6 +204,9 @@ export interface FileRouteTypes {
     | '/portal'
     | '/auth/confirm'
     | '/auth/set-password'
+    | '/portal/orders/$id'
+    | '/portal/orders/nieuw'
+    | '/portal/orders'
   id:
     | '__root__'
     | '/admin'
@@ -191,6 +224,9 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/_auth/auth/confirm'
     | '/_auth/auth/set-password'
+    | '/portal/orders/$id'
+    | '/portal/orders/nieuw'
+    | '/portal/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -307,6 +343,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAuthSetPasswordRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/portal/orders/': {
+      id: '/portal/orders/'
+      path: '/orders'
+      fullPath: '/portal/orders/'
+      preLoaderRoute: typeof PortalOrdersIndexRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/orders/$id': {
+      id: '/portal/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/portal/orders/$id'
+      preLoaderRoute: typeof PortalOrdersIdRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/orders/nieuw': {
+      id: '/portal/orders/nieuw'
+      path: '/orders/nieuw'
+      fullPath: '/portal/orders/nieuw'
+      preLoaderRoute: typeof PortalOrdersNieuwRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
   }
 }
 
@@ -325,11 +382,17 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface PortalRouteRouteChildren {
   PortalProfielRoute: typeof PortalProfielRoute
   PortalIndexRoute: typeof PortalIndexRoute
+  PortalOrdersIdRoute: typeof PortalOrdersIdRoute
+  PortalOrdersNieuwRoute: typeof PortalOrdersNieuwRoute
+  PortalOrdersIndexRoute: typeof PortalOrdersIndexRoute
 }
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
   PortalProfielRoute: PortalProfielRoute,
   PortalIndexRoute: PortalIndexRoute,
+  PortalOrdersIdRoute: PortalOrdersIdRoute,
+  PortalOrdersNieuwRoute: PortalOrdersNieuwRoute,
+  PortalOrdersIndexRoute: PortalOrdersIndexRoute,
 }
 
 const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(

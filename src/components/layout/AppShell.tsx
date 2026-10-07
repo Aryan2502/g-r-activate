@@ -1,11 +1,13 @@
 import { useState, type ComponentType, type ReactNode, type SVGProps } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Loader2, LogOut, Menu } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useT } from "@/lib/i18n";
+import { activeNavPath } from "@/lib/nav";
+import { cn } from "@/lib/utils";
 
 export interface ShellNavItem {
   to: string;
@@ -42,21 +44,32 @@ export function AppShell({
 }: AppShellProps) {
   const t = useT();
   const [menuOpen, setMenuOpen] = useState(false);
+  // One highlighted item: the most specific match (e.g. "Order aanmelden"
+  // on /portal/orders/nieuw, "Orders" on an order's page).
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeTo = activeNavPath(nav, pathname);
 
   const navList = (onNavigate?: () => void) => (
     <nav aria-label={t("shell.navLabel", { area: areaName })} className="flex flex-col gap-1">
-      {nav.map((item) => (
-        <Link
-          key={item.to}
-          to={item.to}
-          onClick={onNavigate}
-          activeOptions={{ exact: item.exact ?? false }}
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-cream hover:text-primary data-[status=active]:bg-cream data-[status=active]:text-primary"
-        >
-          <item.icon className="size-4 shrink-0" aria-hidden />
-          {item.label}
-        </Link>
-      ))}
+      {nav.map((item) => {
+        const active = item.to === activeTo;
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            activeOptions={{ exact: true }}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-cream hover:text-primary",
+              active && "bg-cream text-primary",
+            )}
+          >
+            <item.icon className="size-4 shrink-0" aria-hidden />
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 
@@ -139,12 +152,15 @@ export function AppShell({
 export function ShellPageHeader({
   title,
   description,
+  className,
 }: {
   title: string;
   description?: ReactNode;
+  /** E.g. "mb-0" when the header sits in a row with its own spacing. */
+  className?: string;
 }) {
   return (
-    <div className="mb-8">
+    <div className={cn("mb-8", className)}>
       <h1 className="text-2xl text-primary sm:text-3xl">{title}</h1>
       {description ? <div className="mt-2 text-sm text-muted-foreground">{description}</div> : null}
     </div>

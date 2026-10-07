@@ -22,6 +22,10 @@ describe("App routing", () => {
     ["/auth/set-password", "/_auth/auth/set-password"],
     ["/portal", "/portal/"],
     ["/portal/profiel", "/portal/profiel"],
+    ["/portal/orders", "/portal/orders/"],
+    // The static segment wins over $id, so "nieuw" is never read as an order id.
+    ["/portal/orders/nieuw", "/portal/orders/nieuw"],
+    ["/portal/orders/6f1c0d2e-8a4b-4c3d-9e5f-0a1b2c3d4e5f", "/portal/orders/$id"],
     ["/admin", "/admin/"],
   ])("serves %s", (path, routeId) => {
     expect(leaf(path)).toBe(routeId);
