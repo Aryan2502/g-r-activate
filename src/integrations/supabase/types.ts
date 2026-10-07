@@ -1700,6 +1700,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      keep_order_after_cancellation_request: {
+        Args: { _customer_message?: string; _order_id: string }
+        Returns: undefined
+      }
+      log_team_login_change: {
+        Args: { _blocked: boolean; _reason: string; _user_id: string }
+        Returns: number
+      }
       peek_next_customer_number: { Args: never; Returns: number }
       pickup_override: {
         Args: {
@@ -1785,6 +1793,18 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      team_members: {
+        Args: never
+        Returns: {
+          blocked: boolean
+          display_name: string
+          email: string
+          last_sign_in_at: string
+          member_since: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          user_id: string
+        }[]
       }
       update_my_contact: {
         Args: {
