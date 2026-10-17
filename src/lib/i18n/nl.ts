@@ -89,7 +89,7 @@ export const nl = {
         "Bestel zoals gewoonlijk bij webwinkels zoals Amazon, eBay of andere online winkels, voor uzelf of voor uw bedrijf.",
       step2Title: "Gebruik ons US-adres",
       step2Text:
-        "Laat de winkel uw pakket naar het US-verzendadres van G&R Solutions sturen, gewoon op uw eigen naam. Het volledige US-adres ziet u na het inloggen in het klantportaal.",
+        "U krijgt een klantcode: GR gevolgd door een nummer. Laat de winkel uw pakket naar het US-verzendadres van G&R Solutions sturen en zet uw klantcode vóór uw naam. Zo weten wij dat het pakket van u is. Let op: geef ook meteen aan of het pakket per Air (luchtvracht) of Ocean (zeevracht) moet; dat zet u direct achter uw klantcode.",
       step3Title: "Meld uw order aan",
       step3Text:
         "Registreer uw aankoop in het klantportaal. Dit doet u door de Track & Trace code met ons te delen.",
@@ -103,6 +103,16 @@ export const nl = {
         "Is uw pakket klaar voor afhalen, dan ziet u dat in het portaal, samen met uw factuur. U betaalt de factuur en haalt uw pakket af.",
       pickupAddress: "Afhaaladres: {address}",
       pickupHours: "Afhaaltijden: {hours}",
+      addressExample: {
+        title: "Voorbeeld: zo adresseert u uw pakket",
+        nameLabel: "Naam",
+        code: "GR67",
+        service: "Air",
+        nameValue: "Uw naam",
+        addressLabel: "Adres",
+        addressValue: "Ons US-adres",
+        note: "GR67 is een voorbeeld. Per zeevracht schrijft u Ocean in plaats van Air: GR67 Ocean Uw naam. Uw eigen klantcode en het volledige US-adres ziet u na het inloggen in het klantportaal.",
+      },
     },
     services: {
       title: "Onze diensten",
@@ -114,8 +124,7 @@ export const nl = {
       airText:
         "Pakketten die op ons US-adres binnenkomen, verzenden wij per luchtvracht naar Suriname.",
       seaTitle: "Zeevracht",
-      seaText:
-        "Uw pakket kan ook per zeevracht naar Suriname. U kiest bij het aanmelden van uw order voor luchtvracht of zeevracht.",
+      seaText: "Uw pakket kan ook per zeevracht naar Suriname. U kiest per order: Air of Ocean.",
       trackingTitle: "Zendingen volgen",
       trackingText:
         "Volg de status van elke aangemelde order: van ontvangst in ons US-magazijn tot klaar voor afhalen, met de geschiedenis van elke stap.",
@@ -127,7 +136,7 @@ export const nl = {
       title: "Veelgestelde vragen",
       intro: "Staat uw vraag er niet bij? Neem gerust contact op met G&R Solutions.",
       q1: "Wat is mijn klantcode en waar vind ik die?",
-      a1: "Uw klantcode is uw persoonlijke code bij G&R Solutions, bijvoorbeeld GR67. U ziet hem na het inloggen in het klantportaal. Op uw pakket hoeft hij niet: wij herkennen uw pakket aan de Track & Trace code die u bij het aanmelden doorgeeft.",
+      a1: "Uw klantcode is uw persoonlijke code bij G&R Solutions: GR gevolgd door een nummer, bijvoorbeeld GR67. U ziet hem na het inloggen in het klantportaal, samen met het US-verzendadres. Zet hem op elk pakket vóór uw naam, met Air of Ocean erachter: GR67 Air Uw naam.",
       q2: "Ik heb nog geen Track & Trace code. Kan ik mijn order al aanmelden?",
       a2: "U meldt uw order aan met de Track & Trace code die u van de winkel krijgt zodra uw pakket verzonden is. Daaraan herkennen wij uw pakket wanneer het in ons US-magazijn binnenkomt.",
       q3: "Mijn bestelling komt in meerdere dozen. Wat nu?",
@@ -347,7 +356,8 @@ export const nl = {
     emailHint:
       "U logt in met dit adres. Het volledige adres staat in het bericht van G&R en ziet u na het activeren.",
     code: "Uw klantcode",
-    codeHint: "Deze code blijft bij u. U vindt hem ook in het klantportaal.",
+    codeHint:
+      "Deze code blijft bij u. Zet hem bij elke bestelling vóór uw naam, met Air of Ocean erachter: {code} Air Uw naam.",
     staffName: "Uw naam",
     staffNameHint: "Zo zien collega's wie een order heeft bijgewerkt.",
     staffNameRequired: "Vul uw naam in.",
@@ -474,11 +484,22 @@ export const nl = {
     address: {
       title: "Uw persoonlijk US-verzendadres",
       intro:
-        "Gebruik dit adres als verzendadres bij uw online aankopen, gewoon op uw eigen naam. Meld daarna uw order aan met de Track & Trace code: zo herkennen wij uw pakket.",
+        "Gebruik dit adres als verzendadres bij uw online aankopen. Aan uw klantcode herkennen wij dat het pakket van u is.",
+      note: "Neem de naam precies over zoals hierboven, met uw klantcode {code}. Zo weten wij dat het pakket van u is.",
+      noteServices:
+        "Neem de naam precies over zoals hierboven: eerst uw klantcode {code}, dan Air (luchtvracht) of Ocean (zeevracht), dan uw naam. Zo weten wij dat het pakket van u is en hoe wij het verzenden.",
       empty: "Ons US-adres wordt binnenkort hier getoond.",
       copyAll: "Kopieer volledig adres",
+      copyAllFor: {
+        air: "Kopieer adres voor luchtvracht",
+        sea: "Kopieer adres voor zeevracht",
+      },
       copyField: "{field} kopiëren",
       loadFailed: "Het US-verzendadres kon niet worden geladen.",
+      recipientFor: {
+        air: "Naam bij luchtvracht",
+        sea: "Naam bij zeevracht",
+      },
       fields: {
         recipient: "Naam",
         line1: "Adresregel 1",
@@ -961,6 +982,10 @@ export const nl = {
         b2b: "Zakelijke gegevens",
         note: "Opmerking",
       },
+      serviceTypeHints: {
+        air: "Op het pakket: Air achter uw klantcode",
+        sea: "Op het pakket: Ocean achter uw klantcode",
+      },
       fields: {
         orderType: "Soort order",
         serviceType: "Verzendwijze",
@@ -1031,7 +1056,8 @@ export const nl = {
       title: "Order aanmelden",
       intro:
         "Meld uw online aankoop aan zodra de winkel uw pakket heeft verzonden: u deelt dan de Track & Trace code met ons.",
-      addressHint: "Laat de winkel uw pakket op uw eigen naam naar ons US-adres sturen.",
+      addressHint:
+        "Laat de winkel uw pakket naar ons US-adres sturen, met {code} Air of {code} Ocean vóór uw naam.",
       viewAddress: "Bekijk het US-verzendadres",
       cancel: "Annuleren",
       formTitle: "Gegevens van de order",
@@ -1714,6 +1740,10 @@ export const nl = {
       orderTypeHints: {
         personal: "Een eigen online aankoop van de klant.",
         b2b: "Een zakelijke zending of inkoop via G&R Solutions.",
+      },
+      serviceTypeHints: {
+        air: "Op het pakket: Air achter de klantcode",
+        sea: "Op het pakket: Ocean achter de klantcode",
       },
       fields: {
         declaredWeight: "Gewicht volgens de klant (lbs)",
@@ -2672,15 +2702,17 @@ export const nl = {
         addTitle: "US-adres toevoegen",
         editTitle: "US-adres ‘{label}’ wijzigen",
         dialogIntro:
-          "Gebruik {FULL_NAME} voor de naam van de klant; het portaal vult die per klant in.",
+          "Gebruik {GR_CODE} voor de klantcode, {SERVICE} voor Air of Ocean en {FULL_NAME} voor de naam van de klant; het portaal vult ze per klant in.",
         label: "Naam van het adres",
         labelHint: "Bijv. ‘Miami’. Staat als kop op de kaart van de klant.",
         serviceType: "Verzendwijze",
+        serviceTypeHint:
+          "Met {SERVICE} in de naam geldt dit adres ook voor de andere verzendwijze, zolang die geen eigen adres heeft: de klant ziet een naamregel voor Air en een voor Ocean.",
         recipientTemplate: "Naam ontvanger",
-        recipientHint: "Standaard ‘{FULL_NAME}’: de naam van de klant.",
+        recipientHint: "Standaard ‘{GR_CODE} {SERVICE} {FULL_NAME}’, bijv. GR67 Air Maria Pinas.",
         line1: "Adresregel 1",
         line2Template: "Adresregel 2",
-        line2Hint: "Mag leeg blijven.",
+        line2Hint: "Standaard leeg. U mag ook hier {GR_CODE} gebruiken.",
         city: "Plaats",
         state: "Staat",
         zip: "Postcode (ZIP)",
@@ -2691,8 +2723,12 @@ export const nl = {
         previewFor: "Zo ziet {name} ({code}) het adres",
         previewCustomer: "Klant voor het voorbeeld",
         sampleName: "Voorbeeldklant",
+        recipientWithoutCode:
+          "Zonder {GR_CODE} in de naam kan het magazijn het pakket moeilijk aan de klant koppelen.",
+        recipientWithoutService:
+          "Zonder {SERVICE} in de naam ziet de klant niet dat er Air of Ocean bij moet.",
         unknownPlaceholder:
-          "Onbekende code {found}: gebruik {FULL_NAME} voor de naam van de klant.",
+          "Onbekende code {found}: gebruik alleen {FULL_NAME}, {GR_CODE} en {SERVICE}.",
         save: "Opslaan",
         saving: "Bezig met opslaan…",
         cancel: "Annuleren",

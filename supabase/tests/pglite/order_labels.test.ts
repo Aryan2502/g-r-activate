@@ -1,11 +1,9 @@
 // @vitest-environment node
 /**
- * Migration 20261017140000_order_labels.sql (SPEC §36):
- *
- * 1. the US address name line becomes just the customer's name, also for
- *    addresses written with an earlier default;
- * 2. order labels: free text + colour, added and removed by the team only,
- *    unique per order ignoring case, audited; customers never see them.
+ * Migration 20261017140000_order_labels.sql (SPEC §36.8): order labels, free
+ * text + colour, added and removed by the team only, unique per order
+ * ignoring case, audited; customers never see them. It leaves the US address
+ * as §36.2 has it ("GR67 Air Naam").
  *
  * The labels are written the way src/lib/admin/order-labels.ts writes them:
  * insert … on conflict (order_id, label_key) do nothing, and delete by id.
@@ -15,17 +13,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   type AuthUser,
   type Db,
-  applyMigrations,
   asUser,
   confirmAuthUser,
   createAuthUser,
   createDb,
   expectSqlError,
-  listMigrations,
   withSavepoint,
 } from "./harness";
-
-const MIGRATION = "20261017140000_order_labels.sql";
 
 let db: Db;
 let alice: AuthUser;
@@ -34,9 +28,6 @@ let admin: AuthUser;
 let aliceCustomer: string;
 let orderA: string;
 let orderB: string;
-
-const all = listMigrations();
-const index = all.findIndex((m) => m.file.endsWith(MIGRATION));
 
 async function rows<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   return (await db.query<T>(sql, params)).rows;
@@ -49,20 +40,7 @@ const LABEL_INSERT = `insert into public.order_labels (order_id, label, color)
   returning id, order_id, label, color`;
 
 beforeAll(async () => {
-  expect(index).toBeGreaterThan(0);
-  db = await createDb({ migrations: false });
-  await applyMigrations(db, all.slice(0, index));
-
-  // Addresses as they may be on the live project before this migration.
-  await db.query(
-    `insert into public.warehouse_addresses
-       (label, service_type, recipient_name_template, address_line1, address_line2_template, city, state, zip)
-     values ('Oud', 'air', '{FULL_NAME} {GR_CODE}', '1 Old Street', '{GR_CODE}', 'Miami', 'FL', '33101'),
-            ('Air/Ocean', 'air', '{GR_CODE} {SERVICE} {FULL_NAME}', '2 New Street', '', 'Miami', 'FL', '33101'),
-            ('Eigen', 'sea', 'Attn {FULL_NAME}', '3 Dock Road', 'Suite {GR_CODE}', 'Miami', 'FL', '33101')`,
-  );
-
-  await applyMigrations(db, all.slice(index));
+  db = await createDb();
 
   alice = await createAuthUser(db, {
     email: "alice@example.com",
@@ -101,21 +79,8 @@ afterAll(async () => {
   await db?.close();
 });
 
-describe("US address: just the customer's name", () => {
-  it("rewrites the earlier defaults and keeps the owner's own templates", async () => {
-    expect(
-      await rows(
-        "select label, recipient_name_template, address_line2_template from public.warehouse_addresses order by label",
-      ),
-    ).toEqual([
-      { label: "Air/Ocean", recipient_name_template: "{FULL_NAME}", address_line2_template: "" },
-      {
-        label: "Eigen",
-        recipient_name_template: "Attn {FULL_NAME}",
-        address_line2_template: "Suite {GR_CODE}",
-      },
-      { label: "Oud", recipient_name_template: "{FULL_NAME}", address_line2_template: "" },
-    ]);
+describe("US address", () => {
+  it("keeps the §36.2 defaults: GR code and Air/Ocean in front of the name", async () => {
     const defaults = await rows<{ column_name: string; column_default: string }>(
       `select column_name, column_default from information_schema.columns
         where table_schema = 'public' and table_name = 'warehouse_addresses'
@@ -123,7 +88,10 @@ describe("US address: just the customer's name", () => {
     );
     expect(defaults).toEqual([
       { column_name: "address_line2_template", column_default: "''::text" },
-      { column_name: "recipient_name_template", column_default: "'{FULL_NAME}'::text" },
+      {
+        column_name: "recipient_name_template",
+        column_default: "'{GR_CODE} {SERVICE} {FULL_NAME}'::text",
+      },
     ]);
   });
 });

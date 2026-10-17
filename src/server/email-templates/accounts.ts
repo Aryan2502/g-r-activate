@@ -99,6 +99,8 @@ export interface WelcomeEmailInput {
   email: string;
   /** The personal US shipping addresses (active warehouse addresses, filled in). */
   addresses: readonly WelcomeAddress[];
+  /** The name lines say Air or Ocean ({SERVICE} in the template, SPEC §36). */
+  serviceInName?: boolean;
 }
 
 export function welcomeEmail(input: WelcomeEmailInput): EmailContent {
@@ -130,10 +132,15 @@ export function welcomeEmail(input: WelcomeEmailInput): EmailContent {
       for (const address of input.addresses) {
         blocks.push({ type: "address", title: address.title, lines: address.lines });
       }
-      blocks.push({
-        type: "paragraph",
-        text: "Laat de winkel uw pakket gewoon op uw eigen naam sturen. Meld daarna elke aankoop aan in het klantportaal met de Track & Trace code: zo herkennen wij uw pakket.",
-      });
+      if (input.customerCode) {
+        blocks.push({
+          type: "paragraph",
+          strong: true,
+          text: input.serviceInName
+            ? `Zet altijd uw klantcode ${input.customerCode} vóór uw naam, met Air (luchtvracht) of Ocean (zeevracht) erachter, precies zoals hierboven.`
+            : `Zet altijd uw klantcode ${input.customerCode} bij uw naam, precies zoals hierboven.`,
+        });
+      }
     } else {
       blocks.push({
         type: "paragraph",

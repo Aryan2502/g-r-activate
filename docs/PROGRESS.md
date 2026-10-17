@@ -4,11 +4,11 @@ Bron: `docs/SPEC.md` (§1–§36). §36 en daarna §35 gaan voor bij verschillen
 
 ## Status per sectie
 
-Laatst bijgewerkt: **Eigenaarscorrecties §36, tweede ronde (2026-10-17)**, zie "Bewijs
-eigenaarscorrecties §36, tweede ronde": geen klantcode en geen Air/Ocean meer op het pakket
-(het US-adres staat op de naam van de klant) en **orderlabels** voor het team (vrije tekst
-met een kleur, filter en bulk). Migratie `20261017140000_order_labels.sql`, nog niet live
-toegepast. Daarvoor, eerste ronde: klantcodes zonder voorloopnullen (GR67, GR100), zeevracht aan, Track & Trace code verplicht bij aanmelden, geen keuze
+Laatst bijgewerkt: **Orderlabels §36.8 (2026-10-17)**, zie "Bewijs orderlabels §36.8": het
+team zet labels met vrije tekst en een kleur op orders (filter en bulk). Migratie
+`20261017140000_order_labels.sql`, nog niet live toegepast. Daarvoor: **Eigenaarscorrecties
+§36 (2026-10-17)**, zie "Bewijs eigenaarscorrecties §36": klantcodes zonder voorloopnullen (GR67, GR100), US-adres als "GR67 Air Naam" /
+"GR67 Ocean Naam", zeevracht aan, Track & Trace code verplicht bij aanmelden, geen keuze
 particulier/zakelijk voor klanten (aanmelden en account aanmaken), telefoon +597 7589695
 overal, homepage stap 2 en 3 en de dienst "Zeevracht". Eén nieuwe migratie
 `20261017090000_owner_corrections.sql`, nog niet live toegepast (dat doet de workflow na de
@@ -168,24 +168,19 @@ axe 0 overtredingen op alle publieke en auth-pagina's.
 | 33 | Ontwerpprincipe | ok (P2b, P3-A, P4, P10) | geen gradients/glas/paars; tabellen met crème kop en vette bruine labels (orderlijst, facturen, zendingen, statussen), kaarten op mobiel; P10: homepage in dezelfde stijl (geen gradients; als beeld alleen het logo via `BrandLogo` op #EEEBE4) |
 | 34 | Alleen vragen indien nodig | afgerond | alleen bedrijfsgegevens zijn open gebleven (tabel "Open business inputs") |
 | 35 | Aanvullende specificaties | klaar in code (P10); live stappen bij eigenaar | §35.0 (UI alleen Nederlands, `src/lib/i18n/nl.ts`), §35.2, §35.3 (P2a), §35.4, §35.6, §35.14 klaar; P3-A: §35.7 klantkant (orders lezen/wijzigen, annulering aanvragen, documenten, statussen per fase), §35.8 US-adreskaart en `service_rates.enabled` in het wijzigformulier, §35.10 factuurbadges en saldo per valuta; P3-B: §35.7 klant-INSERT (alleen klant-bewerkbare kolommen + `customer_id` uit de database + `parent_order_id`), §35.8 `service_rates.enabled` in het aanmeldformulier en `max_open_orders_per_customer` (fout 54000 netjes getoond), §35.14 verplicht vinkje verboden goederen; overige subsecties in latere fasen; P4-A: §35.2 (privileged writes via server functions met `requireStaff`, staff-client, geen service role), §35.4 (staff doen alle orderwerk; geen admin-only actie geraakt), §35.7 staff-kant (statusvoorwaarden, ontvangen, afhalen met `pay_before_pickup` + override, actie vereist, B2B-waarschuwing, orders voor klanten zonder login, extra pakketten), §35.8 `delivery_available` en `pay_before_pickup`, §35.12 haakpunt "max. één e-mail per klant per actie", §35.13 leesbare statushistorie; P4-B: §35.4 (statussen wijzigen alleen beheerders, zendingen alle staff), §35.7 zendingen (staff-only batches, zelfde verzendwijze, "Status voor hele zending wijzigen" via `change_order_status`, klanten zien een zending alleen met een eigen order erin) en statussen (flexibel, per fase, deactiveren in plaats van verwijderen, "Bezorgd" alleen bij `delivery_available`); P5-A: §35.5 (klant toevoegen, code wijzigen, deactiveren met `ban_duration`), §35.6 (uitnodigen, opnieuw versturen/intrekken, `/invite` paden a/b/c, staff-uitnodiging inwisselen), §35.12 WhatsApp-delen van uitnodigings- en resetlinks (e-mail P8: geen e-mail, de dialoog zegt dat); P5-B: §35.2 Systeemstatus (alleen booleans), §35.4 teampagina (staff lezen, beheerders: medewerker/beheerder uitnodigen met dezelfde tokenregels als klanten, rol wijzigen via `set_user_role` met bescherming van de laatste beheerder, login deactiveren/activeren met reden, resetlink), §35.8 volledig (`/admin/instellingen`: bedrijfsgegevens, facturen, herinneringen, werkwijze, afhalen, voorwaarden/verboden goederen, nummering, bankrekeningen, US-adressen, tarieven; beheerders wijzigen, staff lezen; setup-checklist op het dashboard), §35.9 `set_invoice_counter` (huidig jaar, geweigerd zodra er een factuur is), §35.5 `set_next_customer_number`; P6/P7-A: §35.9 bouwer, concepten, uitgeven via `issueInvoiceFn`, vracht één keer per order, totalen TS == SQL; §35.10 één valuta per factuur, BTW inclusief ("Waarvan BTW"), `formatMoney`/`formatLbs`/dd-mm-jjjj op de factuur; §35.11 factuurdocument (één renderer, exacte sjabloonkleuren, papierformaat, print-CSS, statusmarkeringen); §35.12 P8-haak "factuur aangemaakt" zonder e-mailclaim; P7-B: §35.9 annuleren/corrigeren (`replaces_invoice_id`), zichtbaarheid (klant nooit concepten, nooit ongedaan gemaakte betalingen); §35.10 betalingen (bedrag in factuurvaluta, ontvangen bedrag/valuta ter informatie, "Markeer als betaald" = volledig saldo), ongedaan maken, afgeleide status, achterstallig uit de view, opslag, totalen en saldo per valuta, betaalinstructie; §35.11 print-routes (alleen het document, `document.fonts.ready` + logo, `window.print()`, titel `{nummer} - G&R Solutions`, app-chrome verborgen bij printen); §35.12 "Deel via WhatsApp" voor uitgegeven facturen (portallink alleen voor klanten met login, op APP_URL), P8-haak "betaling ontvangen" zonder e-mailclaim; P8: §35.2 (Systeemstatus: e-mailprovider, CRON_SECRET, laatste herinneringsronde), §35.12 volledig (sendEmail, sjablonen, idempotentiesleutels, herinneringen, cron-route, pg_cron + pg_net + Vault, `/admin/herinneringen`; sinds de reviewronde ook "Deel via WhatsApp" bij statuswijzigingen en ontvangen en op elke herinneringsregel); P9: §35.13 (generieke auditweergave met JSON-lade, leesbare tijdlijnen), §35.15 "Exporteer CSV" (klanten, orders, facturen met regels, betalingen, auditlog) en per-jaar-aggregaten uit de RPC `customer_history_by_year`; P10: §35.14 meta/OG en favicons; §35.15 compleet: `rls_checks.sql` (+ PGlite-test met mutaties), `docs/ACCEPTANCE.md`, `docs/DEPLOYMENT.md` (Vercel-variabelen Node 22/iad1, Lovable-preview, Auth-URL's met exacte hosts, "Confirm email", Resend als SMTP en de auth-sjablonen, Vault, eerste beheerder, reset vóór livegang (§8.2, getest in `deployment_reset.test.ts`), Supabase Pro en Vercel Pro (§9), go-live-checklist bovenaan) |
-| 36 | Eigenaarscorrecties | klaar (2026-10-17, twee rondes) | zie "Bewijs eigenaarscorrecties §36" en "… tweede ronde" hieronder; vervangt waar nodig wat bij §3, §4, §7, §8, §9 en §21 staat (oude voorbeelden als "GR01234", "adresregel 2", "GR67 Air Naam" en de typestap gelden niet meer); nieuw: orderlabels (§36.8) |
+| 36 | Eigenaarscorrecties | klaar (2026-10-17) | zie "Bewijs eigenaarscorrecties §36" en "Bewijs orderlabels §36.8" hieronder; vervangt waar nodig wat bij §3, §4, §7, §8, §9 en §21 staat (oude voorbeelden als "GR01234", "adresregel 2" en de typestap gelden niet meer) |
 
-## Bewijs eigenaarscorrecties §36, tweede ronde (2026-10-17)
+## Bewijs orderlabels §36.8 (2026-10-17)
 
-- **Geen code op het pakket (§36.2).** De eigenaar vond "GR67 Air/Ocean Naam" te veel
-  gedoe: klanten zetten niets voor hun naam, het pakket wordt herkend aan de Track & Trace
-  code. Teruggedraaid in homepage (stap 2 zonder voorbeeldkader, FAQ 1, kaart Zeevracht),
-  US-adreskaart (één naamregel, geen opmerking), aanmeldpagina en -formulier (geen
-  "Op het pakket"-hints), uitnodigingspagina, welkomstmail en orderbevestiging, en de
-  instellingen (geen `{SERVICE}`, geen waarschuwingen; standaard `{FULL_NAME}` en een lege
-  adresregel 2). Klanten kiezen nog wel luchtvracht of zeevracht bij het aanmelden.
-- **Migratie** `20261017140000_order_labels.sql`: adressen met een eerdere standaard
-  (`{FULL_NAME} {GR_CODE}` of `{GR_CODE} {SERVICE} {FULL_NAME}`) krijgen `{FULL_NAME}`,
-  eigen templates blijven; tabel `order_labels` (order, tekst ≤ 30, kleur uit 8, uniek per
-  order zonder hoofdlettergevoeligheid via `label_key`, RLS alleen team, toevoegen en
-  verwijderen, geen wijzigen, auditregels). `order_labels.test.ts` (op een database mét
-  oude adressen), `conventions.test.ts` en `rls_checks.sql` (klant leest/schrijft geen
-  labels; team ziet ze) groen.
+- **Verloop:** de eigenaar vroeg eerst om "GR67 Air/Ocean" op het pakket weg te halen en
+  orders handmatig te labelen; dat weghalen is dezelfde dag op verzoek teruggedraaid
+  (commit "Restore GR code and Air/Ocean on the parcel"): de klantcode en Air/Ocean staan
+  weer vóór de naam zoals in §36.2. De orderlabels zijn gebleven.
+- **Migratie** `20261017140000_order_labels.sql`: tabel `order_labels` (order, tekst ≤ 30,
+  kleur uit 8, uniek per order zonder hoofdlettergevoeligheid via `label_key`, RLS alleen
+  team, toevoegen en verwijderen, geen wijzigen, auditregels). `order_labels.test.ts`,
+  `conventions.test.ts` en `rls_checks.sql` (klant leest/schrijft geen labels; team ziet
+  ze) groen.
 - **App:** `src/lib/admin/order-labels.ts` (+ test): lezen (werkt ook vóór de migratie:
   "Labels werken zodra de databasemigratie is uitgevoerd"), toevoegen aan één of meer
   orders (`upsert … ignoreDuplicates`), verwijderen, labels in gebruik; `OrderLabels.tsx`:
@@ -194,6 +189,10 @@ axe 0 overtredingen op alle publieke en auth-pagina's.
   onder de status (tabel en kaarten), filter **Label** (`?label=`), en **Label toevoegen**
   in de selectiebalk; het auditlog toont "Orderlabels" met de tekst en een link naar de
   order.
+- **Browsercontrole tegen een lokale Supabase-stack:** label toevoegen op de orderpagina,
+  in bulk op twee orders ("toegevoegd aan 2 orders"; een order die het label al had wordt
+  overgeslagen), filter `?label=ocean`, verwijderen, auditregels met wie; via de echte
+  PostgREST. Geen consolefouten.
 
 ## Bewijs eigenaarscorrecties §36 (2026-10-17)
 

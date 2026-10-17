@@ -1,38 +1,13 @@
--- Owner decisions of 2026-10-17, second round (docs/SPEC.md §36):
---
--- 1. Customers write no code on the parcel: no "GR67", no "Air"/"Ocean". The
---    US address is sent to just their name (packages are matched by the Track
---    & Trace code they register). New defaults, and addresses that still have
---    a default name line ('{FULL_NAME} {GR_CODE}' from the start, or
---    '{GR_CODE} {SERVICE} {FULL_NAME}' from 20261017090000) get
---    '{FULL_NAME}'; a line 2 of just '{GR_CODE}' becomes empty. Templates the
---    owner wrote differently stay.
--- 2. Order labels: the team puts free-text labels with a colour on orders
---    (e.g. "Air" or "Ocean"), as many as they like. No preset labels. Only the
---    team sees them; they are added and removed, never edited, and every
---    change is in the audit log. A label is unique per order (ignoring case
---    and surrounding spaces), so labelling the same orders twice is harmless.
+-- Order labels (docs/SPEC.md §36.8): the team puts free-text labels with a
+-- colour on orders (e.g. "Air" or "Ocean"), as many as they like. No preset
+-- labels. Only the team sees them; they are added and removed, never edited,
+-- and every change is in the audit log. A label is unique per order (ignoring
+-- case), so labelling the same orders twice is harmless.
 --
 -- Idempotent. Generated types gain the order_labels table.
 
 -- ===========================================================================
--- 1. US address: just the customer's name
--- ===========================================================================
-
-alter table public.warehouse_addresses
-  alter column recipient_name_template set default '{FULL_NAME}',
-  alter column address_line2_template set default '';
-
-update public.warehouse_addresses
-   set recipient_name_template = '{FULL_NAME}'
- where recipient_name_template in ('{FULL_NAME} {GR_CODE}', '{GR_CODE} {SERVICE} {FULL_NAME}');
-
-update public.warehouse_addresses
-   set address_line2_template = ''
- where address_line2_template = '{GR_CODE}';
-
--- ===========================================================================
--- 2. Order labels
+-- Order labels
 -- ===========================================================================
 
 create table if not exists public.order_labels (

@@ -202,7 +202,16 @@ export function OrderFieldsInputs({
                     {serviceOptions.map((type) => (
                       <ChoiceLabel key={type} selected={field.value === type}>
                         <RadioGroupItem value={type} className="mt-0.5" />
-                        <span className="font-semibold">{t(`portal.serviceTypes.${type}`)}</span>
+                        <span>
+                          <span className="block font-semibold">
+                            {t(`portal.serviceTypes.${type}`)}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {staff
+                              ? t(`admin.newOrder.serviceTypeHints.${type}`)
+                              : t(`portal.orderForm.serviceTypeHints.${type}`)}
+                          </span>
+                        </span>
                       </ChoiceLabel>
                     ))}
                   </RadioGroup>

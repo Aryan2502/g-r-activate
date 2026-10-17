@@ -191,6 +191,44 @@ function SectionHeading({ id, title, intro }: { id: string; title: string; intro
   );
 }
 
+/** Step 2: how the shipping label must read, "GR67 Air Uw naam" (SPEC §36). */
+function AddressExample() {
+  const t = useT();
+  const rows: [string, ReactNode][] = [
+    [
+      t("home.howItWorks.addressExample.nameLabel"),
+      <>
+        <span className="font-heading font-bold tracking-wide text-primary tabular-nums">
+          {t("home.howItWorks.addressExample.code")} {t("home.howItWorks.addressExample.service")}
+        </span>{" "}
+        {t("home.howItWorks.addressExample.nameValue")}
+      </>,
+    ],
+    [
+      t("home.howItWorks.addressExample.addressLabel"),
+      t("home.howItWorks.addressExample.addressValue"),
+    ],
+  ];
+  return (
+    <figure className="mt-3 rounded-md border bg-cream px-4 py-3 text-sm">
+      <figcaption className="font-semibold text-foreground">
+        {t("home.howItWorks.addressExample.title")}
+      </figcaption>
+      <dl className="mt-2 grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="contents">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="min-w-0 break-words font-medium text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+        {t("home.howItWorks.addressExample.note")}
+      </p>
+    </figure>
+  );
+}
+
 function PickupDetails({ info }: { info: PublicCompanyInfo | null }) {
   const t = useT();
   if (!info?.pickup_address && !info?.pickup_hours && !info?.pickup_instructions) return null;
@@ -254,6 +292,7 @@ function HowItWorks({ info }: { info: PublicCompanyInfo | null }) {
                 <p className="mt-1.5 text-sm leading-6 text-muted-foreground sm:text-[15px] sm:leading-7">
                   {t(step.text)}
                 </p>
+                {index === 1 ? <AddressExample /> : null}
                 {index === 2 ? (
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     {withLink(

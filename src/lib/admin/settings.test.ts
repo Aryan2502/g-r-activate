@@ -18,6 +18,7 @@ const {
   termsTextFigures,
   unknownPlaceholders,
   warehouseAddressSchema,
+  warehouseWarnings,
   EMPTY_WAREHOUSE_ADDRESS,
 } = await import("./settings");
 
@@ -188,10 +189,9 @@ describe("bank accounts and US addresses", () => {
     ]);
   });
 
-  it("knows {FULL_NAME} (and the old {GR_CODE}); the name line is just the customer's name (SPEC §36)", () => {
+  it("knows only {FULL_NAME}, {GR_CODE} and {SERVICE}, and warns without code or service", () => {
     expect(unknownPlaceholders("{FULL_NAME} {NAAM} {GR_CODE} {SERVICE} {NAAM}")).toEqual([
       "{NAAM}",
-      "{SERVICE}",
     ]);
     const parsed = warehouseAddressSchema.safeParse({
       ...EMPTY_WAREHOUSE_ADDRESS,
@@ -203,16 +203,19 @@ describe("bank accounts and US addresses", () => {
       expect(fields).toEqual(
         expect.arrayContaining(["label", "recipientTemplate", "line1", "city"]),
       );
-      // Line 2 may stay empty.
+      // Line 2 may stay empty (SPEC §36).
       expect(fields).not.toContain("line2Template");
       expect(parsed.error.issues.find((i) => i.path[0] === "recipientTemplate")?.message).toBe(
-        "Onbekende code {NAAM}: gebruik {FULL_NAME} voor de naam van de klant.",
+        "Onbekende code {NAAM}: gebruik alleen {FULL_NAME}, {GR_CODE} en {SERVICE}.",
       );
     }
     expect(EMPTY_WAREHOUSE_ADDRESS).toMatchObject({
-      recipientTemplate: "{FULL_NAME}",
+      recipientTemplate: "{GR_CODE} {SERVICE} {FULL_NAME}",
       line2Template: "",
     });
+    expect(warehouseWarnings(EMPTY_WAREHOUSE_ADDRESS)).toEqual([]);
+    expect(warehouseWarnings({ recipientTemplate: "{GR_CODE} {FULL_NAME}" })).toHaveLength(1);
+    expect(warehouseWarnings({ recipientTemplate: "{FULL_NAME}" })).toHaveLength(2);
   });
 });
 

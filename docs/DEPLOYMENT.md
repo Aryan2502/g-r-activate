@@ -22,9 +22,9 @@ only when its check passes.
       `supabase_migrations.schema_migrations` lists all ten files (the newest
       `20261017140000 | order_labels`).
 - [ ] **Settings** (`/admin/instellingen`): company details (phone +597 7589695), the three
-      bank accounts, the US warehouse address (the name line is just `{FULL_NAME}`: customers
-      write no code on the parcel), rates per lb for air **and** sea freight, pickup hours,
-      terms and prohibited goods. Leave
+      bank accounts, the US warehouse address (one address serves Air and Ocean: keep the
+      name line `{GR_CODE} {SERVICE} {FULL_NAME}`), rates per lb for air **and** sea
+      freight, pickup hours, terms and prohibited goods. Leave
       the numbering (invoice counter, next customer code) for after the reset: the reset
       puts both back. Check: the dashboard's "Nog in te stellen" list is empty.
 - [ ] **E-mail** (§5, §6): Resend domain verified; `RESEND_API_KEY`, `EMAIL_FROM`,
@@ -211,10 +211,10 @@ to the project by the workflow: the three P2a foundation files,
 `20261007150000_p5_customers.sql`, `20261008090000_p8_reminders.sql` and
 `20261008120000_p10_review_hardening.sql`. The ninth and tenth are applied by the workflow
 when they reach `main` (SPEC §36): `20261017090000_owner_corrections.sql` (customer codes
-without leading zeros, the phone number +597 7589695, sea freight switched on) and
-`20261017140000_order_labels.sql` (the US address name line becomes just the customer's
-name; the `order_labels` table for the team's labels). Check in the SQL editor (ten rows,
-the newest `20261017140000 | order_labels`):
+without leading zeros, the phone number +597 7589695, sea freight switched on, the US
+address name line "GR67 Air Naam" / "GR67 Ocean Naam") and
+`20261017140000_order_labels.sql` (the `order_labels` table for the team's labels). Check
+in the SQL editor (ten rows, the newest `20261017140000 | order_labels`):
 
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;

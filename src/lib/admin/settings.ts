@@ -737,14 +737,15 @@ export async function saveBankAccount(
 // US warehouse addresses (SPEC §35.8; never invented or seeded)
 // ---------------------------------------------------------------------------
 
-/**
- * The customer's name. The parcel carries no code (SPEC §36); {GR_CODE} is
- * still filled in for an address written with it, but no longer offered.
- */
-export const ADDRESS_PLACEHOLDERS = ["{FULL_NAME}", "{GR_CODE}"] as const;
+/** {SERVICE} is Air or Ocean (SPEC §36): "GR67 Air Maria Pinas". */
+export const ADDRESS_PLACEHOLDERS = ["{FULL_NAME}", "{GR_CODE}", "{SERVICE}"] as const;
 
-/** For texts that mention the placeholder literally ("gebruik {FULL_NAME} …"). */
-export const PLACEHOLDER_VARS = { FULL_NAME: "{FULL_NAME}" } as const;
+/** For texts that mention the placeholders literally ("gebruik {FULL_NAME} …"). */
+export const PLACEHOLDER_VARS = {
+  FULL_NAME: "{FULL_NAME}",
+  GR_CODE: "{GR_CODE}",
+  SERVICE: "{SERVICE}",
+} as const;
 
 /** {SOMETHING} that the portal would not fill in. */
 export function unknownPlaceholders(template: string): string[] {
@@ -788,7 +789,7 @@ export type WarehouseAddressData = z.output<typeof warehouseAddressSchema>;
 export const EMPTY_WAREHOUSE_ADDRESS: WarehouseAddressValues = {
   label: "",
   serviceType: "air",
-  recipientTemplate: "{FULL_NAME}",
+  recipientTemplate: "{GR_CODE} {SERVICE} {FULL_NAME}",
   line1: "",
   line2Template: "",
   city: "",
@@ -813,6 +814,21 @@ export function warehouseInputValues(row: WarehouseAddressRow): WarehouseAddress
     phone: row.phone ?? "",
     active: row.is_active ? "true" : "false",
   };
+}
+
+/**
+ * The customer writes the GR code and Air or Ocean in front of the name
+ * (SPEC §36); a name template without them is allowed, with a warning.
+ */
+export function warehouseWarnings(values: Pick<WarehouseAddressValues, "recipientTemplate">) {
+  const warnings: string[] = [];
+  if (!values.recipientTemplate.includes("{GR_CODE}")) {
+    warnings.push(t("admin.settings.warehouse.recipientWithoutCode", PLACEHOLDER_VARS));
+  }
+  if (!values.recipientTemplate.includes("{SERVICE}")) {
+    warnings.push(t("admin.settings.warehouse.recipientWithoutService", PLACEHOLDER_VARS));
+  }
+  return warnings;
 }
 
 function warehouseRow(values: WarehouseAddressData) {

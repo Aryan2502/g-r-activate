@@ -132,14 +132,31 @@ describe("account e-mails", () => {
       fullName: "Alice Jansen",
       customerCode: "GR42",
       email: "alice@example.com",
-      addresses: [{ title: "Miami (Luchtvracht)", lines: ["Alice Jansen", "8000 NW 25th St"] }],
+      addresses: [
+        { title: "Miami (Luchtvracht)", lines: ["GR42 Air Alice Jansen", "8000 NW 25th St"] },
+        { title: "Miami (Zeevracht)", lines: ["GR42 Ocean Alice Jansen", "8000 NW 25th St"] },
+      ],
+      serviceInName: true,
     });
     expect(mail.html).toContain("Uw persoonlijk US-verzendadres");
     expect(mail.text).toContain("UW PERSOONLIJK US-VERZENDADRES");
-    expect(mail.text).toContain("Alice Jansen\n8000 NW 25th St");
-    // No code on the parcel (SPEC §36): the Track & Trace code identifies it.
-    expect(mail.text).toContain("Laat de winkel uw pakket gewoon op uw eigen naam sturen.");
-    expect(mail.text).not.toMatch(/achter uw naam|vóór uw naam|Air|Ocean/);
+    expect(mail.text).toContain("GR42 Air Alice Jansen\n8000 NW 25th St");
+    expect(mail.text).toContain("GR42 Ocean Alice Jansen\n8000 NW 25th St");
+    expect(mail.text).toContain(
+      "Zet altijd uw klantcode GR42 vóór uw naam, met Air (luchtvracht) of Ocean (zeevracht) erachter, precies zoals hierboven.",
+    );
+    // An address template without {SERVICE}: no word about Air or Ocean.
+    const plain = welcomeEmail({
+      brand,
+      kind: "customer",
+      fullName: "Alice Jansen",
+      customerCode: "GR42",
+      email: "alice@example.com",
+      addresses: [{ title: "Miami", lines: ["Alice Jansen GR42", "8000 NW 25th St"] }],
+    });
+    expect(plain.text).toContain(
+      "Zet altijd uw klantcode GR42 bij uw naam, precies zoals hierboven.",
+    );
   });
 });
 
@@ -171,7 +188,7 @@ describe("order e-mails", () => {
     expect(hrefs(mail.html)).toEqual([]);
     expect(mail.text).toContain("Trackingnummer: Nog niet bekend");
     expect(mail.text).toContain("als antwoord op deze e-mail");
-    expect(mail.text).toContain("Laat het pakket op uw eigen naam bezorgen op ons US-adres");
+    expect(mail.text).toContain("met GR17 Air vóór uw naam, zoals in het klantportaal");
     expect(mail.text).not.toContain("uitnodiging");
     expect(mail.html).not.toContain("<img src=x");
   });

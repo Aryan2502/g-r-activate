@@ -26,7 +26,7 @@ No e-mail is ever sent to these addresses (`example.com` does not receive mail).
 Lost the passwords? Run the same script again: the accounts get new passwords; the demo
 data is not duplicated.
 
-The demo data: Demo Klant has a registered order (by sea freight), one in transit, one
+The demo data: Demo Klant has a registered order (by sea, Ocean), one in transit, one
 ready for pickup with an open invoice, and one picked up with a paid invoice. Demo Bedrijf
 N.V. has a B2B order at customs (made by G&R: customers register personal orders only,
 SPEC §36). Everything else (inviting customers, receiving packages, making invoices) you
