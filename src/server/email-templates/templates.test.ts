@@ -78,7 +78,7 @@ describe("account e-mails", () => {
       brand,
       kind: "customer",
       fullName: "Alice Jansen",
-      customerCode: "GR00042",
+      customerCode: "GR42",
       staffRole: null,
       email: "alice@example.com",
       link: `${APP}/invite/abc`,
@@ -88,7 +88,7 @@ describe("account e-mails", () => {
     expect(mail.subject).toBe("Uw uitnodiging voor het klantportaal van G&R SOLUTIONS N.V.");
     expect(hrefs(mail.html)).toEqual([`${APP}/invite/abc`, `${APP}/invite/abc`]);
     expect(mail.text).toContain("Beste Alice,");
-    expect(mail.text).toContain("GR00042");
+    expect(mail.text).toContain("GR42");
     expect(mail.text).toContain("alice@example.com");
     expect(mail.text).toContain("geldig tot 14-10-2026");
   });
@@ -130,23 +130,38 @@ describe("account e-mails", () => {
       brand,
       kind: "customer",
       fullName: "Alice Jansen",
-      customerCode: "GR00042",
+      customerCode: "GR42",
       email: "alice@example.com",
       addresses: [
-        { title: "Miami (Luchtvracht)", lines: ["Alice Jansen GR00042", "8000 NW 25th St"] },
+        { title: "Miami (Luchtvracht)", lines: ["GR42 Air Alice Jansen", "8000 NW 25th St"] },
+        { title: "Miami (Zeevracht)", lines: ["GR42 Ocean Alice Jansen", "8000 NW 25th St"] },
       ],
+      serviceInName: true,
     });
     expect(mail.html).toContain("Uw persoonlijk US-verzendadres");
     expect(mail.text).toContain("UW PERSOONLIJK US-VERZENDADRES");
-    expect(mail.text).toContain("Alice Jansen GR00042\n8000 NW 25th St");
+    expect(mail.text).toContain("GR42 Air Alice Jansen\n8000 NW 25th St");
+    expect(mail.text).toContain("GR42 Ocean Alice Jansen\n8000 NW 25th St");
     expect(mail.text).toContain(
-      "Zet altijd uw klantcode GR00042 achter uw naam én op adresregel 2.",
+      "Zet altijd uw klantcode GR42 vóór uw naam, met Air (luchtvracht) of Ocean (zeevracht) erachter, precies zoals hierboven.",
+    );
+    // An address template without {SERVICE}: no word about Air or Ocean.
+    const plain = welcomeEmail({
+      brand,
+      kind: "customer",
+      fullName: "Alice Jansen",
+      customerCode: "GR42",
+      email: "alice@example.com",
+      addresses: [{ title: "Miami", lines: ["Alice Jansen GR42", "8000 NW 25th St"] }],
+    });
+    expect(plain.text).toContain(
+      "Zet altijd uw klantcode GR42 bij uw naam, precies zoals hierboven.",
     );
   });
 });
 
 describe("order e-mails", () => {
-  const customer = { fullName: "Bob Bakker", customerCode: "GR00017", email: "bob@example.com" };
+  const customer = { fullName: "Bob Bakker", customerCode: "GR17", email: "bob@example.com" };
   const order = {
     id: "o1",
     reference: "ORD-2026-00014",
@@ -173,6 +188,7 @@ describe("order e-mails", () => {
     expect(hrefs(mail.html)).toEqual([]);
     expect(mail.text).toContain("Trackingnummer: Nog niet bekend");
     expect(mail.text).toContain("als antwoord op deze e-mail");
+    expect(mail.text).toContain("met GR17 Air vóór uw naam, zoals in het klantportaal");
     expect(mail.text).not.toContain("uitnodiging");
     expect(mail.html).not.toContain("<img src=x");
   });
@@ -225,7 +241,7 @@ describe("invoice e-mails (from the snapshots)", () => {
         payment_terms_text: "Binnen 1 week betalen.",
         bank_accounts: [{ currency: "SRD", bank_name: "Hakrinbank", account_number: "20.0001" }],
       },
-      bill_to_snapshot: { customer_code: "GR00017", full_name: "Bob Bakker" },
+      bill_to_snapshot: { customer_code: "GR17", full_name: "Bob Bakker" },
     },
     [
       {
@@ -260,9 +276,7 @@ describe("invoice e-mails (from the snapshots)", () => {
     expect(mail.text).toContain("Totaal prijs SRD 1.437,50");
     expect(mail.text).toContain("Opslag te late betaling (12,5%)");
     expect(mail.text).toContain("Rekeningnummer: 20.0001");
-    expect(mail.text).toContain(
-      "Factuurvaluta: SRD · Vermeld bij betaling: INV-2026-0003 / GR00017",
-    );
+    expect(mail.text).toContain("Factuurvaluta: SRD · Vermeld bij betaling: INV-2026-0003 / GR17");
     expect(mail.text).toContain("Er staat een uitnodiging voor u klaar");
     expect(hrefs(mail.html)).toEqual([]);
   });
@@ -298,7 +312,7 @@ describe("invoice e-mails (from the snapshots)", () => {
         vat_rate: null,
         vat_amount: null,
         issuer_snapshot: { company_name: "G&R SOLUTIONS N.V." },
-        bill_to_snapshot: { customer_code: "GR00017", full_name: "Bob Bakker" },
+        bill_to_snapshot: { customer_code: "GR17", full_name: "Bob Bakker" },
       },
       [
         {

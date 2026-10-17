@@ -35,7 +35,7 @@ const valid: OrderFieldsInput = {
   estimatedValueCurrency: "USD",
   purchaseDate: "2026-10-01",
   expectedDeliveryDate: "",
-  trackingNumber: "",
+  trackingNumber: "1Z999AA10123456784",
   carrier: "",
   declaredWeightLbs: "",
   customerNote: "",
@@ -52,10 +52,10 @@ const issues = (patch: Partial<OrderFieldsInput>) => {
 };
 
 describe("orderRegistrationFieldsSchema", () => {
-  it("accepts a minimal order: tracking, carrier, weight and delivery date are optional", () => {
+  it("accepts a minimal order: carrier, weight and delivery date are optional", () => {
     const parsed = orderRegistrationFieldsSchema.parse(valid);
     expect(toOrderColumns(parsed)).toMatchObject({
-      tracking_number: null,
+      tracking_number: "1Z999AA10123456784",
       carrier: null,
       declared_weight_lbs: null,
       expected_delivery_date: null,
@@ -64,14 +64,21 @@ describe("orderRegistrationFieldsSchema", () => {
     });
   });
 
-  it("requires store, description, value and purchase date, all on the first submit", () => {
+  it("requires store, description, value, purchase date and Track & Trace code, all on the first submit", () => {
     expect(
-      issues({ storeVendor: "  ", description: "", estimatedValue: " ", purchaseDate: "" }),
+      issues({
+        storeVendor: "  ",
+        description: "",
+        estimatedValue: " ",
+        purchaseDate: "",
+        trackingNumber: " ",
+      }),
     ).toEqual({
       storeVendor: t("portal.orderForm.validation.storeRequired"),
       description: t("portal.orderForm.validation.descriptionRequired"),
       estimatedValue: t("portal.orderForm.validation.valueRequired"),
       purchaseDate: t("portal.orderForm.validation.purchaseDateRequired"),
+      trackingNumber: t("portal.orderForm.validation.trackingRequired"),
     });
   });
 
@@ -302,12 +309,9 @@ describe("parseRegisterOrderInput() (registerOrderFn's validator)", () => {
 });
 
 describe("newOrderPageSearchSchema", () => {
-  it("keeps a valid parent and type and drops anything else", () => {
+  it("keeps a valid parent and drops anything else, an old ?type= included", () => {
     const parent = "a0000000-0000-4000-8000-000000000001";
-    expect(newOrderPageSearchSchema.parse({ parent, type: "b2b" })).toEqual({
-      parent,
-      type: "b2b",
-    });
+    expect(newOrderPageSearchSchema.parse({ parent, type: "b2b" })).toEqual({ parent });
     expect(newOrderPageSearchSchema.parse({ parent: "x", type: "rocket" })).toEqual({});
     expect(newOrderPageSearchSchema.parse({})).toEqual({});
   });
@@ -338,6 +342,7 @@ describe("extra package (root order)", () => {
       estimatedValue: "",
       estimatedValueCurrency: "EUR",
       purchaseDate: "2026-09-20",
+      trackingNumber: "",
       supplierName: "Shenzhen Pack Co.",
       clientPoNumber: "KLANT-PO-7",
       purchaseMode: "gr_purchases",
@@ -380,9 +385,9 @@ describe("extra package (root order)", () => {
 });
 
 describe("newOrderDefaults()", () => {
-  it("starts a new order empty with quantity 1, USD and the chosen type", () => {
-    expect(newOrderDefaults({ orderType: "b2b", serviceTypes: ["air"] })).toMatchObject({
-      orderType: "b2b",
+  it("starts a new order empty: personal, quantity 1, USD (SPEC §36)", () => {
+    expect(newOrderDefaults({ serviceTypes: ["air"] })).toMatchObject({
+      orderType: "personal",
       serviceType: "air",
       quantity: "1",
       estimatedValueCurrency: "USD",

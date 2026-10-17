@@ -324,7 +324,7 @@ describe("schema", () => {
     expect(r.is_generated).toBe("s");
     await expectSqlError(
       asUser(db, p.admin.id, (tx) =>
-        tx.query("update public.customers set customer_code = 'GR00001' where id = $1", [
+        tx.query("update public.customers set customer_code = 'GR1' where id = $1", [
           p.aliceCustomer,
         ]),
       ),
@@ -365,7 +365,7 @@ describe("sign-up trigger (private.handle_new_user)", () => {
       updated_by: u.id,
     });
     expect(c.terms_accepted_at).toBeInstanceOf(Date);
-    expect(c.customer_code).toBe(`GR${String(c.customer_number).padStart(5, "0")}`);
+    expect(c.customer_code).toBe(`GR${c.customer_number}`);
     expect(c.customer_number).toBeGreaterThanOrEqual(100);
 
     // Replaying the confirmation (GoTrue may touch the column again) changes nothing.
@@ -389,7 +389,7 @@ describe("sign-up trigger (private.handle_new_user)", () => {
       email: "mallory@example.com",
       meta: {
         full_name: "Mallory",
-        customer_code: "GR00001",
+        customer_code: "GR1",
         customer_number: 1,
         status: "disabled",
         role: "admin",
@@ -572,15 +572,16 @@ describe("customer numbers and GR codes", () => {
       "select customer_code, user_id from public.customers order by customer_number",
     );
     expect(codes).toEqual([
-      { customer_code: "GR00100", user_id: null }, // the bootstrap admin, unlinked
-      { customer_code: "GR00101", user_id: np.alice.id },
-      { customer_code: "GR00102", user_id: np.bob.id },
-      { customer_code: "GR00103", user_id: np.carol.id },
+      { customer_code: "GR100", user_id: null }, // the bootstrap admin, unlinked
+      { customer_code: "GR101", user_id: np.alice.id },
+      { customer_code: "GR102", user_id: np.bob.id },
+      { customer_code: "GR103", user_id: np.carol.id },
     ]);
   });
 
   it("parses admin input into a number", async () => {
     const ok: Array<[string, number]> = [
+      ["GR17", 17],
       ["GR00017", 17],
       ["gr00017", 17],
       [" GR 17 ", 17],
@@ -617,7 +618,7 @@ describe("customer numbers and GR codes", () => {
     });
     expect(given).toMatchObject({
       customer_number: 17,
-      customer_code: "GR00017",
+      customer_code: "GR17",
       status: "active",
       user_id: null,
       created_by: np.staff.id,
@@ -631,18 +632,18 @@ describe("customer numbers and GR codes", () => {
     expect(peek.n).toBe(104);
     const a = await createCustomerAs(num, np.staff.id, { full_name: "Gen A" });
     const b = await createCustomerAs(num, np.staff.id, { full_name: "Gen B" });
-    expect([a.customer_code, b.customer_code]).toEqual(["GR00104", "GR00106"]);
+    expect([a.customer_code, b.customer_code]).toEqual(["GR104", "GR106"]);
   });
 
   it("rejects a duplicate code with the Dutch message", async () => {
-    await createCustomerAs(num, np.staff.id, { full_name: "Hanna Holder", code: "GR00042" });
+    await createCustomerAs(num, np.staff.id, { full_name: "Hanna Holder", code: "GR42" });
     const err = await expectSqlError(
       asUser(num, np.staff.id, (tx) =>
         tx.query("select public.create_customer('Someone Else', '+597 1', null, 'GR 42')"),
       ),
       "23505",
     );
-    expect(err.message).toBe("GR00042 is al toegewezen aan Hanna Holder");
+    expect(err.message).toBe("GR42 is al toegewezen aan Hanna Holder");
   });
 
   it("validates create_customer input", async () => {
@@ -669,7 +670,7 @@ describe("customer numbers and GR codes", () => {
       );
       await expectSqlError(
         call("select public.create_customer('Ivy', '+597 1', _email => 'ALICE@example.com')"),
-        /E-mailadres alice@example.com is al in gebruik bij GR00101/,
+        /E-mailadres alice@example.com is al in gebruik bij GR101/,
       );
       const biz = await one<Customer>(
         tx,
@@ -710,7 +711,7 @@ describe("customer numbers and GR codes", () => {
         return one<Customer>(tx, "select * from public.create_customer('Retry Ria', '+597 1')");
       });
       // 104 lost the race (and was rolled back with the failed attempt); 105 won.
-      expect(c.customer_code).toBe("GR00105");
+      expect(c.customer_code).toBe("GR105");
     } finally {
       await own.close();
     }
@@ -757,7 +758,7 @@ describe("customer numbers and GR codes", () => {
     );
 
     const c = await createCustomerAs(num, np.staff.id, { full_name: "After Reset" });
-    expect(c.customer_code).toBe("GR00500");
+    expect(c.customer_code).toBe("GR500");
 
     // Going back below a number the generator already issued is refused, even
     // when that number is no longer in use.
@@ -774,7 +775,7 @@ describe("customer numbers and GR codes", () => {
     for (const user of [np.staff, np.alice, np.carol]) {
       await expectSqlError(
         asUser(num, user.id, (tx) =>
-          tx.query("select public.change_customer_code($1, 'GR00777', 'test')", [target.id]),
+          tx.query("select public.change_customer_code($1, 'GR777', 'test')", [target.id]),
         ),
         "42501",
       );
@@ -789,21 +790,21 @@ describe("customer numbers and GR codes", () => {
             reason,
           ]),
         );
-      await expectSqlError(call("GR00777", null), /reden is verplicht/);
-      await expectSqlError(call("GR00777", "   "), /reden is verplicht/);
-      await expectSqlError(call("GR00101", "typo"), /GR00101 is al toegewezen aan Alice Jansen/);
+      await expectSqlError(call("GR777", null), /reden is verplicht/);
+      await expectSqlError(call("GR777", "   "), /reden is verplicht/);
+      await expectSqlError(call("GR101", "typo"), /GR101 is al toegewezen aan Alice Jansen/);
       await expectSqlError(call("ABC", "typo"), "22023");
       await expectSqlError(
         withSavepoint(tx, () =>
-          tx.query("select public.change_customer_code($1, 'GR00778', 'x')", [crypto.randomUUID()]),
+          tx.query("select public.change_customer_code($1, 'GR778', 'x')", [crypto.randomUUID()]),
         ),
         "P0002",
       );
 
       const changed = await call("gr 777", "Bestaande klant, oude code uit Excel");
-      expect(changed).toMatchObject({ customer_number: 777, customer_code: "GR00777" });
+      expect(changed).toMatchObject({ customer_number: 777, customer_code: "GR777" });
       // The same code again is a no-op, not an error.
-      expect((await call("GR00777", "again")).customer_code).toBe("GR00777");
+      expect((await call("GR777", "again")).customer_code).toBe("GR777");
 
       const audit = await one<{
         actor_id: string;
@@ -821,7 +822,7 @@ describe("customer numbers and GR codes", () => {
       expect(audit.changed_columns).toEqual(["customer_code", "customer_number"]);
       expect(audit.reason).toBe("Bestaande klant, oude code uit Excel");
       expect(audit.old_data.customer_code).toBe(target.customer_code);
-      expect(audit.new_data.customer_code).toBe("GR00777");
+      expect(audit.new_data.customer_code).toBe("GR777");
       // The flags do not leak into later statements of the transaction.
       expect(
         await one(
@@ -869,16 +870,16 @@ describe("customer numbers and GR codes", () => {
       await own.query("insert into public.invoices (customer_id, status) values ($1, 'draft')", [
         op.aliceCustomer,
       ]);
-      await change(op.aliceCustomer, "GR00011"); // a draft does not freeze the code
+      await change(op.aliceCustomer, "GR11"); // a draft does not freeze the code
 
       await own.query("insert into public.invoices (customer_id, status) values ($1, 'open')", [
         op.aliceCustomer,
       ]);
-      await expectSqlError(change(op.aliceCustomer, "GR00012"), "55000");
+      await expectSqlError(change(op.aliceCustomer, "GR12"), "55000");
 
       await own.query("insert into public.orders (customer_id) values ($1)", [op.bobCustomer]);
-      const err = await expectSqlError(change(op.bobCustomer, "GR00013"), "55000");
-      expect(err.message).toMatch(/GR00102 kan niet meer worden gewijzigd/);
+      const err = await expectSqlError(change(op.bobCustomer, "GR13"), "55000");
+      expect(err.message).toMatch(/GR102 kan niet meer worden gewijzigd/);
     } finally {
       await own.close();
     }
@@ -912,17 +913,17 @@ describe("customer numbers and GR codes", () => {
           )
         ).map((r) => [r.customer_number, r.customer_id]);
 
-      // Staff type GR00110 (meant GR00015, above the generator); an admin fixes it.
-      const typo = await create("Tim Tikfout", "GR00110");
-      await changeCode(typo.id, "GR00015");
+      // Staff type GR110 (meant GR15, above the generator); an admin fixes it.
+      const typo = await create("Tim Tikfout", "GR110");
+      await changeCode(typo.id, "GR15");
       // A self-registered customer moves to their legacy code.
       const xavier = await createAuthUser(own, {
         email: "xavier@example.com",
         meta: { full_name: "Xavier" },
       });
       const x = await requireCustomer(own, xavier.id);
-      expect(x.customer_code).toBe("GR00104");
-      await changeCode(x.id, "GR00017");
+      expect(x.customer_code).toBe("GR104");
+      await changeCode(x.id, "GR17");
       expect(await retired()).toEqual([
         [104, x.id],
         [110, typo.id],
@@ -931,17 +932,9 @@ describe("customer numbers and GR codes", () => {
       // The generator skips them...
       const generated: string[] = [];
       for (let i = 0; i < 7; i++) generated.push((await create(`Nieuw ${i}`)).customer_code);
-      expect(generated).toEqual([
-        "GR00105",
-        "GR00106",
-        "GR00107",
-        "GR00108",
-        "GR00109",
-        "GR00111",
-        "GR00112",
-      ]);
+      expect(generated).toEqual(["GR105", "GR106", "GR107", "GR108", "GR109", "GR111", "GR112"]);
       // ...and nobody can type them in: create_customer, a direct insert or a code change.
-      for (const code of ["GR00110", "GR00104"]) {
+      for (const code of ["GR110", "GR104"]) {
         const err = await expectSqlError(create("Yvonne", code), "23505");
         expect(err.message).toBe(`${code} is eerder gebruikt en wordt niet opnieuw uitgegeven`);
       }
@@ -951,10 +944,10 @@ describe("customer numbers and GR codes", () => {
         ),
         "23505",
       );
-      await expectSqlError(changeCode(op.bobCustomer, "GR00110"), "23505");
+      await expectSqlError(changeCode(op.bobCustomer, "GR110"), "23505");
 
       // The customer who gave a number up may take it back (an undone change).
-      expect((await changeCode(typo.id, "GR00110")).customer_code).toBe("GR00110");
+      expect((await changeCode(typo.id, "GR110")).customer_code).toBe("GR110");
       expect(await retired()).toEqual([
         [15, typo.id],
         [104, x.id],
@@ -971,14 +964,14 @@ describe("customer numbers and GR codes", () => {
       ).toEqual({ n: gone.customer_number + 1 });
 
       // set_next_customer_number stays above every retired number.
-      const high = await create("Hoog", "GR00300");
-      await changeCode(high.id, "GR00018");
+      const high = await create("Hoog", "GR300");
+      await changeCode(high.id, "GR18");
       await asUser(own, op.admin.id, async (tx) => {
         const err = await expectSqlError(
           withSavepoint(tx, () => tx.query("select public.set_next_customer_number(250)")),
           "22023",
         );
-        expect(err.message).toMatch(/GR00300 is eerder gebruikt/);
+        expect(err.message).toMatch(/GR300 is eerder gebruikt/);
         expect(await one(tx, "select public.set_next_customer_number(301) as n")).toEqual({
           n: 301,
         });
@@ -1114,7 +1107,7 @@ describe("customers: row access", () => {
       "select public.create_customer('X', '1')",
       "select public.peek_next_customer_number()",
       "select public.set_next_customer_number(5000)",
-      `select public.change_customer_code('${p.aliceCustomer}', 'GR00001', 'x')`,
+      `select public.change_customer_code('${p.aliceCustomer}', 'GR1', 'x')`,
       `select public.set_user_role('${p.alice.id}', 'admin', true)`,
     ];
     for (const user of [p.alice, p.carol]) {
@@ -1162,7 +1155,7 @@ describe("customers: row access", () => {
         "insert into public.customers (full_name, phone, created_by) values ('Direct D', '+597 2', $1) returning *",
         [p.alice.id],
       );
-      expect(direct.customer_code).toMatch(/^GR\d{5}$/);
+      expect(direct.customer_code).toMatch(/^GR[1-9]\d*$/);
       expect(direct.created_by).toBe(p.staff.id);
       await expectSqlError(
         withSavepoint(tx, () =>
@@ -1236,7 +1229,7 @@ describe("customers: row access", () => {
             p.bobCustomer,
           ]),
         ),
-        /al in gebruik bij GR\d{5} \(Alice Jansen\)/,
+        /al in gebruik bij GR[1-9]\d* \(Alice Jansen\)/,
       );
     });
   });
@@ -1468,7 +1461,7 @@ describe("invitations", () => {
     const c = await createCustomerAs(inv, ip.staff.id, {
       full_name: "Dirk Doe",
       email: "dirk@example.com",
-      code: "GR00017",
+      code: "GR17",
     });
     const { id } = await inviteAs(inv, ip.staff.id, {
       customer_id: c.id,
@@ -1726,7 +1719,7 @@ describe("invitations", () => {
     const c = await createCustomerAs(inv, ip.staff.id, {
       full_name: "Hugo Hendriks",
       email: "hugo@example.com",
-      code: "GR00023",
+      code: "GR23",
     });
     const { id, token_hash } = await inviteAs(inv, ip.staff.id, {
       customer_id: c.id,
@@ -1741,7 +1734,7 @@ describe("invitations", () => {
       kind: "customer",
       email: "hugo@example.com",
       customer_id: c.id,
-      customer_code: "GR00023",
+      customer_code: "GR23",
       full_name: "Hugo Hendriks",
       accepted_at: null,
       revoked_at: null,
@@ -1781,7 +1774,7 @@ describe("invitations", () => {
 
     expect(await requireCustomer(inv, hugo.id)).toMatchObject({
       id: c.id,
-      customer_code: "GR00023",
+      customer_code: "GR23",
       status: "active",
       updated_by: hugo.id,
     });
@@ -1801,7 +1794,7 @@ describe("invitations", () => {
       await asUser(inv, hugo.id, (tx) =>
         rows<{ customer_code: string }>(tx, "select customer_code from public.customers"),
       ),
-    ).toEqual([{ customer_code: "GR00023" }]);
+    ).toEqual([{ customer_code: "GR23" }]);
 
     // Another account cannot reuse the link.
     const other = await createAuthUser(inv, {
@@ -2146,7 +2139,8 @@ describe("company settings and reference data", () => {
       company_name: "G&R SOLUTIONS N.V.",
       tagline: "CUSTOMS BROKERAGE & LOGISTICS",
       email: "info@grsolutions.sr",
-      phone: "5978897500",
+      // §36: the seeded 5978897500 is replaced by the owner's number.
+      phone: "+597 7589695",
       address: "kwattaweg #22",
       kkf_number: null,
       btw_number: null,
@@ -2241,7 +2235,7 @@ describe("company settings and reference data", () => {
       expect(r).toEqual({ pickup_hours: "ma-vr 9:00-17:00", updated_by: p.admin.id });
       const audit = await one<{ actor_id: string; record_id: string; changed_columns: string[] }>(
         tx,
-        "select actor_id, record_id, changed_columns from public.audit_log where table_name = 'company_settings'",
+        "select actor_id, record_id, changed_columns from public.audit_log where table_name = 'company_settings' and actor_id is not null",
       );
       expect(audit).toEqual({
         actor_id: p.admin.id,
@@ -2357,8 +2351,9 @@ describe("company settings and reference data", () => {
          values ('Luchtvracht', 'air', '1 Test Street', 'Testville', 'FL', '00000') returning *`,
         );
         expect(a).toMatchObject({
-          recipient_name_template: "{FULL_NAME} {GR_CODE}",
-          address_line2_template: "{GR_CODE}",
+          // §36: "GR67 Air Naam" / "GR67 Ocean Naam", nothing on line 2.
+          recipient_name_template: "{GR_CODE} {SERVICE} {FULL_NAME}",
+          address_line2_template: "",
           is_active: true,
           created_by: p.admin.id,
         });
@@ -2390,7 +2385,7 @@ describe("company settings and reference data", () => {
     }
   });
 
-  it("seeds service rates (air on without a rate, sea off); customers see enabled ones", async () => {
+  it("seeds service rates (air and, since §36, sea on without a rate); customers see enabled ones", async () => {
     expect(
       await rows(
         db,
@@ -2407,18 +2402,20 @@ describe("company settings and reference data", () => {
       },
       {
         service_type: "sea",
-        enabled: false,
+        enabled: true,
         rate_per_lb: null,
         currency: "USD",
         minimum_billable_lbs: null,
         weight_rounding: "none",
       },
     ]);
+    await db.query("update public.service_rates set enabled = false where service_type = 'sea'");
     expect(
       await asUser(db, p.alice.id, (tx) =>
         rows(tx, "select service_type from public.service_rates"),
       ),
     ).toEqual([{ service_type: "air" }]);
+    await db.query("update public.service_rates set enabled = true where service_type = 'sea'");
     expect(
       await asUser(db, p.staff.id, (tx) =>
         rows(tx, "select service_type from public.service_rates"),
@@ -2436,7 +2433,7 @@ describe("company settings and reference data", () => {
       expect(r).toEqual({ rate_per_lb: "4.50", minimum_billable_lbs: "1.00" });
       const audit = await one(
         tx,
-        "select record_id, actor_id from public.audit_log where table_name = 'service_rates'",
+        "select record_id, actor_id from public.audit_log where table_name = 'service_rates' and actor_id is not null",
       );
       expect(audit).toEqual({ record_id: "air", actor_id: p.admin.id });
       await expectSqlError(

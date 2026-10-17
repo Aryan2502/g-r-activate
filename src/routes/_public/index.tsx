@@ -1,7 +1,6 @@
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import {
-  Building2,
   ChevronDown,
   CircleCheck,
   ClipboardList,
@@ -14,11 +13,11 @@ import {
   Phone,
   Plane,
   ReceiptText,
+  Ship,
   ShoppingCart,
   Tag,
   Truck,
   UserPlus,
-  UserRound,
 } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -51,14 +50,10 @@ const steps: Item[] = [
   { icon: PackageCheck, title: "home.howItWorks.step5Title", text: "home.howItWorks.step5Text" },
 ];
 
-const orderTypes: Item[] = [
-  { icon: UserRound, title: "home.orderTypes.personalTitle", text: "home.orderTypes.personalText" },
-  { icon: Building2, title: "home.orderTypes.b2bTitle", text: "home.orderTypes.b2bText" },
-];
-
 const services: Item[] = [
   { icon: FileCheck2, title: "home.services.customsTitle", text: "home.services.customsText" },
   { icon: Plane, title: "home.services.airTitle", text: "home.services.airText" },
+  { icon: Ship, title: "home.services.seaTitle", text: "home.services.seaText" },
   { icon: PackageSearch, title: "home.services.trackingTitle", text: "home.services.trackingText" },
   { icon: ReceiptText, title: "home.services.billingTitle", text: "home.services.billingText" },
 ];
@@ -102,7 +97,6 @@ function HomePage() {
     <>
       <Hero signupEnabled={signupEnabled} />
       <HowItWorks info={info} />
-      <OrderTypes />
       <Services />
       <Faq />
       <CallToAction info={info} signupEnabled={signupEnabled} />
@@ -197,26 +191,23 @@ function SectionHeading({ id, title, intro }: { id: string; title: string; intro
   );
 }
 
-/** Step 2: how the shipping label must read (SPEC §35.8 recipient/line-2 templates). */
+/** Step 2: how the shipping label must read, "GR67 Air Uw naam" (SPEC §36). */
 function AddressExample() {
   const t = useT();
-  const code = (
-    <span className="font-heading font-bold tracking-wide text-primary tabular-nums">
-      {t("home.howItWorks.addressExample.code")}
-    </span>
-  );
   const rows: [string, ReactNode][] = [
     [
       t("home.howItWorks.addressExample.nameLabel"),
       <>
-        {t("home.howItWorks.addressExample.nameValue")} {code}
+        <span className="font-heading font-bold tracking-wide text-primary tabular-nums">
+          {t("home.howItWorks.addressExample.code")} {t("home.howItWorks.addressExample.service")}
+        </span>{" "}
+        {t("home.howItWorks.addressExample.nameValue")}
       </>,
     ],
     [
-      t("home.howItWorks.addressExample.line1Label"),
-      t("home.howItWorks.addressExample.line1Value"),
+      t("home.howItWorks.addressExample.addressLabel"),
+      t("home.howItWorks.addressExample.addressValue"),
     ],
-    [t("home.howItWorks.addressExample.line2Label"), code],
   ];
   return (
     <figure className="mt-3 rounded-md border bg-cream px-4 py-3 text-sm">
@@ -339,33 +330,17 @@ function CardGrid({ items, columns }: { items: Item[]; columns: string }) {
   );
 }
 
-function OrderTypes() {
-  const t = useT();
-  return (
-    <section aria-labelledby="soort-order-title" className="border-b py-14 lg:py-20">
-      <div className={container}>
-        <SectionHeading
-          id="soort-order-title"
-          title={t("home.orderTypes.title")}
-          intro={t("home.orderTypes.intro")}
-        />
-        <CardGrid items={orderTypes} columns="md:grid-cols-2" />
-      </div>
-    </section>
-  );
-}
-
 function Services() {
   const t = useT();
   return (
-    <section aria-labelledby="diensten-title" className="border-b bg-card py-14 lg:py-20">
+    <section aria-labelledby="diensten-title" className="border-b py-14 lg:py-20">
       <div className={container}>
         <SectionHeading
           id="diensten-title"
           title={t("home.services.title")}
           intro={t("home.services.intro")}
         />
-        <CardGrid items={services} columns="sm:grid-cols-2 lg:grid-cols-4" />
+        <CardGrid items={services} columns="sm:grid-cols-2 lg:grid-cols-3" />
       </div>
     </section>
   );

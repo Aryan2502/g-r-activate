@@ -73,7 +73,7 @@ describe("admin dashboard: invoices and activity (SPEC §12, §35.10)", () => {
   });
 
   it("merges the sources newest first, each item once", () => {
-    const maria = { id: "c1", full_name: "Maria Pinas", customer_code: "GR00042" };
+    const maria = { id: "c1", full_name: "Maria Pinas", customer_code: "GR42" };
     const items = mergeStaffActivity(
       {
         history: [

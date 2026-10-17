@@ -205,9 +205,27 @@ export function toOrderFields(v: OrderFieldValues) {
   };
 }
 
-/** "Gegevens wijzigen". */
+/**
+ * Customers always give the Track & Trace code (SPEC §36): when registering
+ * and when changing an order. Staff may create an order without one.
+ */
+export function refineCustomerTracking(v: OrderFieldValues, ctx: z.RefinementCtx) {
+  if (!v.trackingNumber) {
+    issueAdder(ctx)("trackingNumber", t("portal.orderForm.validation.trackingRequired"));
+  }
+}
+
+/** "Gegevens wijzigen" by staff (and the shared base of every order form). */
 export const orderFieldsSchema = orderFieldObject
   .superRefine(refineOrderFields)
+  .transform(toOrderFields);
+
+/** "Gegevens wijzigen" by the customer. */
+export const customerOrderFieldsSchema = orderFieldObject
+  .superRefine((v, ctx) => {
+    refineOrderFields(v, ctx);
+    refineCustomerTracking(v, ctx);
+  })
   .transform(toOrderFields);
 
 export type OrderFieldsInput = z.input<typeof orderFieldsSchema>;

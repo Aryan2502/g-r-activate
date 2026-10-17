@@ -19,10 +19,12 @@ only when its check passes.
       host); _Confirm email_ ON; minimum password length 8; CAPTCHA off.
 - [ ] **First admin** (§4): sign up, run the SQL, land on `/admin`.
 - [ ] **Migrations** (§2.1): the migrations workflow is green for the newest commit and
-      `supabase_migrations.schema_migrations` lists all eight files (the newest
-      `20261008120000 | p10_review_hardening`).
-- [ ] **Settings** (`/admin/instellingen`): company details, the three bank accounts, the
-      US warehouse address, rates per lb, pickup hours, terms and prohibited goods. Leave
+      `supabase_migrations.schema_migrations` lists all nine files (the newest
+      `20261017090000 | owner_corrections`).
+- [ ] **Settings** (`/admin/instellingen`): company details (phone +597 7589695), the three
+      bank accounts, the US warehouse address (one address serves Air and Ocean: keep the
+      name line `{GR_CODE} {SERVICE} {FULL_NAME}`), rates per lb for air **and** sea
+      freight, pickup hours, terms and prohibited goods. Leave
       the numbering (invoice counter, next customer code) for after the reset: the reset
       puts both back. Check: the dashboard's "Nog in te stellen" list is empty.
 - [ ] **E-mail** (§5, §6): Resend domain verified; `RESEND_API_KEY`, `EMAIL_FROM`,
@@ -42,7 +44,7 @@ only when its check passes.
       invoice counter if G&R continues its own invoice numbers, and the **Volgende
       klantcode** if G&R keeps a range of codes free. Check: "De volgende factuur krijgt
       INV-…" shows the number G&R expects (the reset alone gives INV-<year>-0001 and
-      GR00100).
+      GR100).
 - [ ] **Repository** (§2.3): repository private; a commit made by a bot (the types commit
       of the migrations workflow, or a Lovable edit) still deploys on Vercel.
 - [ ] **Go**: public sign-up switched on or off as G&R wants (§3.2), and the first real
@@ -203,22 +205,23 @@ variables → Actions), both already set:
 
 Applied migrations are never edited; every change is a new file (SPEC §35.3).
 
-**Applied so far.** The first seven migrations in `supabase/migrations/` have been applied
+**Applied so far.** The first eight migrations in `supabase/migrations/` have been applied
 to the project by the workflow: the three P2a foundation files,
 `20261007090000_order_hardening.sql`, `20261007120000_p4_order_guards.sql`,
-`20261007150000_p5_customers.sql` and `20261008090000_p8_reminders.sql`. The eighth,
-`20261008120000_p10_review_hardening.sql` (P10 review: upload limits per customer,
-`has_role()` answers customers only about themselves, the audit row for password-reset
-links, internal notes in the audit log), is applied by the workflow when it reaches
-`main`; nobody has run it against the project yet. Check in the SQL editor (eight rows,
-the newest `20261008120000 | p10_review_hardening`):
+`20261007150000_p5_customers.sql`, `20261008090000_p8_reminders.sql` and
+`20261008120000_p10_review_hardening.sql`. The ninth,
+`20261017090000_owner_corrections.sql` (SPEC §36: customer codes without leading zeros,
+the phone number +597 7589695, sea freight switched on, the US address name line
+"GR67 Air Naam" / "GR67 Ocean Naam"), is applied by the workflow when it reaches `main`.
+Check in the SQL editor (nine rows, the newest `20261017090000 | owner_corrections`):
 
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 ```
 
-The app works before and after that migration is applied (a password-reset link made
-before it writes the internal note first instead of the audit row). After any new
+The app works before and after that migration is applied (until it runs, codes still show
+with zeros, e.g. GR00100, sea freight stays off and the US address keeps its old name
+line). After any new
 migration: let the workflow run, check the row appears, then run
 `supabase/tests/rls_checks.sql` again (§8.1).
 
@@ -729,8 +732,8 @@ Kept: company settings, bank accounts, US warehouse addresses, rates, statuses, 
 (logins with a role, their profiles and roles, staff invitations) and the audit rows of
 settings and team changes.
 
-Numbering starts again: new customer codes from **GR00100** (numbers given up during
-testing are forgotten; existing G&R customers keep their own GR000xx code when you add
+Numbering starts again: new customer codes from **GR100** (numbers given up during
+testing are forgotten; existing G&R customers keep their own number (e.g. GR17) when you add
 or invite them), orders from **ORD-<year>-00001**, invoices from **INV-<year>-0001**. To
 continue G&R's own invoice numbers, or to keep a range of customer codes free, set the
 counter and the next customer code on `/admin/instellingen` → Nummering **after** the
@@ -825,7 +828,7 @@ begin
   alter table public.invoices enable trigger invoices_guard;
   alter table public.invoice_items enable trigger invoice_items_guard;
 
-  -- Numbering starts again: GR00100, ORD-<year>-00001, INV-<year>-0001.
+  -- Numbering starts again: GR100, ORD-<year>-00001, INV-<year>-0001.
   delete from private.retired_customer_numbers;
   delete from private.order_reference_counters;
   delete from public.invoice_number_counters;
@@ -837,7 +840,7 @@ begin
                              'service_rates', 'shipment_statuses', 'user_roles', 'team_login')
     and not (a.table_name = 'invitations' and coalesce(a.new_data, a.old_data) ->> 'kind' = 'staff');
 
-  raise notice 'Gewist: % klantdossiers en % logins zonder teamrol. Nieuwe klantcodes beginnen bij GR00100.',
+  raise notice 'Gewist: % klantdossiers en % logins zonder teamrol. Nieuwe klantcodes beginnen bij GR100.',
     _klanten, _logins;
 end
 $$;

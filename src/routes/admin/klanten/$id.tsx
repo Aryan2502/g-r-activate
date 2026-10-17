@@ -68,7 +68,7 @@ import { formatPhone, telHref } from "@/lib/phone";
  * invoices and payments, documents, internal notes and a readable timeline,
  * plus "Order aanmaken voor deze klant" and "Wachtwoord-resetlink maken".
  *
- * ?codeChange=GR00017 opens "Code wijzigen" prefilled (from an invitation
+ * ?codeChange=GR17 opens "Code wijzigen" prefilled (from an invitation
  * conflict).
  */
 const searchSchema = z.object({

@@ -30,8 +30,10 @@ stappen blijven voor u.
 
 - [ ] De go-live-checklist van `docs/DEPLOYMENT.md` is afgerond tot en met "RLS check"; u
       bent beheerder (§4).
-- [ ] Op `/admin/instellingen` staan: een tarief per lb voor luchtvracht (bijv. 4,50), de
-      bankrekening in USD, een actief US-adres, afhaaladres en -tijden. De factuurteller
+- [ ] Op `/admin/instellingen` staan: een tarief per lb voor luchtvracht (bijv. 4,50) en voor
+      zeevracht, de bankrekening in USD, een actief US-adres met naamregel
+      `{GR_CODE} {SERVICE} {FULL_NAME}` (de standaard; zo ziet de klant "GR67 Air …" en
+      "GR67 Ocean …"), afhaaladres en -tijden. De factuurteller
       en de volgende klantcode stelt u pas ná de reset in (zie F): de reset zet ze terug.
 - [ ] Twee e-mailadressen die u zelf leest, bijvoorbeeld `uwnaam+klant1@gmail.com` en
       `uwnaam+klant2@gmail.com` (Gmail levert `+…`-adressen gewoon af), en een telefoon met
@@ -99,9 +101,9 @@ from public.audit_log order by id desc limit 20;
 
 - [ ] **Doen:** open `https://<prod-domain>/` → **Account aanmaken** → `/registreren`. Vul in:
       Volledige naam "TEST Klant Een", Telefoon / WhatsApp (uw nummer, +597 staat al
-      klaar), E-mailadres (adres 1), Wachtwoord (minimaal 8 tekens), Soort account
-      **Particulier**, vink "Ik ga akkoord met de algemene voorwaarden" aan → **Account
-      aanmaken**.
+      klaar), E-mailadres (adres 1), Wachtwoord (minimaal 8 tekens), vink "Ik ga akkoord
+      met de algemene voorwaarden" aan → **Account aanmaken**. (Er is geen keuze
+      particulier/zakelijk meer, SPEC §36.)
 - **Verwacht:** het scherm **Controleer uw inbox** ("Wij hebben een e-mail gestuurd
   naar …"). In de inbox: "Bevestig uw e-mailadres – G&R Solutions" met het G&R-logo. De
   knop opent `https://<prod-domain>/auth/confirm?…`; daar **Doorgaan** → u bent ingelogd
@@ -115,12 +117,12 @@ from public.audit_log order by id desc limit 20;
 - Staat registreren uit (DEPLOYMENT §3.2), dan toont `/registreren` "Registreren is niet
   mogelijk"; zet het voor deze test aan of gebruik flow B.
 
-### A2. Het systeem geeft een GRXXXXX-code
+### A2. Het systeem geeft een GR-code
 
 - [ ] **Doen:** kijk op `/portal` naar **Uw klantcode**.
-- **Verwacht:** `GR` plus 5 cijfers, vanaf GR00100 (de beheerderslogin van DEPLOYMENT §4
-  heeft er al één gekregen, dus waarschijnlijk GR00101). **Klantcode kopiëren** zet hem
-  op het klembord.
+- **Verwacht:** `GR` plus het klantnummer zonder voorloopnullen (SPEC §36), vanaf GR100
+  (de beheerderslogin van DEPLOYMENT §4 heeft er al één gekregen, dus waarschijnlijk
+  GR101). **Klantcode kopiëren** zet hem op het klembord.
 - **Bewijs:** vraag "Klantdossier en login": `customer_code`; "Laatste auditregels": een
   `customers`-regel `INSERT`.
 - **Status:** geverifieerd met stubs/PGlite (`m1_identity.test.ts`: nummer uit de
@@ -143,8 +145,11 @@ from public.audit_log order by id desc limit 20;
 - [ ] **Doen:** bekijk `/portal`.
 - **Verwacht:** "Welkom, TEST" (het portaal groet met het eerste woord van de naam; met de
   naam "TEST Klant Een" uit A1 is dat "TEST"); de eerste kaart **Uw persoonlijk
-  US-verzendadres** met uw naam en code ingevuld, kopieerknoppen en de regel "Zet altijd
-  uw klantcode GR… achter uw naam én op adresregel 2."; de tegels Orders (0),
+  US-verzendadres** met **Naam bij luchtvracht** "GR… Air TEST Klant Een" en **Naam bij
+  zeevracht** "GR… Ocean TEST Klant Een", kopieerknoppen (ook **Kopieer adres voor
+  luchtvracht** / **voor zeevracht**) en de regel "Neem de naam precies over zoals
+  hierboven: eerst uw klantcode GR…, dan Air (luchtvracht) of Ocean (zeevracht), dan uw
+  naam. …" (SPEC §36; het US-adres moet in de instellingen staan); de tegels Orders (0),
   Openstaande facturen, Zendingen onderweg, Klaar voor afhalen; "Nog geen orders" met
   **Order aanmelden**.
 - **Bewijs:** het scherm; de cijfers komen uit de database (er staat nog niets).
@@ -154,12 +159,15 @@ from public.audit_log order by id desc limit 20;
 
 ### A5. Klant meldt een persoonlijke order aan
 
-- [ ] **Doen:** **Order aanmelden** → `/portal/orders/nieuw` → **Persoonlijke order**. Vul
-      in: Verzendwijze Lucht, Winkel / webshop "Amazon", Ordernummer van de winkel
-      "TEST-111", Omschrijving "TEST schoenen", Aantal 1, Geschatte waarde 49,99 USD,
-      Aankoopdatum vandaag; laat **Trackingnummer** leeg (er staat "Optioneel / indien
-      bekend"). Kies bij **Documenten (optioneel)** een PDF. Vink "Mijn zending bevat geen
-      verboden goederen" aan → **Order aanmelden**.
+- [ ] **Doen:** **Order aanmelden** → `/portal/orders/nieuw` (geen keuze particulier/zakelijk
+      meer, SPEC §36). Vul in: Verzendwijze **Luchtvracht** ("Op het pakket: Air achter uw
+      klantcode"; **Zeevracht** kan ook), Winkel / webshop "Amazon", Ordernummer van de
+      winkel "TEST-111", Omschrijving "TEST schoenen", Aantal 1, Geschatte waarde 49,99
+      USD, Aankoopdatum vandaag, **Track & Trace code** "TEST1Z999". Kies bij **Documenten
+      (optioneel)** een PDF. Vink "Mijn zending bevat geen verboden goederen" aan →
+      **Order aanmelden**.
+- **Extra:** laat de Track & Trace code eerst leeg → "Vul de Track & Trace code in."; de
+  order wordt niet aangemeld.
 - **Verwacht:** "Order ORD-<jaar>-<nummer> is aangemeld", het document "Geüpload", de
   melding "Order succesvol aangemeld." en de orderpagina `/portal/orders/<id>` met status
   "Order aangemeld".
@@ -313,17 +321,17 @@ from public.audit_log order by id desc limit 20;
 ### B2. Beheerder vult de bestaande GR-code in
 
 - [ ] **Doen:** in hetzelfde venster bij **Bestaande GR-code** "gr 17" (of een andere vrije
-      code onder 100) → wacht op "GR00017 is vrij." → **Uitnodiging maken**.
-- **Verwacht:** "Klant GR00017 TEST Jan Bestaand aangemaakt en uitgenodigd." en het venster
+      code onder 100) → wacht op "GR17 is vrij." → **Uitnodiging maken**.
+- **Verwacht:** "Klant GR17 TEST Jan Bestaand aangemaakt en uitgenodigd." en het venster
   **Uitnodigingslink** met de link, **Kopieer uitnodigingslink** en **Deel via
   WhatsApp**, en wat er met de e-mail gebeurde. Kopieer de link.
-- **Extra:** **Klant uitnodigen** opnieuw met een ander adres en code "GR00017" → de
-  melding "GR00017 is al toegewezen aan TEST Jan Bestaand".
-- **Bewijs:** vraag "Klantdossier" (adres 2): `customer_code = GR00017`,
+- **Extra:** **Klant uitnodigen** opnieuw met een ander adres en code "GR00017" (met nullen,
+  zoals op een oud pakket) → de melding "GR17 is al toegewezen aan TEST Jan Bestaand".
+- **Bewijs:** vraag "Klantdossier" (adres 2): `customer_code = GR17`,
   `status = invited`, `heeft_login = false`; vraag "Uitnodigingen": één open rij; vraag
   "E-mails": `kind = invitation`.
 - **Status:** geverifieerd met stubs/PGlite (`customers_contract.test.ts`, SPEC §5-
-  voorbeeld "John Doe, GR00017": code gereserveerd, "gr 17" voor een ander geweigerd;
+  voorbeeld "John Doe, GR17": code gereserveerd, "gr 17" voor een ander geweigerd;
   alleen de hash van de link in de database).
 
 ### B3. Klant ontvangt de uitnodiging
@@ -332,7 +340,7 @@ from public.audit_log order by id desc limit 20;
       telefoon.
 - **Verwacht:** de e-mail met het G&R-logo en de knop naar `https://<prod-domain>/invite/…`;
   WhatsApp opent een gesprek met een Nederlandse tekst ("G&R Solutions nodigt u uit …
-  Uw klantcode is GR00017 …") en dezelfde link.
+  Uw klantcode is GR17 …") en dezelfde link.
 - **Status:** eigenaar test live (echte e-mail en WhatsApp). De tekst en de link zijn
   geverifieerd met stubs (`src/server/invitations.test.ts`,
   `src/lib/admin/invitations.test.ts` "WhatsApp sharing", `templates.test.ts`).
@@ -342,7 +350,8 @@ from public.audit_log order by id desc limit 20;
 - [ ] **Doen:** open de link (bij voorkeur op de telefoon) → `/invite/<token>`.
 - **Verwacht:** "Welkom bij G&R Activate, TEST" (het eerste woord van de naam "TEST Jan
   Bestaand"), het e-mailadres gemaskeerd, **Uw
-  klantcode GR00017**, "Deze link is geldig tot …". Kies een wachtwoord (minimaal 8) →
+  klantcode GR17** met "Zet hem bij elke bestelling vóór uw naam, met Air of Ocean
+  erachter: GR17 Air Uw naam.", "Deze link is geldig tot …". Kies een wachtwoord (minimaal 8) →
   **Account activeren** → "Uw account is geactiveerd." en het dashboard `/portal`. In
   inbox 2 de welkomstmail met het persoonlijke US-adres.
 - **Extra:** open dezelfde link nog eens → "Deze uitnodiging is al gebruikt".
@@ -355,35 +364,41 @@ from public.audit_log order by id desc limit 20;
 ### B5. De bestaande GR-code blijft
 
 - [ ] **Doen:** bekijk `/portal` als Jan; bekijk `/admin/klanten` en zoek "17".
-- **Verwacht:** overal GR00017; het US-adres op het dashboard bevat "TEST Jan Bestaand
-  GR00017".
-- **Bewijs:** vraag "Klantdossier": nog steeds `customer_code = GR00017`.
+- **Verwacht:** overal GR17; het US-adres op het dashboard bevat "GR17 Air TEST Jan
+  Bestaand" en "GR17 Ocean TEST Jan Bestaand".
+- **Bewijs:** vraag "Klantdossier": nog steeds `customer_code = GR17`.
 - **Status:** geverifieerd met stubs/PGlite (`customers_contract.test.ts`: John accepteert
-  als GR00017).
+  als GR17).
 
 ### B6. De klant gebruikt het portaal gewoon
 
 - [ ] **Doen:** als Jan een order aanmelden zoals A5.
-- **Verwacht:** als A5–A7; de beheerder vindt de order op "GR00017".
+- **Verwacht:** als A5–A7; de beheerder vindt de order op "GR17" (en op "GR00017").
 - **Status:** geverifieerd met stubs/PGlite (zoals A5–A7).
 
 ---
 
 ## C. B2B-flow
 
-### C1. Klant meldt een B2B-order aan
+Klanten kiezen bij het aanmelden geen soort order meer (SPEC §36): hun orders zijn
+persoonlijk. Een zakelijke (B2B) order maakt G&R zelf aan voor de klant.
 
-- [ ] **Doen:** als klant 1 → **Order aanmelden** → **Zakelijke order (B2B)**. Vul naast de
-      gewone velden in: Leverancier "TEST Leverancier", PO-nummer "TEST-PO-1", Inkoop
-      "Zelf gekocht"; voeg bij documenten een PDF toe met soort "Commerciële factuur"
-      (of juist niet: zie C4) → vink verboden goederen aan → **Order aanmelden**.
-- **Verwacht:** "Order succesvol aangemeld." en de orderpagina.
-- **Status:** geverifieerd met stubs/PGlite (`order-schema.test.ts`,
-  `portal_contract.test.ts`: ook een B2B-inkoop door G&R zonder winkel of waarde).
+### C1. Beheerder maakt een B2B-order aan voor klant 1
+
+- [ ] **Doen:** `/admin/orders` → **Order aanmaken voor klant** → kies klant 1 → Soort
+      order **Zakelijk**. Vul naast de gewone velden in: Leverancier "TEST
+      Leverancier", PO-nummer "TEST-PO-1", Inkoop "Zelf gekocht" → **Order aanmaken**.
+      Voeg op de orderpagina eventueel een PDF toe met soort "Commerciële factuur" (of
+      juist niet: zie C4).
+- **Extra:** als klant 1 → **Order aanmelden**: er is geen keuze particulier/zakelijk.
+- **Verwacht:** de orderpagina van de nieuwe order.
+- **Status:** geverifieerd met stubs/PGlite (`admin_contract.test.ts`,
+  `order-fields.test.ts`; `register-order.test.ts`: een klant meldt altijd een
+  persoonlijke order aan).
 
 ### C2. De order is duidelijk B2B
 
-- [ ] **Doen:** bekijk `/portal/orders` en de orderpagina.
+- [ ] **Doen:** als klant 1: bekijk `/portal/orders` en de orderpagina.
 - **Verwacht:** het label "Zakelijk" in de lijst; op de orderpagina "Soort order:
   Zakelijk" en het blok **Zakelijke gegevens** met leverancier en PO-nummer.
 - **Bewijs:** vraag "Orders": `order_type = b2b`.
@@ -561,4 +576,4 @@ Wat u per e-mail controleert:
 - [ ] **Na de reset** de nummering opnieuw instellen: `/admin/instellingen` → Nummering →
       de factuurteller van dit jaar (als G&R zijn eigen nummers voortzet) en, als G&R een
       reeks klantcodes vrijhoudt, de **Volgende klantcode**. Controleer de zin "De volgende
-      factuur krijgt INV-…": de reset zet beide terug naar INV-<jaar>-0001 en GR00100.
+      factuur krijgt INV-…": de reset zet beide terug naar INV-<jaar>-0001 en GR100.

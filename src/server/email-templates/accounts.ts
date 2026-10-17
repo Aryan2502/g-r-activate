@@ -99,6 +99,8 @@ export interface WelcomeEmailInput {
   email: string;
   /** The personal US shipping addresses (active warehouse addresses, filled in). */
   addresses: readonly WelcomeAddress[];
+  /** The name lines say Air or Ocean ({SERVICE} in the template, SPEC §36). */
+  serviceInName?: boolean;
 }
 
 export function welcomeEmail(input: WelcomeEmailInput): EmailContent {
@@ -134,7 +136,9 @@ export function welcomeEmail(input: WelcomeEmailInput): EmailContent {
         blocks.push({
           type: "paragraph",
           strong: true,
-          text: `Zet altijd uw klantcode ${input.customerCode} achter uw naam én op adresregel 2.`,
+          text: input.serviceInName
+            ? `Zet altijd uw klantcode ${input.customerCode} vóór uw naam, met Air (luchtvracht) of Ocean (zeevracht) erachter, precies zoals hierboven.`
+            : `Zet altijd uw klantcode ${input.customerCode} bij uw naam, precies zoals hierboven.`,
         });
       }
     } else {

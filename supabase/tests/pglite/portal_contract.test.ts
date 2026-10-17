@@ -76,7 +76,8 @@ const personalForm: OrderFieldsInput = {
   estimatedValueCurrency: "USD",
   purchaseDate: daysAgo(3),
   expectedDeliveryDate: "",
-  trackingNumber: "",
+  // Required when a customer registers an order (SPEC §36).
+  trackingNumber: "1Z999AA10123456784",
   carrier: "",
   declaredWeightLbs: "",
   customerNote: "<img src=x onerror=alert(1)>",

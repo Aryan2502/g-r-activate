@@ -47,7 +47,7 @@ describe('onInvitationSent ("uitnodiging")', () => {
           send_count: 2,
         },
       ],
-      customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR00042" }],
+      customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR42" }],
     });
     const result = await onInvitationSent({
       db,
@@ -69,7 +69,7 @@ describe('onInvitationSent ("uitnodiging")', () => {
       customerId: ALICE,
     });
     expect(mail.html).toContain(`href="${APP}/invite/${TOKEN}"`);
-    expect(mail.text).toContain("GR00042");
+    expect(mail.text).toContain("GR42");
     expect(mail.text).toContain("geldig tot 14-10-2026");
     expect(mail.text).toContain("Eerder ontvangen links werken niet meer.");
   });
@@ -113,15 +113,19 @@ describe('onInvitationRedeemed ("welkom")', () => {
   it("a customer gets the GR code and the personal US address, once per invitation", async () => {
     const admin = fakeDb({
       company_settings: company,
-      customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR00042" }],
+      customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR42" }],
+      service_rates: [
+        { service_type: "air", enabled: true },
+        { service_type: "sea", enabled: true },
+      ],
       warehouse_addresses: [
         {
           id: "w1",
           label: "Miami",
           service_type: "air",
-          recipient_name_template: "{FULL_NAME} {GR_CODE}",
+          recipient_name_template: "{GR_CODE} {SERVICE} {FULL_NAME}",
           address_line1: "8000 NW 25th St",
-          address_line2_template: "Suite {GR_CODE}",
+          address_line2_template: "",
           city: "Doral",
           state: "FL",
           zip: "33122",
@@ -161,13 +165,14 @@ describe('onInvitationRedeemed ("welkom")', () => {
       customerId: ALICE,
       subject: "Welkom bij G&R SOLUTIONS N.V.",
     });
+    // One US address, a name for Air and one for Ocean (SPEC §36).
     expect(mail.text).toContain("Miami (Luchtvracht)");
-    expect(mail.text).toContain(
-      "Alice Jansen GR00042\n8000 NW 25th St\nSuite GR00042\nDoral, FL 33122\nUSA",
-    );
+    expect(mail.text).toContain("GR42 Air Alice Jansen\n8000 NW 25th St\nDoral, FL 33122\nUSA");
+    expect(mail.text).toContain("Miami (Zeevracht)");
+    expect(mail.text).toContain("GR42 Ocean Alice Jansen\n8000 NW 25th St\nDoral, FL 33122\nUSA");
     expect(mail.text).not.toContain("Oud");
     expect(mail.text).toContain(
-      "Zet altijd uw klantcode GR00042 achter uw naam én op adresregel 2.",
+      "Zet altijd uw klantcode GR42 vóór uw naam, met Air (luchtvracht) of Ocean (zeevracht) erachter, precies zoals hierboven.",
     );
     expect(mail.html).toContain(`href="${APP}/portal"`);
   });
@@ -176,7 +181,7 @@ describe('onInvitationRedeemed ("welkom")', () => {
     await onInvitationRedeemed({
       admin: fakeDb({
         company_settings: company,
-        customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR00042" }],
+        customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR42" }],
         warehouse_addresses: [],
       }),
       invitationId: "inv-1",

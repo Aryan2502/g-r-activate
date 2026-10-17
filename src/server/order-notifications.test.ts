@@ -53,7 +53,7 @@ function tables() {
       {
         id: ALICE,
         full_name: "Alice <b>Jansen</b>",
-        customer_code: "GR00042",
+        customer_code: "GR42",
         email: "alice@example.com",
         phone: "8000001",
         user_id: "u-alice",
@@ -62,7 +62,7 @@ function tables() {
       {
         id: BOB,
         full_name: "Bob Bakker",
-        customer_code: "GR00017",
+        customer_code: "GR17",
         email: "bob@example.com",
         phone: null,
         user_id: null,
@@ -71,7 +71,7 @@ function tables() {
       {
         id: CAROL,
         full_name: "Carol Zonder Mail",
-        customer_code: "GR00018",
+        customer_code: "GR18",
         email: null,
         phone: "8000003",
         user_id: null,

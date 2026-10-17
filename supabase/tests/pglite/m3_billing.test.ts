@@ -1333,7 +1333,7 @@ describe("issue_invoice", () => {
       company_name: "G&R SOLUTIONS N.V.",
       tagline: "CUSTOMS BROKERAGE & LOGISTICS",
       email: "info@grsolutions.sr",
-      phone: "5978897500",
+      phone: "+597 7589695",
       invoice_title: "INVOICE (inclusief BTW)",
       footer_text: "G&R SOLUTIONS N.V.  |  CUSTOMS BROKERAGE & LOGISTICS",
       payment_term_days: 7,
@@ -2573,10 +2573,10 @@ describe("customer codes and orders once invoiced", () => {
           tx.query("select public.change_customer_code($1, $2, 'correctie')", [gijs.id, code]),
         { commit: true },
       );
-    await change("GR00061");
+    await change("GR61");
     await asUser(db, p.staff.id, (tx) => issue(tx, gijs.draft), { commit: true });
-    const err = await expectSqlError(change("GR00062"), "55000");
-    expect(err.message).toMatch(/GR00061 kan niet meer worden gewijzigd/);
+    const err = await expectSqlError(change("GR62"), "55000");
+    expect(err.message).toMatch(/GR61 kan niet meer worden gewijzigd/);
   });
 
   it("an order on an invoice keeps its customer, even for the SQL editor", async () => {

@@ -37,6 +37,9 @@ export function accessBlocks(access: PortalAccess): EmailBlock[] {
 const ORDER_TYPES: Record<string, string> = { personal: "Persoonlijk", b2b: "Zakelijk (B2B)" };
 const SERVICE_TYPES: Record<string, string> = { air: "Luchtvracht", sea: "Zeevracht" };
 
+/** What the customer writes behind the code on the parcel (SPEC §36). */
+const SERVICE_WORDS: Record<string, string> = { air: "Air", sea: "Ocean" };
+
 export interface ConfirmedOrder {
   id: string;
   reference: string;
@@ -100,15 +103,15 @@ export function orderConfirmationEmail(input: OrderConfirmationInput): EmailCont
     { type: "details", rows: orderRows(order) },
     {
       type: "paragraph",
-      text: `Laat het pakket bezorgen op uw persoonlijk US-verzendadres, met uw klantcode ${customer.customerCode} achter uw naam én op adresregel 2. Wij laten het u weten zodra het pakket in ons magazijn is ontvangen.`,
+      text: `Laat het pakket bezorgen op ons US-adres, met ${[customer.customerCode, SERVICE_WORDS[order.serviceType]].filter(Boolean).join(" ")} vóór uw naam, zoals in het klantportaal. Wij laten het u weten zodra het pakket in ons magazijn is ontvangen.`,
     },
   ];
   if (!order.trackingNumber) {
     blocks.push({
       type: "note",
       text: input.access.login
-        ? "Heeft u het trackingnummer? Vul het aan in het klantportaal, dan herkennen wij uw pakket sneller."
-        : "Heeft u het trackingnummer? Stuur het ons (bijvoorbeeld als antwoord op deze e-mail), dan herkennen wij uw pakket sneller.",
+        ? "Heeft u de Track & Trace code? Vul die aan in het klantportaal, dan herkennen wij uw pakket sneller."
+        : "Heeft u de Track & Trace code? Stuur die ons (bijvoorbeeld als antwoord op deze e-mail), dan herkennen wij uw pakket sneller.",
     });
   }
   if (input.access.login) {

@@ -71,7 +71,9 @@ export async function registerOrder(
   const customerId = customer.data;
   if (!customerId || staff.data) throw new CodedError(t("apiError.forbidden"), "42501");
 
-  let fields = input.fields;
+  // Customers register personal orders (SPEC §36); an extra package takes
+  // the type of its root order, which staff may have made B2B.
+  let fields: RegisterOrderData["fields"] = { ...input.fields, orderType: "personal" };
   let parentOrderId: string | null = null;
   if (input.parentOrderId) {
     const root = await loadRootOrder(client, input.parentOrderId);

@@ -12,6 +12,7 @@ import {
   allPages,
   customerDisplayName,
   fold,
+  formatCustomerCode,
   parseCustomerCode,
   searchFlag,
   searchText,
@@ -223,7 +224,7 @@ type SearchableCustomer = Pick<
 
 /**
  * The list's search box (SPEC §26: find a customer quickly): a GR code as
- * staff type it ("gr 17", "GR00017", "17"), a name or company without
+ * staff type it ("gr 17", "GR00017", "17" all find GR17), a name or company without
  * accents, an e-mail, or a phone number with or without +597, spaces or
  * dashes.
  */
@@ -306,7 +307,7 @@ export const nextCustomerNumberQueryOptions = (userId: string) =>
     queryFn: async (): Promise<string> => {
       const { data, error } = await supabase.rpc("peek_next_customer_number");
       if (error) throw error;
-      return `GR${String(data).padStart(5, "0")}`;
+      return formatCustomerCode(data);
     },
   });
 
@@ -605,7 +606,7 @@ export interface TimelineEvent {
   at: string;
   kind: TimelineKind;
   actorId: string | null;
-  /** Readable Dutch detail ("GR00017 → GR00123", the changed fields, the reason). */
+  /** Readable Dutch detail ("GR17 → GR123", the changed fields, the reason). */
   detail: string | null;
 }
 
@@ -811,7 +812,7 @@ export function buildCustomerTimeline(input: {
   return events.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
 
-/** The customer's code, name and company in one line: "GR00042 Maria Pinas". */
+/** The customer's code, name and company in one line: "GR42 Maria Pinas". */
 export function customerLabel(
   customer: Pick<CustomerRow, "customer_code" | "full_name" | "company_name" | "account_type">,
 ): string {

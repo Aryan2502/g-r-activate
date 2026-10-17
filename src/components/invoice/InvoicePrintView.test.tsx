@@ -28,7 +28,7 @@ const model = fromIssuedInvoice(
       invoice_title: "INVOICE (inclusief BTW)",
       paper_size: "A4",
     },
-    bill_to_snapshot: { customer_code: "GR00042", full_name: "Maria Pinas" },
+    bill_to_snapshot: { customer_code: "GR42", full_name: "Maria Pinas" },
   },
   [],
 );

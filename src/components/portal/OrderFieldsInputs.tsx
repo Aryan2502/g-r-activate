@@ -50,11 +50,13 @@ const NO_PURCHASE_MODE = "none" as const;
  * `serviceTypes` are the enabled ones (service_rates.enabled); the order's
  * current type stays selectable so an edit does not silently change it.
  *
- * variant "register": the order type was chosen in step 1 (so no radio
- * here), and the estimated value and purchase date are required
- * (order-schema.ts). `locked` shows the fields one purchase shares read-only:
- * on an extra package they come from the root order, and on a root order with
- * packages they hold for all of them.
+ * Customers never choose the order type (SPEC §36: their orders are
+ * personal; B2B orders are made by staff, whose B2B fields still show on
+ * such an order) and always give the Track & Trace code. variant "register":
+ * the estimated value and purchase date are required too (order-schema.ts).
+ * `locked` shows the fields one purchase shares read-only: on an extra
+ * package they come from the root order, and on a root order with packages
+ * they hold for all of them.
  */
 export function OrderFieldsInputs({
   form,
@@ -108,10 +110,12 @@ export function OrderFieldsInputs({
     <div className="space-y-8">
       <FieldGroup
         title={
-          register ? t("portal.orderForm.sections.service") : t("portal.orderForm.sections.type")
+          staff && !register
+            ? t("portal.orderForm.sections.type")
+            : t("portal.orderForm.sections.service")
         }
       >
-        {register ? null : locked?.orderType ? (
+        {register || !staff ? null : locked?.orderType ? (
           <div className="space-y-2">
             <p className="text-sm font-medium leading-none" id={`${idPrefix}-order-type`}>
               {t("portal.orderForm.fields.orderType")}
@@ -152,9 +156,7 @@ export function OrderFieldsInputs({
                             {t(`portal.orderTypes.${type}`)}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {staff
-                              ? t(`admin.newOrder.orderTypeHints.${type}`)
-                              : t(`portal.orderForm.orderTypeHints.${type}`)}
+                            {t(`admin.newOrder.orderTypeHints.${type}`)}
                           </span>
                         </span>
                       </ChoiceLabel>
@@ -200,7 +202,16 @@ export function OrderFieldsInputs({
                     {serviceOptions.map((type) => (
                       <ChoiceLabel key={type} selected={field.value === type}>
                         <RadioGroupItem value={type} className="mt-0.5" />
-                        <span className="font-semibold">{t(`portal.serviceTypes.${type}`)}</span>
+                        <span>
+                          <span className="block font-semibold">
+                            {t(`portal.serviceTypes.${type}`)}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {staff
+                              ? t(`admin.newOrder.serviceTypeHints.${type}`)
+                              : t(`portal.orderForm.serviceTypeHints.${type}`)}
+                          </span>
+                        </span>
                       </ChoiceLabel>
                     ))}
                   </RadioGroup>
@@ -521,9 +532,11 @@ export function OrderFieldsInputs({
               <FormItem>
                 <FormLabel>
                   {t("portal.orderForm.fields.trackingNumber")}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    ({t("portal.orderForm.fields.trackingHint")})
-                  </span>
+                  {staff ? (
+                    <span className="font-normal text-muted-foreground">
+                      ({t("portal.orderForm.fields.trackingHint")})
+                    </span>
+                  ) : null}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -532,9 +545,15 @@ export function OrderFieldsInputs({
                     autoComplete="off"
                     autoCapitalize="characters"
                     spellCheck={false}
+                    aria-required={staff ? undefined : true}
                     {...field}
                   />
                 </FormControl>
+                {staff ? null : (
+                  <FormDescription>
+                    {t("portal.orderForm.fields.trackingRequiredHint")}
+                  </FormDescription>
+                )}
                 <FormMessage />
               </FormItem>
             )}

@@ -13,7 +13,7 @@ import { phoneDigits } from "@/lib/phone";
  * PGlite contract tests with a stand-in client. Everything here uses the
  * STAFF MEMBER's own client: RLS, customers_guard (who may change status,
  * e-mail, login), customers_set_code (unique GR codes with the Dutch
- * "GR00017 is al toegewezen aan …") and invitations_guard (one open
+ * "GR17 is al toegewezen aan …") and invitations_guard (one open
  * invitation, resend limits, the customer's own address) decide. The service
  * role is never needed for these writes.
  */
@@ -93,8 +93,8 @@ export const requiredPhone = z
   .transform((value) => `+${phoneDigits(value) ?? ""}`);
 
 /**
- * An existing GR code as staff type it ("GR00017", "gr 17", "17"); '' means
- * "generate a new one". Output: 'GR00017' or null (private.parse_customer_code).
+ * An existing GR code as staff type it ("GR17", "GR00017", "gr 17", "17"); '' means
+ * "generate a new one". Output: 'GR17' or null (private.parse_customer_code).
  */
 export const optionalCustomerCode = z
   .string()
@@ -102,7 +102,7 @@ export const optionalCustomerCode = z
   .refine((v) => v === "" || parseCustomerCode(v) !== null, t("admin.customers.form.codeInvalid"))
   .transform((v) => (v ? parseCustomerCode(v) : null));
 
-/** 'GR00017' → 17, for customers.customer_number. */
+/** 'GR17' → 17, for customers.customer_number. */
 export function customerNumberOf(code: string): number {
   return Number(code.replace(/^GR/i, ""));
 }

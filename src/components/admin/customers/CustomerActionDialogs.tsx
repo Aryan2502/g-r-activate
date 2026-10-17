@@ -107,7 +107,7 @@ export function ChangeCodeDialog({
   customer: CustomerRow;
   /** Orders or issued invoices exist: the code is frozen (the database says so too). */
   locked: boolean;
-  /** Prefilled from an invitation conflict ("Code wijzigen naar GR00017"). */
+  /** Prefilled from an invitation conflict ("Code wijzigen naar GR17"). */
   initialCode?: string | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;

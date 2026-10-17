@@ -160,7 +160,7 @@ async function fill(db: Db): Promise<Fixture> {
       const one = async <T>(text: string, params: unknown[] = []) =>
         (await tx.query<T>(text, params)).rows[0]!;
       const legacy = await one<{ id: string }>(
-        "select (public.create_customer('Jan Bestaand', '+597 8111111', 'jan@example.com', 'GR00017')).id as id",
+        "select (public.create_customer('Jan Bestaand', '+597 8111111', 'jan@example.com', 'GR17')).id as id",
       );
       await tx.query(
         "insert into public.invitations (kind, customer_id, email, token_hash) values ('customer', $1, 'jan@example.com', $2)",
@@ -256,7 +256,7 @@ async function fill(db: Db): Promise<Fixture> {
       );
       await tx.query("select public.issue_invoice($1)", [repl.rows[0]!.id]);
       await tx.query("select * from public.void_payment($1, 'Dubbel geboekt')", [ids.payment]);
-      await tx.query("select public.change_customer_code($1, 'GR00555', 'Wens klant')", [
+      await tx.query("select public.change_customer_code($1, 'GR555', 'Wens klant')", [
         ids.renamed,
       ]);
     },
@@ -321,7 +321,7 @@ describe("docs/DEPLOYMENT.md §8.2: pre-go-live reset", () => {
     const team = await fill(db);
     const before = await overview(db);
     expect(before).toMatchObject({
-      klantdossiers: 7, // 3 team sign-ups (unlinked), alice, bob, GR00017, GR00555
+      klantdossiers: 7, // 3 team sign-ups (unlinked), alice, bob, GR17, GR555
       "logins zonder teamrol (testklanten)": 3,
       orders: 3,
       zendingen: 1,
@@ -339,7 +339,7 @@ describe("docs/DEPLOYMENT.md §8.2: pre-go-live reset", () => {
     const notices: string[] = [];
     await db.exec(resetSql(), { onNotice: (n) => notices.push(n.message ?? "") });
     expect(notices).toContain(
-      "Gewist: 7 klantdossiers en 3 logins zonder teamrol. Nieuwe klantcodes beginnen bij GR00100.",
+      "Gewist: 7 klantdossiers en 3 logins zonder teamrol. Nieuwe klantcodes beginnen bij GR100.",
     );
 
     for (const table of [
@@ -426,17 +426,17 @@ describe("docs/DEPLOYMENT.md §8.2: pre-go-live reset", () => {
       "select id, customer_code from public.customers where user_id = $1",
       [customer.id],
     );
-    expect(rows[0]?.customer_code).toBe("GR00100");
+    expect(rows[0]?.customer_code).toBe("GR100");
 
     const invoiceId = await asUser(
       db,
       team.staff.id,
       async (tx) => {
-        // GR00555 was retired during testing; after the reset it is free again.
+        // GR555 was retired during testing; after the reset it is free again.
         const legacy = await tx.query<{ customer_code: string }>(
-          "select (public.create_customer('Bestaande Klant', '+597 8000002', null, 'GR00555')).customer_code",
+          "select (public.create_customer('Bestaande Klant', '+597 8000002', null, 'GR555')).customer_code",
         );
-        expect(legacy.rows[0]?.customer_code).toBe("GR00555");
+        expect(legacy.rows[0]?.customer_code).toBe("GR555");
         const order = await tx.query<{ id: string; reference: string }>(
           "insert into public.orders (customer_id, store_vendor) values ($1, 'eBay') returning id, reference",
           [rows[0]!.id],

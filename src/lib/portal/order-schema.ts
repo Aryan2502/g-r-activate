@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { Constants } from "@/integrations/supabase/types";
 import { CodedError } from "@/lib/errors";
 import { todayInSuriname } from "@/lib/format";
 import { t } from "@/lib/i18n";
@@ -9,6 +8,7 @@ import {
   isGrPurchase,
   issueAdder,
   orderFieldObject,
+  refineCustomerTracking,
   refineOrderFields,
   shiftYears,
   toOrderFields,
@@ -16,21 +16,18 @@ import {
   type OrderFieldsOutput,
   type OrderFieldValues,
 } from "@/lib/portal/order-fields";
-import {
-  newOrderSearchSchema,
-  type OrderRow,
-  type OrderType,
-  type ServiceType,
-} from "@/lib/portal/orders";
+import { newOrderSearchSchema, type OrderRow, type ServiceType } from "@/lib/portal/orders";
 
 /**
  * "Order aanmelden" (SPEC §9, §35.7): the registration form and the input of
  * registerOrderFn. The same schema runs in the browser (inline errors) and in
  * the server function (which never trusts the browser), on the raw form
  * strings. The fields are the customer-editable columns of order-fields.ts;
- * registration asks a little more than an edit does: the estimated value and
- * the purchase date are required (except for a purchase G&R still has to
- * make), and dates must lie in a sensible window.
+ * registration asks a little more than an edit does: the Track & Trace code,
+ * the estimated value and the purchase date are required (the last two except
+ * for a purchase G&R still has to make), and dates must lie in a sensible
+ * window. Customers register personal orders only (SPEC §36); an extra
+ * package takes the type of its root order, which staff may have made B2B.
  */
 
 /** A purchase date further back is almost always a typo (2016 for 2026). */
@@ -41,6 +38,7 @@ export const EXPECTED_DELIVERY_MAX_YEARS_AHEAD = 1;
 /** The registration's own rules, on top of refineOrderFields. */
 export function refineRegistration(v: OrderFieldValues, ctx: z.RefinementCtx) {
   refineOrderFields(v, ctx);
+  refineCustomerTracking(v, ctx);
   const issue = issueAdder(ctx);
   const today = todayInSuriname();
   if (!isGrPurchase(v)) {
@@ -96,13 +94,10 @@ export function parseRegisterOrderInput(input: unknown): RegisterOrderData {
 }
 
 /**
- * Search params of /portal/orders/nieuw: part A's `parent` contract plus the
- * chosen order type (step 1), so the browser's back button returns to the
- * choice. Invalid values are dropped, never an error page.
+ * Search params of /portal/orders/nieuw: part A's `parent` contract. Invalid
+ * values are dropped, never an error page; an old `?type=` link is ignored.
  */
-export const newOrderPageSearchSchema = newOrderSearchSchema.extend({
-  type: z.enum(Constants.public.Enums.order_type).optional().catch(undefined),
-});
+export const newOrderPageSearchSchema = newOrderSearchSchema;
 export type NewOrderPageSearch = z.infer<typeof newOrderPageSearchSchema>;
 
 // ---------------------------------------------------------------------------
@@ -164,21 +159,19 @@ export function defaultServiceType(
 }
 
 /**
- * Starting values of the form. A new order starts empty (quantity 1, USD);
- * an extra package takes over the purchase details of its root order but
- * not what differs per box (description, value, tracking, weight, note).
+ * Starting values of the form. A new order starts empty (personal, quantity
+ * 1, USD); an extra package takes over the purchase details of its root order
+ * but not what differs per box (description, value, tracking, weight, note).
  */
 export function newOrderDefaults({
-  orderType,
   serviceTypes,
   root,
 }: {
-  orderType?: OrderType | undefined;
   serviceTypes: readonly ServiceType[];
   root?: RootOrder | null | undefined;
 }): OrderFieldsInput {
   return {
-    orderType: root?.order_type ?? orderType ?? "personal",
+    orderType: root?.order_type ?? "personal",
     serviceType: defaultServiceType(serviceTypes, root?.service_type),
     storeVendor: root?.store_vendor ?? "",
     vendorOrderNumber: root?.vendor_order_number ?? "",

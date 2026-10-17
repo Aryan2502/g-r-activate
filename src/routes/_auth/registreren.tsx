@@ -22,14 +22,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { authErrorMessage } from "@/lib/auth/auth-errors";
 import { PHONE_PREFIX, signupMetadata, signupSchema } from "@/lib/auth/schemas";
 import { confirmRedirectUrl } from "@/lib/auth/urls";
 import { errorMessage } from "@/lib/errors";
 import { t, useT } from "@/lib/i18n";
 import { paths } from "@/lib/paths";
-import { cn } from "@/lib/utils";
 
 const authRoute = getRouteApi("/_auth");
 
@@ -136,12 +134,9 @@ function SignupForm({
       phone: PHONE_PREFIX,
       email: "",
       password: "",
-      accountType: "personal",
-      companyName: "",
       acceptTerms: false,
     },
   });
-  const isBusiness = form.watch("accountType") === "business";
 
   async function onSubmit(values: FormOutput) {
     try {
@@ -235,52 +230,6 @@ function SignupForm({
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="accountType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel id="signup-account-type-label">{t("auth.fields.accountType")}</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  aria-labelledby="signup-account-type-label"
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  {(["personal", "business"] as const).map((type) => (
-                    <label
-                      key={type}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm",
-                        field.value === type ? "border-primary bg-cream" : "border-border",
-                      )}
-                    >
-                      <RadioGroupItem value={type} />
-                      {t(type === "personal" ? "auth.fields.personal" : "auth.fields.business")}
-                    </label>
-                  ))}
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {isBusiness ? (
-          <FormField
-            control={form.control}
-            name="companyName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("auth.fields.companyName")}</FormLabel>
-                <FormControl>
-                  <Input autoComplete="organization" className="h-10" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        ) : null}
         <FormField
           control={form.control}
           name="acceptTerms"

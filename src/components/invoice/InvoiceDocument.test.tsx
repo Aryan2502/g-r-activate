@@ -32,7 +32,7 @@ const row: IssuedInvoiceRow = {
     bank_accounts: [],
   },
   bill_to_snapshot: {
-    customer_code: "GR00042",
+    customer_code: "GR42",
     full_name: "Maria Pinas",
     account_type: "personal",
     orders: [{ id: "o1", reference: "ORD-2026-00012", tracking_number: "1Z999" }],
@@ -86,7 +86,7 @@ describe("InvoiceDocument", () => {
     expect(text).not.toContain("OPMERKINGEN"); // no note
     expect(text).toContain("07-10-2026");
     expect(text).toContain("Tracking: 1Z999 · Ref: ORD-2026-00012");
-    expect(text).toContain("Factuurvaluta: USD · Vermeld bij betaling: CONCEPT / GR00042");
+    expect(text).toContain("Factuurvaluta: USD · Vermeld bij betaling: CONCEPT / GR42");
   });
 
   it("pads the items to five rows and marks a draft CONCEPT", () => {

@@ -15,8 +15,6 @@ const validSignup = {
   phone: "+597 889 7500",
   email: " Maria@Example.COM ",
   password: "geheim123",
-  accountType: "personal" as const,
-  companyName: "",
   acceptTerms: true,
 };
 
@@ -47,14 +45,12 @@ describe("signupSchema", () => {
     }
   });
 
-  it("reports every error on the first submit, terms and company name included", () => {
+  it("reports every error on the first submit, terms included", () => {
     const result = signupSchema.safeParse({
       fullName: "",
       phone: "+597 ",
       email: "",
       password: "",
-      accountType: "business",
-      companyName: "",
       acceptTerms: false,
     });
     expect(result.error?.issues.map((i) => i.path.join("."))).toEqual([
@@ -63,7 +59,6 @@ describe("signupSchema", () => {
       "email",
       "password",
       "acceptTerms",
-      "companyName",
     ]);
   });
 
@@ -76,38 +71,17 @@ describe("signupSchema", () => {
     );
   });
 
-  it("requires a company name for business accounts only", () => {
-    expect(
-      messages(
-        signupSchema.safeParse({ ...validSignup, accountType: "business", companyName: " " }),
-      ),
-    ).toContain(t("auth.validation.companyRequired"));
-    expect(
-      signupSchema.safeParse({
-        ...validSignup,
-        accountType: "business",
-        companyName: "Jansen N.V.",
-      }).success,
-    ).toBe(true);
-  });
-
-  it("puts only display fields in the user metadata (SPEC §35.6)", () => {
-    const personal = signupSchema.parse({ ...validSignup, companyName: "ignored" });
-    expect(signupMetadata(personal, "3")).toEqual({
-      full_name: "Maria  Jansen",
-      phone: "+5978897500",
-      account_type: "personal",
-      company_name: null,
-      terms_version: "3",
-    });
-    const business = signupSchema.parse({
+  it("puts only display fields in the user metadata; every sign-up is personal (SPEC §35.6, §36)", () => {
+    const data = signupSchema.parse({
       ...validSignup,
       accountType: "business",
       companyName: "Jansen N.V.",
     });
-    expect(signupMetadata(business, "3")).toMatchObject({
-      account_type: "business",
-      company_name: "Jansen N.V.",
+    expect(signupMetadata(data, "3")).toEqual({
+      full_name: "Maria  Jansen",
+      phone: "+5978897500",
+      account_type: "personal",
+      terms_version: "3",
     });
   });
 });

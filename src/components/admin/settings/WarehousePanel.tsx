@@ -47,7 +47,9 @@ import {
 } from "@/lib/admin/settings";
 import { errorMessage } from "@/lib/errors";
 import { useT } from "@/lib/i18n";
+import type { ServiceType } from "@/lib/portal/orders";
 import {
+  addressServices,
   personalAddressLines,
   type AddressPerson,
   type WarehouseAddress,
@@ -72,8 +74,9 @@ type Field = (typeof FIELDS)[number];
 const SAMPLE_CODE = "GR12345";
 
 /**
- * "US-verzendadressen" (SPEC §35.8): the address customers have their
- * parcels sent to, with {FULL_NAME} and {GR_CODE} filled in per customer.
+ * "US-verzendadressen" (SPEC §35.8, §36): the address customers have their
+ * parcels sent to, with {FULL_NAME}, {GR_CODE} and {SERVICE} (Air/Ocean)
+ * filled in per customer.
  * Never seeded or invented; admins add, change and switch addresses off
  * (never delete). Every address shows how a customer sees it.
  */
@@ -81,10 +84,13 @@ export function WarehousePanel({
   userId,
   isAdmin,
   addresses,
+  enabledServices,
 }: {
   userId: string;
   isAdmin: boolean;
   addresses: UseQueryResult<WarehouseAddressRow[]>;
+  /** Services switched on under "Tarieven": an address with {SERVICE} shows a name for each. */
+  enabledServices: readonly ServiceType[];
 }) {
   const t = useT();
   const customers = useQuery(customerListQueryOptions(userId));
@@ -104,6 +110,7 @@ export function WarehousePanel({
     );
   }
   if (addresses.isPending) return <Skeleton className="h-40 w-full" />;
+  const active = addresses.data.filter((a) => a.is_active);
 
   return (
     <div className="space-y-4">
@@ -125,6 +132,7 @@ export function WarehousePanel({
               key={address.id}
               userId={userId}
               address={address}
+              services={addressServices(address, enabledServices, active)}
               person={person}
               isAdmin={isAdmin}
               onEdit={() => setEditing(address)}
@@ -138,6 +146,8 @@ export function WarehousePanel({
           userId={userId}
           address={editing === "new" ? null : editing}
           customers={customers.data ?? []}
+          enabledServices={enabledServices}
+          activeAddresses={active}
           initialCustomerId={firstCustomer?.id ?? null}
           onClose={() => setEditing(null)}
         />
@@ -148,22 +158,31 @@ export function WarehousePanel({
 
 function PersonalPreview({
   address,
+  services,
   person,
   heading,
 }: {
   address: WarehouseAddress;
+  services: readonly ServiceType[];
   person: AddressPerson;
   heading: string;
 }) {
   const t = useT();
-  const lines = personalAddressLines(address, person);
+  const lines = personalAddressLines(address, person, services);
   return (
     <div className="rounded-md border border-dashed bg-cream/40 p-3 text-sm">
       <p className="text-xs font-semibold text-muted-foreground">{heading}</p>
       <dl className="mt-2 space-y-1">
         {lines.map((line) => (
-          <div key={line.field} className="grid grid-cols-[7.5rem_1fr] gap-2">
-            <dt className="text-muted-foreground">{t(`portal.address.fields.${line.field}`)}</dt>
+          <div
+            key={`${line.field}-${line.service ?? ""}`}
+            className="grid grid-cols-[7.5rem_1fr] gap-2"
+          >
+            <dt className="text-muted-foreground">
+              {line.service
+                ? t(`portal.address.recipientFor.${line.service}`)
+                : t(`portal.address.fields.${line.field}`)}
+            </dt>
             <dd className="min-w-0 break-words font-medium text-foreground">{line.value}</dd>
           </div>
         ))}
@@ -175,12 +194,14 @@ function PersonalPreview({
 function AddressCard({
   userId,
   address,
+  services,
   person,
   isAdmin,
   onEdit,
 }: {
   userId: string;
   address: WarehouseAddressRow;
+  services: readonly ServiceType[];
   person: AddressPerson;
   isAdmin: boolean;
   onEdit: () => void;
@@ -226,6 +247,7 @@ function AddressCard({
       </div>
       <PersonalPreview
         address={address}
+        services={services}
         person={person}
         heading={t("admin.settings.warehouse.previewFor", {
           name: person.fullName,
@@ -273,12 +295,16 @@ function WarehouseAddressDialog({
   userId,
   address,
   customers,
+  enabledServices,
+  activeAddresses,
   initialCustomerId,
   onClose,
 }: {
   userId: string;
   address: WarehouseAddressRow | null;
   customers: readonly CustomerListRow[];
+  enabledServices: readonly ServiceType[];
+  activeAddresses: readonly WarehouseAddressRow[];
   initialCustomerId: string | null;
   onClose: () => void;
 }) {
@@ -347,6 +373,7 @@ function WarehouseAddressDialog({
     [address?.id, values],
   );
   const warnings = warehouseWarnings(values);
+  const previewServices = addressServices(preview, enabledServices, activeAddresses);
   const text = (
     field: Exclude<Field, "serviceType" | "active">,
     label: string,
@@ -397,6 +424,7 @@ function WarehouseAddressDialog({
                 label: t(`portal.serviceTypes.${s}`),
               }))}
               error={errors.serviceType}
+              hint={t("admin.settings.warehouse.serviceTypeHint", PLACEHOLDER_VARS)}
             />
             {text("recipientTemplate", t("admin.settings.warehouse.recipientTemplate"), {
               hint: t("admin.settings.warehouse.recipientHint", PLACEHOLDER_VARS),
@@ -406,6 +434,7 @@ function WarehouseAddressDialog({
             {text("line1", t("admin.settings.warehouse.line1"), { maxLength: 200 })}
             {text("line2Template", t("admin.settings.warehouse.line2Template"), {
               hint: t("admin.settings.warehouse.line2Hint", PLACEHOLDER_VARS),
+              optional: true,
               maxLength: 200,
               spellCheck: false,
             })}
@@ -463,6 +492,7 @@ function WarehouseAddressDialog({
             ) : null}
             <PersonalPreview
               address={preview}
+              services={previewServices}
               person={person}
               heading={t("admin.settings.warehouse.previewFor", {
                 name: person.fullName,

@@ -61,7 +61,7 @@ describe("demo accounts scripts", () => {
   it("creates two team logins and two customers with working passwords and demo data", async () => {
     const creds = await createDemo();
     expect(creds.map((c) => c.rol)).toEqual(["beheerder", "medewerker", "klant", "zakelijk"]);
-    expect(creds[2]!.klantcode).toMatch(/^GR\d{5}$/);
+    expect(creds[2]!.klantcode).toMatch(/^GR[1-9]\d*$/);
     expect(creds[0]!.klantcode).toBe("–");
 
     for (const c of creds) {
@@ -126,7 +126,7 @@ describe("demo accounts scripts", () => {
     await db.exec(REMOVE);
     await db.query("update public.company_settings set public_signup_enabled = false where id");
     const creds = await createDemo();
-    expect(creds[2]!.klantcode).toMatch(/^GR\d{5}$/);
+    expect(creds[2]!.klantcode).toMatch(/^GR[1-9]\d*$/);
     const s = await db.query<{ on: boolean }>(
       "select public_signup_enabled as on from public.company_settings where id",
     );

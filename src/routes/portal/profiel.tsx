@@ -76,9 +76,6 @@ function ProfilePage() {
               </span>
             </Detail>
             <Detail label={t("portal.profile.name")}>{customer.full_name}</Detail>
-            <Detail label={t("portal.profile.accountType")}>
-              {t(isBusiness ? "auth.fields.business" : "auth.fields.personal")}
-            </Detail>
             {isBusiness && customer.company_name ? (
               <Detail label={t("portal.profile.companyName")}>{customer.company_name}</Detail>
             ) : null}

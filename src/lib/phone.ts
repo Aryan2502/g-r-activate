@@ -27,12 +27,14 @@ export function telHref(phone: string | null | undefined): string | null {
   return digits ? `tel:+${digits}` : null;
 }
 
-/** '5978897500' → '+597 889 7500'; other inputs are returned trimmed, unchanged. */
+/**
+ * '5977589695' → '+597 7589695', as G&R writes its numbers (SPEC §36); other
+ * inputs are returned trimmed, unchanged.
+ */
 export function formatPhone(phone: string): string {
   const digits = phoneDigits(phone);
   if (digits?.startsWith(SURINAME_COUNTRY_CODE)) {
-    const local = digits.slice(SURINAME_COUNTRY_CODE.length);
-    return `+597 ${local.slice(0, 3)} ${local.slice(3)}`;
+    return `+597 ${digits.slice(SURINAME_COUNTRY_CODE.length)}`;
   }
   return phone.trim();
 }

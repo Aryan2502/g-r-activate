@@ -11,11 +11,9 @@ describe("toAppError()", () => {
       code: "42501",
       hint: null,
     });
-    expect(
-      toAppError({ code: "23505", message: "GR00017 is al toegewezen aan Jan" }),
-    ).toMatchObject({
+    expect(toAppError({ code: "23505", message: "GR17 is al toegewezen aan Jan" })).toMatchObject({
       kind: "conflict",
-      message: "GR00017 is al toegewezen aan Jan",
+      message: "GR17 is al toegewezen aan Jan",
     });
     expect(toAppError({ code: "22023", message: "Telefoonnummer is verplicht" }).kind).toBe(
       "invalid",

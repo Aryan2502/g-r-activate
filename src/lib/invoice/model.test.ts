@@ -90,7 +90,7 @@ const banks = [
 
 const customer = {
   id: "c1",
-  customer_code: "GR00042",
+  customer_code: "GR42",
   full_name: "Maria Pinas",
   account_type: "personal" as const,
   company_name: null,
@@ -139,7 +139,7 @@ describe("fromDraftForm", () => {
     expect(m.meta.invoiceNumber).toBeNull();
     expect(m.issuer.invoiceTitle).toBe("INVOICE (inclusief BTW)");
     expect(m.issuer.bankAccounts.map((b) => b.bankName)).toEqual(["Hakrinbank", "Republic Bank"]);
-    expect(m.billTo.customerCode).toBe("GR00042");
+    expect(m.billTo.customerCode).toBe("GR42");
     expect(m.lines.map((l) => l.amount)).toEqual([56.25, 15.3]);
     expect(m.totals.totalAmount).toBe(71.55);
     expect(m.totals.totalLbs).toBe(15.9);
@@ -204,7 +204,7 @@ const issuerSnapshot = {
 const billToSnapshot = {
   version: 1,
   customer_id: "c1",
-  customer_code: "GR00042",
+  customer_code: "GR42",
   full_name: "Maria Pinas (toen)",
   account_type: "personal",
   orders: [
@@ -438,11 +438,11 @@ describe("what the paper prints", () => {
   it("payment instruction, title and marks", () => {
     const draft = fromDraftForm(form([]), settings, banks, customer);
     expect(paymentInstruction(draft)).toBe(
-      "Factuurvaluta: USD · Vermeld bij betaling: CONCEPT / GR00042",
+      "Factuurvaluta: USD · Vermeld bij betaling: CONCEPT / GR42",
     );
     const paid = fromIssuedInvoice(row, items);
     expect(paymentInstruction(paid)).toBe(
-      "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0012 / GR00042",
+      "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0012 / GR42",
     );
     expect(printTitle(paid)).toBe("INV-2026-0012 - G&R Solutions");
     expect(statusMark(draft.status)).toEqual({ kind: "draft", text: "CONCEPT" });

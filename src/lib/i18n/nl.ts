@@ -87,12 +87,12 @@ export const nl = {
       step1Title: "Koop online",
       step1Text:
         "Bestel zoals gewoonlijk bij webwinkels zoals Amazon, eBay of andere online winkels, voor uzelf of voor uw bedrijf.",
-      step2Title: "Gebruik uw persoonlijk US-adres",
+      step2Title: "Gebruik ons US-adres",
       step2Text:
-        "U krijgt een eigen klantcode: GR gevolgd door vijf cijfers. Laat de winkel uw pakket naar het US-verzendadres van G&R Solutions sturen en zet uw klantcode achter uw naam én op adresregel 2. Zo weten wij dat het pakket van u is.",
+        "U krijgt een klantcode: GR gevolgd door een nummer. Laat de winkel uw pakket naar het US-verzendadres van G&R Solutions sturen en zet uw klantcode vóór uw naam. Zo weten wij dat het pakket van u is. Let op: geef ook meteen aan of het pakket per Air (luchtvracht) of Ocean (zeevracht) moet; dat zet u direct achter uw klantcode.",
       step3Title: "Meld uw order aan",
       step3Text:
-        "Registreer uw aankoop in het klantportaal: winkel, ordernummer en het trackingnummer als u dat al heeft. Een aankoopfactuur of ander document kunt u meteen uploaden.",
+        "Registreer uw aankoop in het klantportaal. Dit doet u door de Track & Trace code met ons te delen.",
       step3Prohibited: "Bij het aanmelden bevestigt u dat uw zending geen {link} bevat.",
       step3ProhibitedLink: "verboden goederen",
       step4Title: "Wij verzenden en klaren in",
@@ -106,24 +106,13 @@ export const nl = {
       addressExample: {
         title: "Voorbeeld: zo adresseert u uw pakket",
         nameLabel: "Naam",
+        code: "GR67",
+        service: "Air",
         nameValue: "Uw naam",
-        line1Label: "Adresregel 1",
-        line1Value: "Het US-adres van G&R Solutions",
-        line2Label: "Adresregel 2",
-        code: "GR01234",
-        note: "GR01234 is een voorbeeld. Uw eigen klantcode en het volledige US-adres ziet u na het inloggen in het klantportaal.",
+        addressLabel: "Adres",
+        addressValue: "Ons US-adres",
+        note: "GR67 is een voorbeeld. Per zeevracht schrijft u Ocean in plaats van Air: GR67 Ocean Uw naam. Uw eigen klantcode en het volledige US-adres ziet u na het inloggen in het klantportaal.",
       },
-    },
-    orderTypes: {
-      title: "Particulier of zakelijk",
-      intro:
-        "Bij elke aanmelding kiest u wat voor order het is. Zo weten wij hoe wij uw zending behandelen.",
-      personalTitle: "Persoonlijke order",
-      personalText:
-        "Uw eigen online aankoop, bijvoorbeeld bij Amazon of eBay, verzonden naar uw persoonlijk US-adres.",
-      b2bTitle: "Zakelijke order (B2B)",
-      b2bText:
-        "Goederen voor uw bedrijf: zelf ingekocht of via G&R Solutions bij een leverancier. U vermeldt de leverancier en uw inkoopnummer en uploadt de commerciële factuur of paklijst die G&R voor de douane nodig heeft.",
     },
     services: {
       title: "Onze diensten",
@@ -134,6 +123,8 @@ export const nl = {
       airTitle: "Luchtvracht",
       airText:
         "Pakketten die op ons US-adres binnenkomen, verzenden wij per luchtvracht naar Suriname.",
+      seaTitle: "Zeevracht",
+      seaText: "Uw pakket kan ook per zeevracht naar Suriname. U kiest per order: Air of Ocean.",
       trackingTitle: "Zendingen volgen",
       trackingText:
         "Volg de status van elke aangemelde order: van ontvangst in ons US-magazijn tot klaar voor afhalen, met de geschiedenis van elke stap.",
@@ -145,9 +136,9 @@ export const nl = {
       title: "Veelgestelde vragen",
       intro: "Staat uw vraag er niet bij? Neem gerust contact op met G&R Solutions.",
       q1: "Wat is mijn klantcode en waar vind ik die?",
-      a1: "Uw klantcode is uw persoonlijke code bij G&R Solutions: GR gevolgd door vijf cijfers. U ziet hem na het inloggen in het klantportaal, samen met uw persoonlijk US-verzendadres. Zet hem op elk pakket: achter uw naam én op adresregel 2.",
-      q2: "Ik heb nog geen trackingnummer. Kan ik mijn order al aanmelden?",
-      a2: "Ja. Het trackingnummer is optioneel. U kunt het later toevoegen, zolang uw pakket nog niet in ons US-magazijn is ontvangen.",
+      a1: "Uw klantcode is uw persoonlijke code bij G&R Solutions: GR gevolgd door een nummer, bijvoorbeeld GR67. U ziet hem na het inloggen in het klantportaal, samen met het US-verzendadres. Zet hem op elk pakket vóór uw naam, met Air of Ocean erachter: GR67 Air Uw naam.",
+      q2: "Ik heb nog geen Track & Trace code. Kan ik mijn order al aanmelden?",
+      a2: "U meldt uw order aan met de Track & Trace code die u van de winkel krijgt zodra uw pakket verzonden is. Daaraan herkennen wij uw pakket wanneer het in ons US-magazijn binnenkomt.",
       q3: "Mijn bestelling komt in meerdere dozen. Wat nu?",
       a3: "Meld de bestelling één keer aan. Voor elke extra doos kiest u op de orderpagina ‘Extra pakket toevoegen’; dat pakket wordt aan uw order gekoppeld.",
       q4: "Ik ben al klant van G&R. Moet ik een nieuw account maken?",
@@ -220,8 +211,7 @@ export const nl = {
       passwordMismatch: "De wachtwoorden komen niet overeen.",
       fullNameRequired: "Vul uw volledige naam in.",
       phoneRequired: "Vul uw telefoon- of WhatsAppnummer in.",
-      phoneInvalid: "Vul een geldig telefoonnummer in, bijvoorbeeld +597 889 7500.",
-      companyRequired: "Vul de bedrijfsnaam in.",
+      phoneInvalid: "Vul een geldig telefoonnummer in, bijvoorbeeld +597 8123456.",
       termsRequired: "U moet akkoord gaan met de algemene voorwaarden.",
       tooLong: "Deze tekst is te lang (maximaal {max} tekens).",
     },
@@ -238,10 +228,6 @@ export const nl = {
         "Precies zoals op uw identiteitsbewijs. Wij gebruiken deze naam bij de douane en op uw facturen.",
       phone: "Telefoon / WhatsApp",
       phoneHint: "Op dit nummer informeren wij u over uw zendingen.",
-      accountType: "Soort account",
-      personal: "Particulier",
-      business: "Zakelijk",
-      companyName: "Bedrijfsnaam",
     },
     errors: {
       invalidCredentials: "Onjuist e-mailadres of wachtwoord.",
@@ -370,7 +356,8 @@ export const nl = {
     emailHint:
       "U logt in met dit adres. Het volledige adres staat in het bericht van G&R en ziet u na het activeren.",
     code: "Uw klantcode",
-    codeHint: "Deze code blijft bij u. Zet hem bij elke bestelling achter uw naam.",
+    codeHint:
+      "Deze code blijft bij u. Zet hem bij elke bestelling vóór uw naam, met Air of Ocean erachter: {code} Air Uw naam.",
     staffName: "Uw naam",
     staffNameHint: "Zo zien collega's wie een order heeft bijgewerkt.",
     staffNameRequired: "Vul uw naam in.",
@@ -498,11 +485,21 @@ export const nl = {
       title: "Uw persoonlijk US-verzendadres",
       intro:
         "Gebruik dit adres als verzendadres bij uw online aankopen. Aan uw klantcode herkennen wij dat het pakket van u is.",
-      note: "Zet altijd uw klantcode {code} achter uw naam én op adresregel 2.",
+      note: "Neem de naam precies over zoals hierboven, met uw klantcode {code}. Zo weten wij dat het pakket van u is.",
+      noteServices:
+        "Neem de naam precies over zoals hierboven: eerst uw klantcode {code}, dan Air (luchtvracht) of Ocean (zeevracht), dan uw naam. Zo weten wij dat het pakket van u is en hoe wij het verzenden.",
       empty: "Ons US-adres wordt binnenkort hier getoond.",
       copyAll: "Kopieer volledig adres",
+      copyAllFor: {
+        air: "Kopieer adres voor luchtvracht",
+        sea: "Kopieer adres voor zeevracht",
+      },
       copyField: "{field} kopiëren",
       loadFailed: "Het US-verzendadres kon niet worden geladen.",
+      recipientFor: {
+        air: "Naam bij luchtvracht",
+        sea: "Naam bij zeevracht",
+      },
       fields: {
         recipient: "Naam",
         line1: "Adresregel 1",
@@ -676,7 +673,6 @@ export const nl = {
       contactIntro: "Deze gegevens kunt u zelf wijzigen.",
       customerCode: "Klantcode",
       name: "Naam",
-      accountType: "Soort account",
       companyName: "Bedrijfsnaam",
       kkfNumber: "KKF-nummer",
       email: "E-mailadres",
@@ -699,8 +695,6 @@ export const nl = {
       searchPlaceholder: "Referentie, winkel, omschrijving, ordernummer of tracking",
       stageFilter: "Status",
       allStages: "Alle statussen",
-      typeFilter: "Soort order",
-      allTypes: "Alle soorten",
       sort: "Sorteren op datum",
       newest: "Nieuwste eerst",
       oldest: "Oudste eerst",
@@ -708,7 +702,7 @@ export const nl = {
       resultCountOne: "{count} van {total} order",
       emptyTitle: "Nog geen orders",
       emptyText:
-        "Meld uw online aankoop aan zodra u hebt besteld. Het trackingnummer kunt u later toevoegen.",
+        "Meld uw online aankoop aan zodra de winkel uw pakket heeft verzonden, met de Track & Trace code.",
       noResults: "Geen orders gevonden met deze zoekopdracht of filters.",
       clearFilters: "Filters wissen",
       loadFailed: "Uw orders konden niet worden geladen.",
@@ -988,9 +982,9 @@ export const nl = {
         b2b: "Zakelijke gegevens",
         note: "Opmerking",
       },
-      orderTypeHints: {
-        personal: "Uw eigen online aankoop.",
-        b2b: "Een zakelijke zending of inkoop via G&R Solutions.",
+      serviceTypeHints: {
+        air: "Op het pakket: Air achter uw klantcode",
+        sea: "Op het pakket: Ocean achter uw klantcode",
       },
       fields: {
         orderType: "Soort order",
@@ -1007,8 +1001,9 @@ export const nl = {
         currency: "Valuta",
         purchaseDate: "Aankoopdatum",
         expectedDeliveryDate: "Verwachte leverdatum",
-        trackingNumber: "Trackingnummer",
+        trackingNumber: "Track & Trace code",
         trackingHint: "Optioneel / indien bekend",
+        trackingRequiredHint: "De code die u van de winkel krijgt zodra uw pakket verzonden is.",
         carrier: "Vervoerder",
         carrierHint: "Bijvoorbeeld UPS, FedEx, USPS of Amazon.",
         declaredWeight: "Gewicht in lbs",
@@ -1052,6 +1047,7 @@ export const nl = {
         deliveryTooFar:
           "De verwachte leverdatum ligt meer dan een jaar vooruit. Controleer de datum.",
         valueRequired: "Vul de geschatte waarde in, bijvoorbeeld 125,50.",
+        trackingRequired: "Vul de Track & Trace code in.",
         deliveryBeforePurchase: "De verwachte leverdatum kan niet vóór de aankoopdatum liggen.",
         tooLong: "Deze tekst is te lang (maximaal {max} tekens).",
       },
@@ -1059,30 +1055,17 @@ export const nl = {
     newOrder: {
       title: "Order aanmelden",
       intro:
-        "Meld uw online aankoop aan zodra u hebt besteld. Het trackingnummer kunt u later toevoegen.",
-      typeStep: {
-        heading: "Wat voor order wilt u aanmelden?",
-        personalTitle: "Persoonlijke order",
-        personalText:
-          "Uw eigen online aankoop, bijvoorbeeld bij Amazon of eBay, verzonden naar uw US-adres.",
-        b2bTitle: "Zakelijke order (B2B)",
-        b2bText:
-          "Goederen voor uw bedrijf: zelf ingekocht of via G&R Solutions bij een leverancier.",
-      },
+        "Meld uw online aankoop aan zodra de winkel uw pakket heeft verzonden: u deelt dan de Track & Trace code met ons.",
       addressHint:
-        "Laat de winkel uw pakket naar uw persoonlijk US-verzendadres sturen, met uw klantcode {code} achter uw naam én op adresregel 2.",
-      viewAddress: "Bekijk uw US-verzendadres",
-      chosenType: "Soort order",
-      changeType: "Wijzigen",
-      changeTypeLabel: "Soort order wijzigen",
-      typeFromRoot: "overgenomen van order {reference}",
+        "Laat de winkel uw pakket naar ons US-adres sturen, met {code} Air of {code} Ocean vóór uw naam.",
+      viewAddress: "Bekijk het US-verzendadres",
       cancel: "Annuleren",
       formTitle: "Gegevens van de order",
       requiredNote: "Velden zonder ‘optioneel’ zijn verplicht.",
       sibling: {
         title: "Extra pakket aanmelden",
         intro:
-          "Komt uw aankoop in meerdere dozen? Meld hier een extra pakket aan bij order {reference}. Soort order, winkel en ordernummer worden overgenomen.",
+          "Komt uw aankoop in meerdere dozen? Meld hier een extra pakket aan bij order {reference}. Winkel en ordernummer worden overgenomen.",
         back: "Terug naar order {reference}",
         notFoundTitle: "Order niet gevonden",
         notFoundText:
@@ -1714,6 +1697,10 @@ export const nl = {
         personal: "Een eigen online aankoop van de klant.",
         b2b: "Een zakelijke zending of inkoop via G&R Solutions.",
       },
+      serviceTypeHints: {
+        air: "Op het pakket: Air achter de klantcode",
+        sea: "Op het pakket: Ocean achter de klantcode",
+      },
       fields: {
         declaredWeight: "Gewicht volgens de klant (lbs)",
         declaredWeightHint:
@@ -2011,7 +1998,7 @@ export const nl = {
         phoneHint: "Met +597 voor een Surinaams nummer. Ook voor WhatsApp.",
         emailHintAdd: "Nodig de klant later uit vanaf de klantpagina.",
         emailHintInvite: "De klant logt met dit adres in; de uitnodiging hoort bij dit adres.",
-        codeInvalid: "Gebruik GR gevolgd door 1 tot 5 cijfers, bijvoorbeeld GR00017 of 17.",
+        codeInvalid: "Gebruik GR gevolgd door een nummer van 1 t/m 99999, bijvoorbeeld GR17 of 17.",
         codeHint:
           "Alleen voor een bestaande klant met een eigen GR-code. Leeg laten: het systeem kiest de volgende code.",
         codeNext: "Leeg laten geeft de volgende vrije code: {code}.",
@@ -2201,10 +2188,10 @@ export const nl = {
         locked:
           "De code kan niet meer worden gewijzigd: de klant heeft al orders of uitgegeven facturen.",
         newCode: "Nieuwe code",
-        newCodeHint: "Bijvoorbeeld GR00017 of 17. U ziet meteen of de code nog vrij is.",
+        newCodeHint: "Bijvoorbeeld GR17 of 17. U ziet meteen of de code nog vrij is.",
         reason: "Reden",
         reasonHint: "Wordt vastgelegd in het auditlog.",
-        reasonPlaceholder: "Bijvoorbeeld: bestaande klant, had al code GR00017.",
+        reasonPlaceholder: "Bijvoorbeeld: bestaande klant, had al code GR17.",
         same: "Dit is al de code van deze klant.",
         lockedShort:
           "Code wijzigen kan niet meer: {code} staat al op orders of uitgegeven facturen.",
@@ -2628,7 +2615,7 @@ export const nl = {
           "Nieuwe klanten krijgen automatisch de volgende vrije code. Alleen verder omhoog: codes worden nooit opnieuw uitgegeven.",
         nextCode: "Volgende klantcode",
         nextLabel: "Nieuwe volgende klantcode",
-        nextHint: "Bijv. GR00150 of 150. Hoger dan elke bestaande en eerder gebruikte code.",
+        nextHint: "Bijv. GR150 of 150. Hoger dan elke bestaande en eerder gebruikte code.",
         nextSave: "Opslaan",
         nextSaved: "Nieuwe klanten krijgen nu {code} als eerstvolgende code.",
         nextFailed: "De volgende klantcode is niet gewijzigd.",
@@ -2671,15 +2658,17 @@ export const nl = {
         addTitle: "US-adres toevoegen",
         editTitle: "US-adres ‘{label}’ wijzigen",
         dialogIntro:
-          "Gebruik {FULL_NAME} voor de naam van de klant en {GR_CODE} voor de klantcode; het portaal vult ze per klant in.",
+          "Gebruik {GR_CODE} voor de klantcode, {SERVICE} voor Air of Ocean en {FULL_NAME} voor de naam van de klant; het portaal vult ze per klant in.",
         label: "Naam van het adres",
-        labelHint: "Bijv. ‘Miami – luchtvracht’. Staat als kop op de kaart van de klant.",
+        labelHint: "Bijv. ‘Miami’. Staat als kop op de kaart van de klant.",
         serviceType: "Verzendwijze",
+        serviceTypeHint:
+          "Met {SERVICE} in de naam geldt dit adres ook voor de andere verzendwijze, zolang die geen eigen adres heeft: de klant ziet een naamregel voor Air en een voor Ocean.",
         recipientTemplate: "Naam ontvanger",
-        recipientHint: "Standaard ‘{FULL_NAME} {GR_CODE}’.",
+        recipientHint: "Standaard ‘{GR_CODE} {SERVICE} {FULL_NAME}’, bijv. GR67 Air Maria Pinas.",
         line1: "Adresregel 1",
         line2Template: "Adresregel 2",
-        line2Hint: "Standaard ‘{GR_CODE}’, zodat het magazijn het pakket aan de klant koppelt.",
+        line2Hint: "Standaard leeg. U mag ook hier {GR_CODE} gebruiken.",
         city: "Plaats",
         state: "Staat",
         zip: "Postcode (ZIP)",
@@ -2691,10 +2680,11 @@ export const nl = {
         previewCustomer: "Klant voor het voorbeeld",
         sampleName: "Voorbeeldklant",
         recipientWithoutCode:
-          "Zonder {GR_CODE} achter de naam kan het magazijn het pakket moeilijk aan de klant koppelen.",
-        line2WithoutCode:
-          "Zonder {GR_CODE} op adresregel 2 kan het magazijn het pakket moeilijk aan de klant koppelen.",
-        unknownPlaceholder: "Onbekende code {found}: gebruik alleen {FULL_NAME} en {GR_CODE}.",
+          "Zonder {GR_CODE} in de naam kan het magazijn het pakket moeilijk aan de klant koppelen.",
+        recipientWithoutService:
+          "Zonder {SERVICE} in de naam ziet de klant niet dat er Air of Ocean bij moet.",
+        unknownPlaceholder:
+          "Onbekende code {found}: gebruik alleen {FULL_NAME}, {GR_CODE} en {SERVICE}.",
         save: "Opslaan",
         saving: "Bezig met opslaan…",
         cancel: "Annuleren",

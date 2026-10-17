@@ -44,26 +44,15 @@ export const loginSchema = z.object({
 
 // Every rule is field-level so all errors show on the first submit; an
 // object-level refinement would be skipped while another field fails.
-const signupFields = {
+// Sign-up asks no account type (SPEC §36): every new account is personal;
+// staff mark a business customer in /admin/klanten.
+export const signupSchema = z.object({
   fullName: z.string().trim().min(1, t("auth.validation.fullNameRequired")).max(200, tooLong(200)),
   phone: phoneField,
   email: emailField,
   password: newPasswordField,
   acceptTerms: z.boolean().refine((accepted) => accepted, t("auth.validation.termsRequired")),
-};
-
-export const signupSchema = z.discriminatedUnion("accountType", [
-  z.object({
-    ...signupFields,
-    accountType: z.literal("personal"),
-    companyName: optionalText(200),
-  }),
-  z.object({
-    ...signupFields,
-    accountType: z.literal("business"),
-    companyName: optionalText(200).min(1, t("auth.validation.companyRequired")),
-  }),
-]);
+});
 
 export const forgotPasswordSchema = z.object({ email: emailField });
 
@@ -90,13 +79,12 @@ export type SetPasswordValues = z.input<typeof setPasswordSchema>;
 export type ContactValues = z.input<typeof contactSchema>;
 export type ContactData = z.output<typeof contactSchema>;
 
-/** raw_user_meta_data for signUp: display fields only (SPEC §35.6). */
+/** raw_user_meta_data for signUp: display fields only (SPEC §35.6, §36). */
 export function signupMetadata(data: SignupData, termsVersion: string) {
   return {
     full_name: data.fullName,
     phone: data.phone,
-    account_type: data.accountType,
-    company_name: data.accountType === "business" ? data.companyName : null,
+    account_type: "personal",
     terms_version: termsVersion,
   };
 }

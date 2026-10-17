@@ -156,6 +156,27 @@ describe("registerOrder()", () => {
     expect(calls.find((c) => c.op === "returning")?.args).toBe("id, reference");
   });
 
+  it("registers a new order as personal, whatever type the browser sends (SPEC §36)", async () => {
+    const { client, calls } = fakeClient();
+    const b2b = orderRegistrationFieldsSchema.parse({
+      ...fields,
+      quantity: "1",
+      estimatedValue: "149,99",
+      declaredWeightLbs: "",
+      orderType: "b2b",
+      supplierName: "Shenzhen Pack Co.",
+      clientPoNumber: "PO-1",
+      purchaseMode: "customer_purchased",
+    });
+    await registerOrder(client, input({ fields: b2b }));
+    expect(calls.find((c) => c.op === "insert")?.args).toMatchObject({
+      order_type: "personal",
+      supplier_name: null,
+      client_po_number: null,
+      purchase_mode: null,
+    });
+  });
+
   it("refuses a login without an active customer record (42501), before any insert", async () => {
     const { client, calls } = fakeClient({ customerId: null });
     const error = await registerOrder(client, input()).catch((e: unknown) => e);

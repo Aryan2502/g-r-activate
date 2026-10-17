@@ -20,7 +20,7 @@ import {
 const row = (n: number, extra: Partial<CustomerListRow> = {}): CustomerListRow => ({
   id: `c${n}`,
   customer_number: n,
-  customer_code: `GR${String(n).padStart(5, "0")}`,
+  customer_code: `GR${n}`,
   full_name: `Klant ${n}`,
   company_name: null,
   account_type: "personal",
@@ -55,7 +55,7 @@ const biharie = row(107, {
 
 describe("matchesCustomerSearch(): the list's one search box", () => {
   it("finds a GR code however it is typed", () => {
-    for (const q of ["gr 17", "GR00017", "17", " gr00017 "]) {
+    for (const q of ["gr 17", "GR17", "17", " gr00017 "]) {
       expect(matchesCustomerSearch(maria, q), q).toBe(true);
     }
     expect(matchesCustomerSearch(eneas, "gr 17")).toBe(false);
@@ -91,21 +91,21 @@ describe("filterCustomers()", () => {
   it("filters on status, account type, login and open invoices", () => {
     const ids = (search: Parameters<typeof filterCustomers>[1]) =>
       filterCustomers(list, search).map((c) => c.customer_code);
-    expect(ids({ status: "invited" })).toEqual(["GR00042"]);
-    expect(ids({ type: "business" })).toEqual(["GR00107"]);
-    expect(ids({ login: "yes" })).toEqual(["GR00017"]);
-    expect(ids({ login: "no" })).toEqual(["GR00042", "GR00107"]);
-    expect(ids({ openInvoice: true })).toEqual(["GR00042"]);
+    expect(ids({ status: "invited" })).toEqual(["GR42"]);
+    expect(ids({ type: "business" })).toEqual(["GR107"]);
+    expect(ids({ login: "yes" })).toEqual(["GR17"]);
+    expect(ids({ login: "no" })).toEqual(["GR42", "GR107"]);
+    expect(ids({ openInvoice: true })).toEqual(["GR42"]);
   });
 
   it("sorts by GR code by default, by name, or by creation date", () => {
     const codes = (sort: "code" | "name" | "newest" | "oldest" | undefined) =>
       filterCustomers(list, { sort }).map((c) => c.customer_code);
-    expect(codes(undefined)).toEqual(["GR00017", "GR00042", "GR00107"]);
+    expect(codes(undefined)).toEqual(["GR17", "GR42", "GR107"]);
     // Business customers sort by company name: "Biharie …" before "Énéas", "Maria".
-    expect(codes("name")).toEqual(["GR00107", "GR00042", "GR00017"]);
-    expect(codes("newest")[0]).toBe("GR00107");
-    expect(codes("oldest")[0]).toBe("GR00017");
+    expect(codes("name")).toEqual(["GR107", "GR42", "GR17"]);
+    expect(codes("newest")[0]).toBe("GR107");
+    expect(codes("oldest")[0]).toBe("GR17");
   });
 
   it("counts orders, and says 'unknown' (null) while extras are not loaded", () => {
@@ -243,7 +243,7 @@ describe("buildCustomerTimeline() (SPEC §35.13 subset)", () => {
     id: "c42",
     created_at: "2026-10-01T00:00:00Z",
     created_by: "staff1",
-    customer_code: "GR00042",
+    customer_code: "GR42",
     status: "disabled" as const,
     disabled_at: "2026-10-06T00:00:00Z",
     disabled_by: "admin1",
@@ -293,12 +293,12 @@ describe("buildCustomerTimeline() (SPEC §35.13 subset)", () => {
         entry(1, {
           action: "INSERT",
           actor_id: "staff1",
-          new_data: { customer_code: "GR00142" },
+          new_data: { customer_code: "GR142" },
         }),
         entry(2, {
           changed_columns: ["customer_code", "customer_number"],
-          old_data: { customer_code: "GR00142" },
-          new_data: { customer_code: "GR00042" },
+          old_data: { customer_code: "GR142" },
+          new_data: { customer_code: "GR42" },
           reason: "Bestaande klant",
         }),
         entry(3, {
@@ -340,7 +340,7 @@ describe("buildCustomerTimeline() (SPEC §35.13 subset)", () => {
       "invitation_resent",
       "login_linked",
     ]);
-    expect(events[1]?.detail).toBe("GR00142 → GR00042 · reden: Bestaande klant");
+    expect(events[1]?.detail).toBe("GR142 → GR42 · reden: Bestaande klant");
     expect(events[2]?.detail).toBe("a@example.com → b@example.com");
     expect(events[3]?.detail).toBe("Telefoon / WhatsApp, Adres");
     expect(events[4]?.detail).toBe("reden: Verhuisd");

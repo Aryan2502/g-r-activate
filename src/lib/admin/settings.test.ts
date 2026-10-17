@@ -150,7 +150,7 @@ describe("numbering", () => {
   });
 
   it("reads the next customer code as staff type it", () => {
-    expect(nextCustomerNumberSchema.parse({ code: "GR00150" })).toEqual({ code: 150 });
+    expect(nextCustomerNumberSchema.parse({ code: "GR150" })).toEqual({ code: 150 });
     expect(nextCustomerNumberSchema.parse({ code: "gr 7" })).toEqual({ code: 7 });
     expect(nextCustomerNumberSchema.safeParse({ code: "abc" }).success).toBe(false);
     expect(nextCustomerNumberSchema.safeParse({ code: "" }).success).toBe(false);
@@ -189,8 +189,10 @@ describe("bank accounts and US addresses", () => {
     ]);
   });
 
-  it("knows only {FULL_NAME} and {GR_CODE}, and warns without the code", () => {
-    expect(unknownPlaceholders("{FULL_NAME} {NAAM} {GR_CODE} {NAAM}")).toEqual(["{NAAM}"]);
+  it("knows only {FULL_NAME}, {GR_CODE} and {SERVICE}, and warns without code or service", () => {
+    expect(unknownPlaceholders("{FULL_NAME} {NAAM} {GR_CODE} {SERVICE} {NAAM}")).toEqual([
+      "{NAAM}",
+    ]);
     const parsed = warehouseAddressSchema.safeParse({
       ...EMPTY_WAREHOUSE_ADDRESS,
       recipientTemplate: "{NAAM}",
@@ -201,14 +203,19 @@ describe("bank accounts and US addresses", () => {
       expect(fields).toEqual(
         expect.arrayContaining(["label", "recipientTemplate", "line1", "city"]),
       );
+      // Line 2 may stay empty (SPEC §36).
+      expect(fields).not.toContain("line2Template");
       expect(parsed.error.issues.find((i) => i.path[0] === "recipientTemplate")?.message).toBe(
-        "Onbekende code {NAAM}: gebruik alleen {FULL_NAME} en {GR_CODE}.",
+        "Onbekende code {NAAM}: gebruik alleen {FULL_NAME}, {GR_CODE} en {SERVICE}.",
       );
     }
+    expect(EMPTY_WAREHOUSE_ADDRESS).toMatchObject({
+      recipientTemplate: "{GR_CODE} {SERVICE} {FULL_NAME}",
+      line2Template: "",
+    });
     expect(warehouseWarnings(EMPTY_WAREHOUSE_ADDRESS)).toEqual([]);
-    expect(
-      warehouseWarnings({ recipientTemplate: "{FULL_NAME}", line2Template: "Suite 4" }),
-    ).toHaveLength(2);
+    expect(warehouseWarnings({ recipientTemplate: "{GR_CODE} {FULL_NAME}" })).toHaveLength(1);
+    expect(warehouseWarnings({ recipientTemplate: "{FULL_NAME}" })).toHaveLength(2);
   });
 });
 

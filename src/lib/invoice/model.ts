@@ -667,7 +667,7 @@ export function paymentColumns(model: InvoiceRenderModel): PaymentColumnView[] {
   });
 }
 
-/** "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0001 / GR00042". */
+/** "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0001 / GR42". */
 export function paymentInstruction(model: InvoiceRenderModel): string {
   return fill(INVOICE_LABELS.paymentInstruction, {
     currency: model.meta.currency,

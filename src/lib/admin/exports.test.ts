@@ -52,7 +52,7 @@ const record = (csv: string, row = 1) => {
 
 const customer = {
   id: "c1",
-  customer_code: "GR00042",
+  customer_code: "GR42",
   full_name: "Maria Pinas",
   company_name: "Pinas Trading N.V.",
   account_type: "business" as const,
@@ -78,7 +78,7 @@ describe("customer export", () => {
   it("writes Dutch labels, codes as text and dd-mm-jjjj dates", () => {
     const r = record(buildCsv(CUSTOMER_EXPORT_COLUMNS, [row]));
     expect(r).toMatchObject({
-      "GR-code": "GR00042",
+      "GR-code": "GR42",
       Naam: "Maria Pinas",
       "Soort klant": "Zakelijk",
       Status: "Actief",
@@ -224,7 +224,7 @@ describe("invoice export (one row per line)", () => {
       Factuurnummer: "INV-2026-0007",
       Status: "Deels betaald",
       Achterstallig: "ja",
-      "GR-code": "GR00042",
+      "GR-code": "GR42",
       Valuta: "SRD",
       Factuurdatum: "01-09-2026",
       Vervaldatum: "08-09-2026",

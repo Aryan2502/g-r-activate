@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { enabledServiceTypesQueryOptions, type ServiceType } from "@/lib/portal/orders";
 import {
+  addressServices,
   fullAddressText,
   personalAddressLines,
   warehouseAddressesQueryOptions,
@@ -17,8 +19,9 @@ import {
 } from "@/lib/portal/warehouse";
 
 /**
- * First dashboard card (SPEC §35.8): the customer's personal US shipping
- * address, read from warehouse_addresses and filled with their name and GR code.
+ * First dashboard card (SPEC §35.8, §36): the customer's personal US shipping
+ * address, read from warehouse_addresses and filled with their name and GR
+ * code, with a name line per service ("GR67 Air Naam", "GR67 Ocean Naam").
  */
 export function WarehouseAddressCard({
   userId,
@@ -29,6 +32,10 @@ export function WarehouseAddressCard({
 }) {
   const t = useT();
   const addresses = useQuery(warehouseAddressesQueryOptions(userId));
+  const enabled = useQuery(enabledServiceTypesQueryOptions(userId));
+  const servicesOf = (address: WarehouseAddress) =>
+    addressServices(address, enabled.data ?? [], addresses.data ?? []);
+  const perService = addresses.data?.some((a) => servicesOf(a).length > 1) ?? false;
 
   return (
     <section
@@ -40,18 +47,21 @@ export function WarehouseAddressCard({
         {t("portal.address.title")}
       </h2>
 
-      {addresses.isPending ? (
+      {addresses.isPending || enabled.isPending ? (
         <div className="mt-4 space-y-2">
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="h-5 w-1/2" />
           <Skeleton className="h-5 w-3/5" />
         </div>
-      ) : addresses.isError ? (
+      ) : addresses.isError || enabled.isError ? (
         <LoadError
           className="mt-4"
           title={t("portal.address.loadFailed")}
-          error={addresses.error}
-          onRetry={() => void addresses.refetch()}
+          error={addresses.error ?? enabled.error}
+          onRetry={() => {
+            if (addresses.isError) void addresses.refetch();
+            if (enabled.isError) void enabled.refetch();
+          }}
         />
       ) : addresses.data.length === 0 ? (
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{t("portal.address.empty")}</p>
@@ -65,6 +75,7 @@ export function WarehouseAddressCard({
               <AddressBlock
                 key={address.id}
                 address={address}
+                services={servicesOf(address)}
                 person={person}
                 showLabel={addresses.data.length > 1}
                 wide={addresses.data.length === 1}
@@ -75,7 +86,9 @@ export function WarehouseAddressCard({
             role="note"
             className="mt-5 rounded-md border border-warning/30 bg-warning-soft px-3 py-2.5 text-sm font-semibold leading-6 text-foreground"
           >
-            {t("portal.address.note", { code: person.customerCode })}
+            {perService
+              ? t("portal.address.noteServices", { code: person.customerCode })
+              : t("portal.address.note", { code: person.customerCode })}
           </p>
         </>
       )}
@@ -85,18 +98,23 @@ export function WarehouseAddressCard({
 
 function AddressBlock({
   address,
+  services,
   person,
   showLabel,
   wide,
 }: {
   address: WarehouseAddress;
+  /** The services this address has a name line for (addressServices). */
+  services: readonly ServiceType[];
   person: AddressPerson;
   showLabel: boolean;
   /** A single address uses the card's full width: fields in two columns. */
   wide: boolean;
 }) {
   const t = useT();
-  const lines = personalAddressLines(address, person);
+  const lines = personalAddressLines(address, person, services);
+  // One copy button per name line when the name says Air or Ocean.
+  const copyServices = lines.some((line) => line.service) ? services : [address.service_type];
 
   return (
     <div className="min-w-0 rounded-md border bg-background/60">
@@ -114,9 +132,14 @@ function AddressBlock({
         )}
       >
         {lines.map((line) => {
-          const label = t(`portal.address.fields.${line.field}`);
+          const label = line.service
+            ? t(`portal.address.recipientFor.${line.service}`)
+            : t(`portal.address.fields.${line.field}`);
           return (
-            <li key={line.field} className="flex items-center gap-3 px-4 py-2">
+            <li
+              key={`${line.field}-${line.service ?? ""}`}
+              className="flex items-center gap-3 px-4 py-2"
+            >
               <div className="min-w-0 flex-1">
                 <span className="block text-xs text-muted-foreground">{label}</span>
                 <span className="block break-words font-semibold text-foreground tabular-nums">
@@ -131,16 +154,21 @@ function AddressBlock({
           );
         })}
       </ul>
-      <div className="p-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full sm:w-auto"
-          onClick={() => void copyToClipboard(fullAddressText(address, person))}
-        >
-          <ClipboardCopy aria-hidden />
-          {t("portal.address.copyAll")}
-        </Button>
+      <div className="flex flex-wrap gap-2 p-3">
+        {copyServices.map((service) => (
+          <Button
+            key={service}
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => void copyToClipboard(fullAddressText(address, person, service))}
+          >
+            <ClipboardCopy aria-hidden />
+            {copyServices.length > 1
+              ? t(`portal.address.copyAllFor.${service}`)
+              : t("portal.address.copyAll")}
+          </Button>
+        ))}
       </div>
     </div>
   );

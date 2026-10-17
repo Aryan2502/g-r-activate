@@ -46,8 +46,9 @@ describe("telHref / formatPhone", () => {
   });
 
   it("formats Surinamese numbers for display", () => {
-    expect(formatPhone("5978897500")).toBe("+597 889 7500");
-    expect(formatPhone("412345")).toBe("+597 412 345");
+    expect(formatPhone("5977589695")).toBe("+597 7589695");
+    expect(formatPhone("+597 758-9695")).toBe("+597 7589695");
+    expect(formatPhone("412345")).toBe("+597 412345");
     expect(formatPhone(" +1 305 555 0100 ")).toBe("+1 305 555 0100");
   });
 });

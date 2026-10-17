@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { nextCustomerNumberQueryOptions } from "@/lib/admin/customers";
 import { adminKeys } from "@/lib/admin/keys";
+import { formatCustomerCode } from "@/lib/admin/orders";
 import {
   formatInvoiceNumber,
   invoiceCounterSchema,
@@ -25,8 +26,6 @@ import { invoiceCounterQueryOptions } from "@/lib/admin/settings-queries";
 import { errorMessage } from "@/lib/errors";
 import { todayInSuriname } from "@/lib/format";
 import { useT } from "@/lib/i18n";
-
-const asCode = (n: number) => `GR${String(n).padStart(5, "0")}`;
 
 /**
  * "Nummering" (SPEC §35.8, §35.9, §35.5): this year's invoice counter
@@ -229,7 +228,7 @@ function NextCustomerCode({ userId, isAdmin }: { userId: string; isAdmin: boolea
   const save = useMutation({
     mutationFn: (n: number) => setNextCustomerNumber(supabase, n),
     onSuccess: async (n) => {
-      toast.success(t("admin.settings.numbering.nextSaved", { code: asCode(n) }));
+      toast.success(t("admin.settings.numbering.nextSaved", { code: formatCustomerCode(n) }));
       setValue("");
       await queryClient.invalidateQueries({ queryKey: adminKeys.customers(userId) });
     },

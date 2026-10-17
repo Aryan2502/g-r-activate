@@ -19,7 +19,7 @@ const SETTINGS = { dueSoonDays: 2, intervalDays: 7, maxOverdueReminders: 3 };
 
 const customer = (id: string, extra: Partial<PickerCustomer> = {}): PickerCustomer => ({
   id,
-  customer_code: "GR00042",
+  customer_code: "GR42",
   full_name: "Alice Jansen",
   company_name: null,
   account_type: "personal",
@@ -231,7 +231,7 @@ describe("withoutEmail() and the WhatsApp text", () => {
       overview,
       [
         customer("c1"),
-        customer("c2", { email: null, full_name: "Carol Zonder Mail", customer_code: "GR00018" }),
+        customer("c2", { email: null, full_name: "Carol Zonder Mail", customer_code: "GR18" }),
       ],
       TODAY,
     );
@@ -242,7 +242,7 @@ describe("withoutEmail() and the WhatsApp text", () => {
         "Beste Carol,",
         "",
         "Volgens onze administratie is factuur INV-2026-0001 nog niet volledig betaald. De vervaldatum was 01-10-2026; er staat nog USD 30,50 open.",
-        "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0001 / GR00018",
+        "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0001 / GR18",
         "Rekeningnummer: 1234567 (DSB)",
         "",
         "Met vriendelijke groet, G&R SOLUTIONS N.V.",

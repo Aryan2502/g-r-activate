@@ -197,7 +197,9 @@ function Greeting({ invitation }: { invitation: Open }) {
             <dd className="mt-0.5 font-heading text-xl font-bold text-primary tabular-nums">
               {invitation.customerCode}
             </dd>
-            <dd className="text-xs text-muted-foreground">{t("invite.codeHint")}</dd>
+            <dd className="text-xs text-muted-foreground">
+              {t("invite.codeHint", { code: invitation.customerCode })}
+            </dd>
           </div>
         ) : null}
       </dl>

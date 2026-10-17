@@ -112,7 +112,7 @@ describe("csvCode()", () => {
   });
 
   it("writes other identifiers as (defused) text", () => {
-    expect(csvCode("GR00042")).toBe("GR00042");
+    expect(csvCode("GR42")).toBe("GR42");
     expect(csvCode("1Z999AA10123456784")).toBe("1Z999AA10123456784");
     expect(csvCode("INV-2026-0001")).toBe("INV-2026-0001");
     expect(csvCode("=1+1")).toBe("'=1+1");
@@ -153,7 +153,7 @@ describe("buildCsv()", () => {
   ];
   const rows: Row[] = [
     {
-      code: "GR00042",
+      code: "GR42",
       name: 'Pinas; "Maria"',
       amount: 1234.5,
       date: "2026-10-07",
@@ -162,7 +162,7 @@ describe("buildCsv()", () => {
       tracking: "9400111899223397658538",
     },
     {
-      code: "GR00007",
+      code: "GR7",
       name: "Énéas\nTweede regel",
       amount: null,
       date: "2026-01-02",
@@ -185,8 +185,8 @@ describe("buildCsv()", () => {
     expect(csv).toBe(
       [
         "GR-code;Naam;Bedrag;Datum;Tijdstip;Betaald;Tracking",
-        'GR00042;"Pinas; ""Maria""";1234,50;07-10-2026;07-10-2026 12:00;ja;"=""9400111899223397658538"""',
-        'GR00007;"Énéas\nTweede regel";;02-01-2026;;nee;',
+        'GR42;"Pinas; ""Maria""";1234,50;07-10-2026;07-10-2026 12:00;ja;"=""9400111899223397658538"""',
+        'GR7;"Énéas\nTweede regel";;02-01-2026;;nee;',
         "",
       ].join("\r\n"),
     );

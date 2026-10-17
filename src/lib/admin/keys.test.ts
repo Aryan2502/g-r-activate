@@ -63,7 +63,7 @@ describe("adminKeys", () => {
       adminKeys.customerListInvitations(user),
       adminKeys.customerListInvoices(user),
       adminKeys.nextCustomerNumber(user),
-      adminKeys.customerCodeHolder(user, "GR00017"),
+      adminKeys.customerCodeHolder(user, "GR17"),
       adminKeys.customer(user, id),
       adminKeys.customerInvitations(user, id),
       adminKeys.customerNotes(user, id),

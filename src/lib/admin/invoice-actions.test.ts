@@ -330,7 +330,7 @@ describe("late fee", () => {
 describe("'Deel via WhatsApp'", () => {
   const base: InvoiceShareInput = {
     customerName: "Maria Pinas",
-    customerCode: "GR00042",
+    customerCode: "GR42",
     companyName: "G&R SOLUTIONS N.V.",
     invoiceNumber: "INV-2026-0013",
     currency: "USD",
@@ -355,7 +355,7 @@ describe("'Deel via WhatsApp'", () => {
     expect(text).toContain("Beste Maria,");
     expect(text).toContain("Hierbij uw factuur INV-2026-0013 van G&R SOLUTIONS N.V.\n");
     expect(text).toContain("Te betalen: USD 51,75, uiterlijk 14-10-2026.");
-    expect(text).toContain("Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0013 / GR00042");
+    expect(text).toContain("Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0013 / GR42");
     expect(text).toContain("Rekeningnummer: 1234567 (DSB)");
     expect(text).toContain("Ten name van: G&R Solutions N.V.");
     expect(text).toContain("https://app.example.com/portal/facturen/b1");

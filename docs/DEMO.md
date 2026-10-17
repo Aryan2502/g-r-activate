@@ -26,10 +26,15 @@ No e-mail is ever sent to these addresses (`example.com` does not receive mail).
 Lost the passwords? Run the same script again: the accounts get new passwords; the demo
 data is not duplicated.
 
-The demo data: Demo Klant has a registered order, one in transit, one ready for pickup
-with an open invoice, and one picked up with a paid invoice. Demo Bedrijf N.V. has a B2B
-order at customs. Everything else (inviting customers, receiving packages, making
-invoices) you can try yourself with these accounts.
+The demo data: Demo Klant has a registered order (by sea, Ocean), one in transit, one
+ready for pickup with an open invoice, and one picked up with a paid invoice. Demo Bedrijf
+N.V. has a B2B order at customs (made by G&R: customers register personal orders only,
+SPEC §36). Everything else (inviting customers, receiving packages, making invoices) you
+can try yourself with these accounts.
+
+Customer codes have no leading zeros since SPEC §36 (GR101, not GR00101). Demo data made
+before that change keeps the old code on its issued invoices, because an issued invoice
+never changes: run the remove script and then the create script for fresh demo data.
 
 Before the demo invoice looks like the real thing, fill in your bank accounts, US
 address and rates under `/admin/instellingen` (the demo invoices are issued with the

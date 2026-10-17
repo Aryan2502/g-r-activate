@@ -1,10 +1,16 @@
 # G&R Activate — Voortgang
 
-Bron: `docs/SPEC.md` (§1–§35). §35 gaat voor bij verschillen.
+Bron: `docs/SPEC.md` (§1–§36). §36 en daarna §35 gaan voor bij verschillen.
 
 ## Status per sectie
 
-Laatst bijgewerkt: **P10 reviewronde (2026-10-07).** 13 auditbevindingen nagelopen: 12
+Laatst bijgewerkt: **Eigenaarscorrecties §36 (2026-10-17)**, zie "Bewijs eigenaarscorrecties
+§36": klantcodes zonder voorloopnullen (GR67, GR100), US-adres als "GR67 Air Naam" /
+"GR67 Ocean Naam", zeevracht aan, Track & Trace code verplicht bij aanmelden, geen keuze
+particulier/zakelijk voor klanten (aanmelden en account aanmaken), telefoon +597 7589695
+overal, homepage stap 2 en 3 en de dienst "Zeevracht". Eén nieuwe migratie
+`20261017090000_owner_corrections.sql`, nog niet live toegepast (dat doet de workflow na de
+push). Daarvoor: **P10 reviewronde (2026-10-07).** 13 auditbevindingen nagelopen: 12
 echt (waarvan 1 een procesnotitie van de audit zelf, geen appfout), alle echte opgelost; zie
 "Bewijs P10 reviewronde". Eén nieuwe migratie `20261008120000_p10_review_hardening.sql`
 (uploadlimieten per klant, `has_role()` vertelt klanten niet meer wie beheerder is,
@@ -160,6 +166,48 @@ axe 0 overtredingen op alle publieke en auth-pagina's.
 | 33 | Ontwerpprincipe | ok (P2b, P3-A, P4, P10) | geen gradients/glas/paars; tabellen met crème kop en vette bruine labels (orderlijst, facturen, zendingen, statussen), kaarten op mobiel; P10: homepage in dezelfde stijl (geen gradients; als beeld alleen het logo via `BrandLogo` op #EEEBE4) |
 | 34 | Alleen vragen indien nodig | afgerond | alleen bedrijfsgegevens zijn open gebleven (tabel "Open business inputs") |
 | 35 | Aanvullende specificaties | klaar in code (P10); live stappen bij eigenaar | §35.0 (UI alleen Nederlands, `src/lib/i18n/nl.ts`), §35.2, §35.3 (P2a), §35.4, §35.6, §35.14 klaar; P3-A: §35.7 klantkant (orders lezen/wijzigen, annulering aanvragen, documenten, statussen per fase), §35.8 US-adreskaart en `service_rates.enabled` in het wijzigformulier, §35.10 factuurbadges en saldo per valuta; P3-B: §35.7 klant-INSERT (alleen klant-bewerkbare kolommen + `customer_id` uit de database + `parent_order_id`), §35.8 `service_rates.enabled` in het aanmeldformulier en `max_open_orders_per_customer` (fout 54000 netjes getoond), §35.14 verplicht vinkje verboden goederen; overige subsecties in latere fasen; P4-A: §35.2 (privileged writes via server functions met `requireStaff`, staff-client, geen service role), §35.4 (staff doen alle orderwerk; geen admin-only actie geraakt), §35.7 staff-kant (statusvoorwaarden, ontvangen, afhalen met `pay_before_pickup` + override, actie vereist, B2B-waarschuwing, orders voor klanten zonder login, extra pakketten), §35.8 `delivery_available` en `pay_before_pickup`, §35.12 haakpunt "max. één e-mail per klant per actie", §35.13 leesbare statushistorie; P4-B: §35.4 (statussen wijzigen alleen beheerders, zendingen alle staff), §35.7 zendingen (staff-only batches, zelfde verzendwijze, "Status voor hele zending wijzigen" via `change_order_status`, klanten zien een zending alleen met een eigen order erin) en statussen (flexibel, per fase, deactiveren in plaats van verwijderen, "Bezorgd" alleen bij `delivery_available`); P5-A: §35.5 (klant toevoegen, code wijzigen, deactiveren met `ban_duration`), §35.6 (uitnodigen, opnieuw versturen/intrekken, `/invite` paden a/b/c, staff-uitnodiging inwisselen), §35.12 WhatsApp-delen van uitnodigings- en resetlinks (e-mail P8: geen e-mail, de dialoog zegt dat); P5-B: §35.2 Systeemstatus (alleen booleans), §35.4 teampagina (staff lezen, beheerders: medewerker/beheerder uitnodigen met dezelfde tokenregels als klanten, rol wijzigen via `set_user_role` met bescherming van de laatste beheerder, login deactiveren/activeren met reden, resetlink), §35.8 volledig (`/admin/instellingen`: bedrijfsgegevens, facturen, herinneringen, werkwijze, afhalen, voorwaarden/verboden goederen, nummering, bankrekeningen, US-adressen, tarieven; beheerders wijzigen, staff lezen; setup-checklist op het dashboard), §35.9 `set_invoice_counter` (huidig jaar, geweigerd zodra er een factuur is), §35.5 `set_next_customer_number`; P6/P7-A: §35.9 bouwer, concepten, uitgeven via `issueInvoiceFn`, vracht één keer per order, totalen TS == SQL; §35.10 één valuta per factuur, BTW inclusief ("Waarvan BTW"), `formatMoney`/`formatLbs`/dd-mm-jjjj op de factuur; §35.11 factuurdocument (één renderer, exacte sjabloonkleuren, papierformaat, print-CSS, statusmarkeringen); §35.12 P8-haak "factuur aangemaakt" zonder e-mailclaim; P7-B: §35.9 annuleren/corrigeren (`replaces_invoice_id`), zichtbaarheid (klant nooit concepten, nooit ongedaan gemaakte betalingen); §35.10 betalingen (bedrag in factuurvaluta, ontvangen bedrag/valuta ter informatie, "Markeer als betaald" = volledig saldo), ongedaan maken, afgeleide status, achterstallig uit de view, opslag, totalen en saldo per valuta, betaalinstructie; §35.11 print-routes (alleen het document, `document.fonts.ready` + logo, `window.print()`, titel `{nummer} - G&R Solutions`, app-chrome verborgen bij printen); §35.12 "Deel via WhatsApp" voor uitgegeven facturen (portallink alleen voor klanten met login, op APP_URL), P8-haak "betaling ontvangen" zonder e-mailclaim; P8: §35.2 (Systeemstatus: e-mailprovider, CRON_SECRET, laatste herinneringsronde), §35.12 volledig (sendEmail, sjablonen, idempotentiesleutels, herinneringen, cron-route, pg_cron + pg_net + Vault, `/admin/herinneringen`; sinds de reviewronde ook "Deel via WhatsApp" bij statuswijzigingen en ontvangen en op elke herinneringsregel); P9: §35.13 (generieke auditweergave met JSON-lade, leesbare tijdlijnen), §35.15 "Exporteer CSV" (klanten, orders, facturen met regels, betalingen, auditlog) en per-jaar-aggregaten uit de RPC `customer_history_by_year`; P10: §35.14 meta/OG en favicons; §35.15 compleet: `rls_checks.sql` (+ PGlite-test met mutaties), `docs/ACCEPTANCE.md`, `docs/DEPLOYMENT.md` (Vercel-variabelen Node 22/iad1, Lovable-preview, Auth-URL's met exacte hosts, "Confirm email", Resend als SMTP en de auth-sjablonen, Vault, eerste beheerder, reset vóór livegang (§8.2, getest in `deployment_reset.test.ts`), Supabase Pro en Vercel Pro (§9), go-live-checklist bovenaan) |
+| 36 | Eigenaarscorrecties | klaar (2026-10-17) | zie "Bewijs eigenaarscorrecties §36" hieronder; vervangt waar nodig wat bij §3, §4, §7, §8 en §9 staat (oude voorbeelden als "GR01234", "adresregel 2" en de typestap gelden niet meer) |
+
+## Bewijs eigenaarscorrecties §36 (2026-10-17)
+
+- **Migratie** `20261017090000_owner_corrections.sql`: `customers.customer_code` via
+  `alter column … set expression as ('GR' || customer_number::text)` (bestaande codes
+  herschreven, nummer ongewijzigd); meldingen van `customers_set_code`,
+  `set_next_customer_number` en `parse_customer_code` zonder nullen ("GR42 is al toegewezen
+  aan …"); telefoon `5978897500` → `+597 7589695` (een door de eigenaar gewijzigd nummer
+  blijft); `service_rates` sea aan; `warehouse_addresses` standaard
+  `{GR_CODE} {SERVICE} {FULL_NAME}` en lege adresregel 2, bestaande adressen met de oude
+  standaard krijgen de nieuwe. Getest in `owner_corrections.test.ts` op een database mét
+  gegevens van vóór de migratie (GR00100 → GR100, eigen templates blijven, opnieuw draaien
+  verandert niets), en door de echte Supabase CLI op een lokale stack (Postgres 17): alle
+  negen migraties foutloos.
+- **App:** `formatCustomerCode`/`parseCustomerCode` (`lib/admin/orders.ts`; "GR00017",
+  "gr 17" en "17" vinden GR17); `formatPhone` → "+597 7589695"; homepage (stap 2 met
+  voorbeeld "GR67 Air Uw naam" / "Ons US-adres", stap 3, sectie "Particulier of zakelijk"
+  weg, kaart "Zeevracht" rechts van "Luchtvracht", FAQ 1 en 2); `/registreren` zonder soort
+  account en bedrijfsnaam (metadata altijd personal); `/portal/orders/nieuw` zonder typestap,
+  Track & Trace code verplicht (`refineCustomerTracking`, ook bij "Gegevens wijzigen" door de
+  klant), verzendwijze met "Op het pakket: Air/Ocean achter uw klantcode", `registerOrder`
+  slaat een nieuwe klantorder altijd als persoonlijk op (een extra pakket volgt de
+  hoofdorder); orderlijst van de klant zonder filter op soort; profiel zonder "Soort
+  account"; US-adreskaart met "Naam bij luchtvracht"/"Naam bij zeevracht" en een
+  kopieerknop per verzendwijze (`addressServices`); instellingen kennen `{SERVICE}`,
+  adresregel 2 mag leeg; welkomstmail en orderbevestiging met de nieuwe adresregel.
+  Medewerkers houden de keuze persoonlijk/zakelijk en een optionele Track & Trace code.
+- **Controles:** `bun run test` (alle unit- en PGlite-tests groen), `bunx tsc --noEmit`,
+  eslint op de gewijzigde bestanden, `bun run build` en `VERCEL=1 bun run build` groen.
+- **Browsercontrole tegen een lokale Supabase-stack** (niet de live database; demo-accounts
+  via `supabase/demo/create_demo_accounts.sql`, een voorbeeld-US-adres): homepage op 1366 en
+  390 px (stap 2/3, GR67 Air, Zeevracht, twee keer "+597 7589695", geen oud nummer, geen
+  "Particulier of zakelijk"); `/registreren` zonder soort account; als Demo Klant (GR100):
+  adreskaart "GR100 Air Demo Klant" en "GR100 Ocean Demo Klant", leeg aanmelden geeft o.a.
+  "Vul de Track & Trace code in.", een zeevrachtorder met code wordt opgeslagen als
+  `personal`/`sea`/`created_by_role = customer`; als beheerder: instellingenvoorbeeld en
+  dialoog met `{SERVICE}`, klantenlijst GR100/GR101, "Order aanmaken voor klant" nog met
+  Persoonlijk/Zakelijk. Geen consolefouten.
+- **Niet live geverifieerd:** de migratie op het live project (workflow na de push), de
+  e-mails via Resend. Bestaande demo-facturen houden hun oude code (een uitgegeven factuur
+  verandert nooit): remove- en create-script opnieuw draaien geeft verse demodata.
 
 ## Eindstand: niet live geverifieerd en open punten
 

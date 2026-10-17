@@ -326,7 +326,7 @@ describe("ShareInvoiceDialog", () => {
       vat_rate: null,
       vat_amount: null,
       issuer_snapshot: { company_name: "G&R SOLUTIONS N.V.", bank_accounts: [] },
-      bill_to_snapshot: { customer_code: "GR00042", full_name: "Maria Pinas" },
+      bill_to_snapshot: { customer_code: "GR42", full_name: "Maria Pinas" },
     },
     [],
   );

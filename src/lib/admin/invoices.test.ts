@@ -44,7 +44,7 @@ function row(over: Partial<AdminInvoiceRow> & { id: string }): AdminInvoiceRow {
 
 const maria = {
   id: "c1",
-  customer_code: "GR00017",
+  customer_code: "GR17",
   full_name: "Maria Pinas",
   company_name: null,
   account_type: "personal" as const,
@@ -53,7 +53,7 @@ const maria = {
 };
 const pinas = {
   id: "c2",
-  customer_code: "GR00042",
+  customer_code: "GR42",
   full_name: "Énéas Wong",
   company_name: "Wong Trading N.V.",
   account_type: "business" as const,
@@ -204,7 +204,7 @@ describe("matchesInvoiceSearch()", () => {
 
   it("finds the customer by GR code, name or company (accents ignored)", () => {
     expect(matchesInvoiceSearch(a!, "gr 17")).toBe(true);
-    expect(matchesInvoiceSearch(a!, "GR00017")).toBe(true);
+    expect(matchesInvoiceSearch(a!, "GR17")).toBe(true);
     expect(matchesInvoiceSearch(a!, "pinas")).toBe(true);
     expect(matchesInvoiceSearch(b!, "eneas")).toBe(true);
     expect(matchesInvoiceSearch(b!, "wong trading")).toBe(true);

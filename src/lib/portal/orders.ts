@@ -370,7 +370,6 @@ export const orderListSearchSchema = z.object({
     )
     .catch(undefined),
   stage: z.enum(ORDER_STAGE_FILTERS).optional().catch(undefined),
-  type: z.enum(Constants.public.Enums.order_type).optional().catch(undefined),
   sort: z.enum(ORDER_SORTS).optional().catch(undefined),
 });
 export type OrderListSearch = z.infer<typeof orderListSearchSchema>;
@@ -418,12 +417,11 @@ export function matchesStageFilter(stage: StatusStage | null, filter: OrderStage
 export function filterOrders<T extends OrderListItem>(
   orders: readonly T[],
   statuses: StatusMap,
-  { q, stage, type, sort }: OrderListSearch,
+  { q, stage, sort }: OrderListSearch,
 ): T[] {
   const result = orders.filter(
     (o) =>
       (!q || matchesOrderSearch(o, q)) &&
-      (!type || o.order_type === type) &&
       (!stage || matchesStageFilter(statuses.get(o.status)?.stage ?? null, stage)),
   );
   const direction = sort === "oldest" ? 1 : -1;

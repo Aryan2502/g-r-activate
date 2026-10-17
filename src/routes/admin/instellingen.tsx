@@ -140,7 +140,14 @@ function SettingsPage() {
       case "us-adressen":
         return (
           <Section key={id} {...props}>
-            <WarehousePanel userId={auth.userId} isAdmin={isAdmin} addresses={addresses} />
+            <WarehousePanel
+              userId={auth.userId}
+              isAdmin={isAdmin}
+              addresses={addresses}
+              enabledServices={
+                rates.data?.filter((r) => r.enabled).map((r) => r.service_type) ?? ["air"]
+              }
+            />
           </Section>
         );
       case "tarieven":

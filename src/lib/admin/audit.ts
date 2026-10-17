@@ -298,7 +298,7 @@ export function auditRecordLabel(
       break;
     }
     case "recovery_link":
-      // A customer login ("GR00042 · Maria Pinas"), else a team login.
+      // A customer login ("GR42 · Maria Pinas"), else a team login.
       label =
         join(str(data["customer_code"]), str(data["full_name"])) ??
         (data["team"] === true ? t("admin.audit.teamLogin") : null);

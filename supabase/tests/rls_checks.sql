@@ -686,7 +686,7 @@ begin
       ('apply_late_fee', $q$select public.apply_late_fee(pg_temp.rls_id('factuur {mij}'))$q$),
       ('set_user_role (zichzelf beheerder maken)', $q$select public.set_user_role(auth.uid(), 'admin', true)$q$),
       ('change_customer_code (eigen code)',
-       $q$select public.change_customer_code(pg_temp.rls_id('klant {mij}'), 'GR00001', 'RLS')$q$),
+       $q$select public.change_customer_code(pg_temp.rls_id('klant {mij}'), 'GR1', 'RLS')$q$),
       ('create_customer', $q$select public.create_customer('RLS Nieuw', '+597 0000000')$q$),
       ('set_invoice_counter', $q$select public.set_invoice_counter(2099, 1)$q$),
       ('set_next_customer_number', $q$select public.set_next_customer_number(99999)$q$),

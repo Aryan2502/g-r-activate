@@ -74,7 +74,7 @@ function invoiceRow(customerId: string, extra: Record<string, unknown> = {}) {
     bill_to_snapshot: {
       version: 1,
       customer_id: customerId,
-      customer_code: "GR00042",
+      customer_code: "GR42",
       full_name: "Alice Jansen",
       email: "alice@example.com",
       orders: [
@@ -106,7 +106,7 @@ function tables(customerId = ALICE, extra: Record<string, unknown> = {}) {
       {
         id: ALICE,
         full_name: "Alice Jansen",
-        customer_code: "GR00042",
+        customer_code: "GR42",
         email: "alice.new@example.com",
         phone: null,
         user_id: "u-a",
@@ -115,7 +115,7 @@ function tables(customerId = ALICE, extra: Record<string, unknown> = {}) {
       {
         id: BOB,
         full_name: "Bob Bakker",
-        customer_code: "GR00017",
+        customer_code: "GR17",
         email: "bob@example.com",
         phone: null,
         user_id: null,
@@ -193,9 +193,7 @@ describe('onInvoiceIssued ("factuur aangemaakt")', () => {
     expect(mail.text).toContain("Amazon – order 112-1");
     expect(mail.text).toContain("Inklaringskosten / douane");
     expect(mail.text).toContain("Rekeningnummer: 1234567");
-    expect(mail.text).toContain(
-      "Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0007 / GR00042",
-    );
+    expect(mail.text).toContain("Factuurvaluta: USD · Vermeld bij betaling: INV-2026-0007 / GR42");
     expect(mail.text).toContain("Betaal binnen 1 week; daarna 12,5% opslag.");
     expect(mail.text).toContain("Met dank voor uw vertrouwen");
     expect(mail.html).toContain(`href="${APP}/portal/facturen/${INVOICE}"`);

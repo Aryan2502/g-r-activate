@@ -20,7 +20,6 @@ import { ShellPageHeader } from "@/components/layout/AppShell";
 import { NewOrderDocuments } from "@/components/portal/NewOrderDocuments";
 import { NewOrderUploads } from "@/components/portal/NewOrderUploads";
 import { OrderFieldsInputs } from "@/components/portal/OrderFieldsInputs";
-import { OrderTypeChooser } from "@/components/portal/OrderTypeChooser";
 import { LoadError, Section } from "@/components/portal/Section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,7 +56,6 @@ import {
   portalKeys,
   resolveStatus,
   statusesQueryOptions,
-  type OrderType,
   type ServiceType,
 } from "@/lib/portal/orders";
 import { usePortalCustomer } from "@/lib/portal/use-portal-customer";
@@ -66,9 +64,9 @@ import { submitOrderRegistration } from "@/lib/server-fns/orders.functions";
 /**
  * /portal/orders/nieuw "Order aanmelden" (SPEC §9, §35.7, §35.14).
  *
- * Step 1 chooses a personal or business order (?type=…); step 2 is the form.
+ * Customers register personal orders (SPEC §36): no order type to choose.
  * `?parent=<root order id>` registers an extra package of that purchase
- * (part A's contract): no type step, purchase details taken over.
+ * (part A's contract): purchase details taken over.
  * The order is created by registerOrderFn (user-scoped client, RLS and
  * triggers); optional documents are then uploaded by the browser, one by
  * one, straight to the private bucket.
@@ -83,7 +81,7 @@ export const Route = createFileRoute("/portal/orders/nieuw")({
 function NewOrderPage() {
   const t = useT();
   const { auth, customer } = usePortalCustomer();
-  const { parent, type } = Route.useSearch();
+  const { parent } = Route.useSearch();
   const serviceTypes = useQuery(enabledServiceTypesQueryOptions(auth.userId));
   const statuses = useQuery({ ...statusesQueryOptions(auth.userId), enabled: Boolean(parent) });
   const parentOrder = useQuery({
@@ -222,7 +220,6 @@ function NewOrderPage() {
         customer={customer}
         serviceTypes={enabled}
         root={root ?? null}
-        type={type}
       />
     </Shell>
   );
@@ -273,7 +270,7 @@ function NewOrderLink() {
 }
 
 // ---------------------------------------------------------------------------
-// The flow: type choice → form → (documents) → order page
+// The flow: form → (documents) → order page
 // ---------------------------------------------------------------------------
 
 type CreatedOrder = { id: string; reference: string };
@@ -283,13 +280,11 @@ function NewOrderFlow({
   customer,
   serviceTypes,
   root,
-  type,
 }: {
   userId: string;
   customer: PortalCustomer;
   serviceTypes: readonly ServiceType[];
   root: (RootOrder & { reference: string }) | null;
-  type: OrderType | undefined;
 }) {
   const t = useT();
   const id = useId();
@@ -297,7 +292,7 @@ function NewOrderFlow({
   const queryClient = useQueryClient();
   const form = useForm<OrderFieldsInput, unknown, OrderFieldsOutput>({
     resolver: zodResolver(orderRegistrationFieldsSchema),
-    defaultValues: newOrderDefaults({ orderType: type, serviceTypes, root }),
+    defaultValues: newOrderDefaults({ serviceTypes, root }),
   });
   const orderType = form.watch("orderType");
   const [accepted, setAccepted] = useState(false);
@@ -308,13 +303,6 @@ function NewOrderFlow({
   const submitErrorRef = useRef<HTMLDivElement>(null);
   const [created, setCreated] = useState<CreatedOrder | null>(null);
   const [uploads, setUploads] = useState<UploadState[]>([]);
-
-  // Step 1's choice lives in the URL; the form follows it and keeps the rest.
-  useEffect(() => {
-    if (!root && type && form.getValues("orderType") !== type) {
-      form.setValue("orderType", type, { shouldDirty: true });
-    }
-  }, [form, root, type]);
 
   // The submit button was disabled while sending, which drops keyboard focus:
   // move it to the message, centred so a toast does not cover it.
@@ -416,39 +404,10 @@ function NewOrderFlow({
     );
   }
 
-  if (!root && !type) return <OrderTypeChooser headingId={`${id}-type-step`} />;
-
   const submitting = form.formState.isSubmitting;
   return (
     <Form {...form}>
       <form noValidate onSubmit={onSubmit} className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card px-5 py-4 shadow-sm">
-          <p className="text-sm">
-            <span className="text-muted-foreground">{t("portal.newOrder.chosenType")}: </span>
-            <span className="font-heading font-bold text-primary">
-              {orderType === "b2b"
-                ? t("portal.newOrder.typeStep.b2bTitle")
-                : t("portal.newOrder.typeStep.personalTitle")}
-            </span>
-            {root ? (
-              <span className="text-muted-foreground">
-                {" "}
-                ({t("portal.newOrder.typeFromRoot", { reference: root.reference })})
-              </span>
-            ) : null}
-          </p>
-          {root ? null : (
-            <Link
-              to="/portal/orders/nieuw"
-              search={{}}
-              aria-label={t("portal.newOrder.changeTypeLabel")}
-              className="inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-primary underline underline-offset-4 sm:min-h-0"
-            >
-              {t("portal.newOrder.changeType")}
-            </Link>
-          )}
-        </div>
-
         <Section
           title={t("portal.newOrder.formTitle")}
           icon={ClipboardList}

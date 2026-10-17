@@ -628,7 +628,7 @@ export async function setInvoiceCounter(db: Client, year: number, lastNumber: nu
   return data;
 }
 
-/** "GR00150", "gr 150" or "150" → 150; the rules are the database's (above every number used). */
+/** "GR150", "GR00150", "gr 150" or "150" → 150; the rules are the database's (above every number used). */
 export const nextCustomerNumberSchema = z.object({
   code: z
     .string()
@@ -737,10 +737,15 @@ export async function saveBankAccount(
 // US warehouse addresses (SPEC §35.8; never invented or seeded)
 // ---------------------------------------------------------------------------
 
-export const ADDRESS_PLACEHOLDERS = ["{FULL_NAME}", "{GR_CODE}"] as const;
+/** {SERVICE} is Air or Ocean (SPEC §36): "GR67 Air Maria Pinas". */
+export const ADDRESS_PLACEHOLDERS = ["{FULL_NAME}", "{GR_CODE}", "{SERVICE}"] as const;
 
 /** For texts that mention the placeholders literally ("gebruik {FULL_NAME} …"). */
-export const PLACEHOLDER_VARS = { FULL_NAME: "{FULL_NAME}", GR_CODE: "{GR_CODE}" } as const;
+export const PLACEHOLDER_VARS = {
+  FULL_NAME: "{FULL_NAME}",
+  GR_CODE: "{GR_CODE}",
+  SERVICE: "{SERVICE}",
+} as const;
 
 /** {SOMETHING} that the portal would not fill in. */
 export function unknownPlaceholders(template: string): string[] {
@@ -750,8 +755,8 @@ export function unknownPlaceholders(template: string): string[] {
   ];
 }
 
-const addressTemplate = (max: number) =>
-  requiredText(max).superRefine((v, ctx) => {
+const addressTemplate = (max: number, required = true) =>
+  (required ? requiredText(max) : plainText(max)).superRefine((v, ctx) => {
     const unknown = unknownPlaceholders(v);
     if (unknown.length > 0) {
       ctx.addIssue({
@@ -769,7 +774,7 @@ export const warehouseAddressSchema = z.object({
   serviceType: z.enum(SERVICE_TYPES),
   recipientTemplate: addressTemplate(200),
   line1: requiredText(200),
-  line2Template: addressTemplate(200),
+  line2Template: addressTemplate(200, false),
   city: requiredText(100),
   state: requiredText(50),
   zip: requiredText(20),
@@ -784,9 +789,9 @@ export type WarehouseAddressData = z.output<typeof warehouseAddressSchema>;
 export const EMPTY_WAREHOUSE_ADDRESS: WarehouseAddressValues = {
   label: "",
   serviceType: "air",
-  recipientTemplate: "{FULL_NAME} {GR_CODE}",
+  recipientTemplate: "{GR_CODE} {SERVICE} {FULL_NAME}",
   line1: "",
-  line2Template: "{GR_CODE}",
+  line2Template: "",
   city: "",
   state: "",
   zip: "",
@@ -812,18 +817,16 @@ export function warehouseInputValues(row: WarehouseAddressRow): WarehouseAddress
 }
 
 /**
- * The customer must write the GR code behind the name AND on address line 2
- * (SPEC §35.8); a template without it is allowed, with a warning.
+ * The customer writes the GR code and Air or Ocean in front of the name
+ * (SPEC §36); a name template without them is allowed, with a warning.
  */
-export function warehouseWarnings(
-  values: Pick<WarehouseAddressValues, "recipientTemplate" | "line2Template">,
-) {
+export function warehouseWarnings(values: Pick<WarehouseAddressValues, "recipientTemplate">) {
   const warnings: string[] = [];
   if (!values.recipientTemplate.includes("{GR_CODE}")) {
     warnings.push(t("admin.settings.warehouse.recipientWithoutCode", PLACEHOLDER_VARS));
   }
-  if (!values.line2Template.includes("{GR_CODE}")) {
-    warnings.push(t("admin.settings.warehouse.line2WithoutCode", PLACEHOLDER_VARS));
+  if (!values.recipientTemplate.includes("{SERVICE}")) {
+    warnings.push(t("admin.settings.warehouse.recipientWithoutService", PLACEHOLDER_VARS));
   }
   return warnings;
 }

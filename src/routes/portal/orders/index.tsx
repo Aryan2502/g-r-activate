@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Constants } from "@/integrations/supabase/types";
 import { formatDate, formatNumber } from "@/lib/format";
 import { t, useT } from "@/lib/i18n";
 import { paths } from "@/lib/paths";
@@ -133,7 +132,7 @@ function OrdersPage() {
   }
 
   const visible = filterOrders(orders.data, statuses.data, search);
-  const filtered = Boolean(search.q || search.stage || search.type);
+  const filtered = Boolean(search.q || search.stage);
 
   return (
     <>
@@ -176,7 +175,6 @@ function useSetSearch() {
         // Defaults stay out of the URL.
         if (!next.q) delete next.q;
         if (!next.stage) delete next.stage;
-        if (!next.type) delete next.type;
         if (!next.sort || next.sort === "newest") delete next.sort;
         return next;
       },
@@ -191,7 +189,7 @@ function ClearFiltersButton() {
     <Button
       variant="outline"
       size="sm"
-      onClick={() => setSearch({ q: undefined, stage: undefined, type: undefined })}
+      onClick={() => setSearch({ q: undefined, stage: undefined })}
     >
       <XCircle aria-hidden />
       {t("portal.orders.clearFilters")}
@@ -219,14 +217,14 @@ function Filters({ search }: { search: OrderListSearch }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, search.q]);
 
-  const filtered = Boolean(search.q || search.stage || search.type);
+  const filtered = Boolean(search.q || search.stage);
 
   return (
     <div
       role="search"
-      className="mb-4 grid gap-3 rounded-lg border bg-card p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]"
+      className="mb-4 grid gap-3 rounded-lg border bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))]"
     >
-      <div className="space-y-1.5 sm:col-span-2 xl:col-span-1">
+      <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
         <Label htmlFor={`${id}-q`}>{t("portal.orders.search")}</Label>
         <div className="relative">
           <Search
@@ -264,30 +262,6 @@ function Filters({ search }: { search: OrderListSearch }) {
             {ORDER_STAGE_FILTERS.map((stage) => (
               <SelectItem key={stage} value={stage}>
                 {t(`portal.stages.${stage}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor={`${id}-type`}>{t("portal.orders.typeFilter")}</Label>
-        <Select
-          value={search.type ?? ALL}
-          onValueChange={(v) =>
-            setSearch({
-              type: v === ALL ? undefined : Constants.public.Enums.order_type.find((o) => o === v),
-            })
-          }
-        >
-          <SelectTrigger id={`${id}-type`} className="h-10">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t("portal.orders.allTypes")}</SelectItem>
-            {Constants.public.Enums.order_type.map((type) => (
-              <SelectItem key={type} value={type}>
-                {t(`portal.orderTypes.${type}`)}
               </SelectItem>
             ))}
           </SelectContent>

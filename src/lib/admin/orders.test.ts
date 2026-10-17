@@ -53,7 +53,7 @@ const statuses = new Map(
 
 const maria = {
   id: "c1",
-  customer_code: "GR00042",
+  customer_code: "GR42",
   full_name: "Maria Pinas",
   company_name: null,
   account_type: "personal" as const,
@@ -62,7 +62,7 @@ const maria = {
 };
 const trading = {
   id: "c2",
-  customer_code: "GR00107",
+  customer_code: "GR107",
   full_name: "Éneas Biharie",
   company_name: "Biharie Trading N.V.",
   account_type: "business" as const,
@@ -105,10 +105,10 @@ describe("normalizeTracking() / parseCustomerCode()", () => {
     expect(normalizeTracking("9400 1000 0000")).toBe("940010000000");
   });
 
-  it("reads 'gr00017', ' GR 17 ' and '17' as GR00017 (SPEC §35.5)", () => {
-    expect(parseCustomerCode("gr00017")).toBe("GR00017");
-    expect(parseCustomerCode(" GR 17 ")).toBe("GR00017");
-    expect(parseCustomerCode("17")).toBe("GR00017");
+  it("reads 'gr00017', ' GR 17 ' and '17' as GR17 (SPEC §35.5)", () => {
+    expect(parseCustomerCode("gr00017")).toBe("GR17");
+    expect(parseCustomerCode(" GR 17 ")).toBe("GR17");
+    expect(parseCustomerCode("17")).toBe("GR17");
     expect(parseCustomerCode("GR123456")).toBeNull();
     expect(parseCustomerCode("Maria")).toBeNull();
     expect(parseCustomerCode("0")).toBeNull();
@@ -130,7 +130,7 @@ describe("matchesAdminSearch() (the receiving search)", () => {
 
   it("finds a GR code, a reference, a name (accents ignored) or a company", () => {
     expect(matchesAdminSearch(o, "gr 107")).toBe(true);
-    expect(matchesAdminSearch(o, "GR00107")).toBe(true);
+    expect(matchesAdminSearch(o, "GR107")).toBe(true);
     expect(matchesAdminSearch(o, o.reference.toLowerCase())).toBe(true);
     expect(matchesAdminSearch(o, "eneas")).toBe(true);
     expect(matchesAdminSearch(o, "biharie trading")).toBe(true);
@@ -138,7 +138,7 @@ describe("matchesAdminSearch() (the receiving search)", () => {
   });
 
   it("does not match unrelated text or another customer's code", () => {
-    expect(matchesAdminSearch(o, "GR00042")).toBe(false);
+    expect(matchesAdminSearch(o, "GR42")).toBe(false);
     expect(matchesAdminSearch(o, "Pinas")).toBe(false);
     expect(matchesAdminSearch(o, "")).toBe(true);
   });
@@ -337,10 +337,10 @@ describe("customers", () => {
   });
 
   it("customerSearchScore() matches the GR code exactly, else name/company/phone without accents", () => {
-    expect(customerSearchScore("GR00107", "gr 107", [])).toBe(1);
-    expect(customerSearchScore("GR00107", "eneas", ["Éneas Biharie"])).toBeGreaterThan(0);
-    expect(customerSearchScore("GR00107", "pinas", ["Éneas Biharie"])).toBe(0);
-    expect(customerSearchScore("GR00042", "", [])).toBe(1);
+    expect(customerSearchScore("GR107", "gr 107", [])).toBe(1);
+    expect(customerSearchScore("GR107", "eneas", ["Éneas Biharie"])).toBeGreaterThan(0);
+    expect(customerSearchScore("GR107", "pinas", ["Éneas Biharie"])).toBe(0);
+    expect(customerSearchScore("GR42", "", [])).toBe(1);
   });
 
   it("personName() says 'de klant' for the customer's own login", () => {
@@ -369,7 +369,7 @@ describe("dialog targets", () => {
     expect(toReceiveTarget({ ...o, stage: "registered" })).toMatchObject({
       declared_weight_lbs: 2.5,
       received_at: null,
-      customerLabel: "Maria Pinas (GR00042)",
+      customerLabel: "Maria Pinas (GR42)",
     });
     expect(toReceiveTarget({ ...o, stage: null, customer: null }).customerLabel).toBeNull();
   });
@@ -396,14 +396,14 @@ describe("namePeople() (who did it)", () => {
         full_name: "Anita Jansen",
         company_name: null,
         account_type: "personal" as const,
-        customer_code: "GR00101",
+        customer_code: "GR101",
       },
       {
         user_id: BUSINESS,
         full_name: "Ravi Ramdin",
         company_name: "Ramdin Trading N.V.",
         account_type: "business" as const,
-        customer_code: "GR00017",
+        customer_code: "GR17",
       },
     ],
   };
@@ -412,8 +412,8 @@ describe("namePeople() (who did it)", () => {
     const names = namePeople([ADMIN, CUSTOMER, BUSINESS, FORMER, UNKNOWN], sources);
     expect(Object.fromEntries(names)).toEqual({
       [ADMIN]: "Maria",
-      [CUSTOMER]: "Klant GR00101 · Anita Jansen",
-      [BUSINESS]: "Klant GR00017 · Ramdin Trading N.V. (Ravi Ramdin)",
+      [CUSTOMER]: "Klant GR101 · Anita Jansen",
+      [BUSINESS]: "Klant GR17 · Ramdin Trading N.V. (Ravi Ramdin)",
       [FORMER]: "Login Kevin (geen teamlid)",
       [UNKNOWN]: null,
     });

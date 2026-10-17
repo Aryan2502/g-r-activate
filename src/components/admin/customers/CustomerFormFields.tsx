@@ -148,7 +148,7 @@ function useDebounced<T>(value: T, ms = 350): T {
 
 /**
  * The optional existing GR code with a live check (SPEC §35.5): the typed
- * code normalised ("gr 17" → GR00017) and who holds it, or the next code the
+ * code normalised ("gr 17" → GR17) and who holds it, or the next code the
  * system would give. The database checks it again on save (also numbers given
  * up earlier, which staff cannot see).
  */

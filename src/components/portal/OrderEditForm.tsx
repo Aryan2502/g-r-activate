@@ -14,8 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { errorMessage, toAppError } from "@/lib/errors";
 import { useT } from "@/lib/i18n";
 import {
+  customerOrderFieldsSchema,
   orderFieldsFromOrder,
-  orderFieldsSchema,
   toOrderColumns,
   type OrderFieldsInput,
   type OrderFieldsOutput,
@@ -73,7 +73,7 @@ export function OrderEditForm({
     : t("portal.orderForm.fields.groupLockedHint");
   const lookup = isPackage ? root : group;
   const form = useForm<OrderFieldsInput, unknown, OrderFieldsOutput>({
-    resolver: zodResolver(orderFieldsSchema),
+    resolver: zodResolver(customerOrderFieldsSchema),
     defaultValues: orderFieldsFromOrder(order),
   });
 

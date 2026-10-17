@@ -721,7 +721,9 @@ describe("orders: customers", () => {
     }
   });
 
-  it("offers customers only enabled services (sea is off by default)", async () => {
+  it("offers customers only enabled services", async () => {
+    // Sea is on since §36; switched off here, as an admin can.
+    await db.query("update public.service_rates set enabled = false where service_type = 'sea'");
     await expectSqlError(
       insertOrder(
         db,
@@ -745,6 +747,14 @@ describe("orders: customers", () => {
       { commit: false },
     );
     expect(bySstaff.service_type).toBe("sea");
+    await db.query("update public.service_rates set enabled = true where service_type = 'sea'");
+    const bySea = await insertOrder(
+      db,
+      p.alice.id,
+      { customer_id: p.aliceCustomer, service_type: "sea" },
+      { commit: false },
+    );
+    expect(bySea.service_type).toBe("sea");
   });
 
   it("customers edit their fields only while the order is registered", async () => {
@@ -1931,7 +1941,7 @@ describe("access summary", () => {
         tx.query("select public.change_customer_code($1, $2, 'correctie')", [customerId, code]),
       );
     await aliceOrder();
-    const err = await expectSqlError(change(p.aliceCustomer, "GR00041"), "55000");
+    const err = await expectSqlError(change(p.aliceCustomer, "GR41"), "55000");
     expect(err.message).toMatch(/kan niet meer worden gewijzigd/);
 
     const fresh = await asUser(
@@ -1944,6 +1954,6 @@ describe("access summary", () => {
         ),
       { commit: true },
     );
-    await change(fresh.id, "GR00042");
+    await change(fresh.id, "GR42");
   });
 });

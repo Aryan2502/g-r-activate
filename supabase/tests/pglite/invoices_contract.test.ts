@@ -273,7 +273,7 @@ describe("drafts and issuing", () => {
     });
     expect(paymentInstruction(model)).toMatch(
       new RegExp(
-        `^Factuurvaluta: USD · Vermeld bij betaling: ${issued.invoice_number} / GR\\d{5}$`,
+        `^Factuurvaluta: USD · Vermeld bij betaling: ${issued.invoice_number} / GR[1-9]\\d*$`,
       ),
     );
     expect(page.payments).toEqual([]);

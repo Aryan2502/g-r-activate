@@ -24,12 +24,12 @@ const issues = (result: {
 }) => Object.fromEntries((result.error?.issues ?? []).map((i) => [i.path.join("."), i.message]));
 
 describe("GR codes as staff type them (SPEC §35.5)", () => {
-  it("normalises 'gr 17', 'GR00017' and '17'; empty means 'generate one'", () => {
-    for (const typed of ["gr 17", "GR00017", " 17 ", "gr00017"]) {
-      expect(optionalCustomerCode.parse(typed), typed).toBe("GR00017");
+  it("normalises 'gr 17', 'GR17' and '17'; empty means 'generate one'", () => {
+    for (const typed of ["gr 17", "GR17", " 17 ", "gr00017"]) {
+      expect(optionalCustomerCode.parse(typed), typed).toBe("GR17");
     }
     expect(optionalCustomerCode.parse("")).toBeNull();
-    expect(customerNumberOf("GR00017")).toBe(17);
+    expect(customerNumberOf("GR17")).toBe(17);
   });
 
   it("refuses anything else with the Dutch hint", () => {
@@ -99,7 +99,7 @@ describe("'Klant uitnodigen' (name and e-mail; phone and code optional)", () => 
         code: "GR 17",
         companyName: "",
       }),
-    ).toMatchObject({ email: "john@example.com", phone: null, code: "GR00017" });
+    ).toMatchObject({ email: "john@example.com", phone: null, code: "GR17" });
   });
 
   it("requires the e-mail", () => {

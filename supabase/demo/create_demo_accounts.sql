@@ -10,7 +10,8 @@
 --   demo.beheerder@example.com   admin
 --   demo.medewerker@example.com  staff
 --   demo.klant@example.com       customer (personal) with orders and invoices
---   demo.zakelijk@example.com    customer (business) with a B2B order
+--   demo.zakelijk@example.com    customer (business, as staff set it) with a B2B order
+--                                that staff created (customers register personal orders)
 --
 -- Remove everything again with supabase/demo/remove_demo_accounts.sql, or with
 -- the pre-go-live reset (docs/DEPLOYMENT.md §8.2) plus that script for the two
@@ -138,10 +139,13 @@ begin
     json_build_object('sub', _admin, 'role', 'authenticated')::text, true);
   perform set_config('request.jwt.claim.sub', _admin::text, true);
 
-  insert into public.orders (customer_id, order_type, store_vendor, vendor_order_number,
-                             description, estimated_value, purchase_date, tracking_number, carrier)
-  values (_klant, 'personal', 'Amazon', '112-0000001-0000001', 'Hardloopschoenen', 89.99,
-          _today - 2, null, null)
+  -- Registered by the customer: always with a Track & Trace code (SPEC §36); this
+  -- one goes by sea (Ocean).
+  insert into public.orders (customer_id, order_type, service_type, store_vendor,
+                             vendor_order_number, description, estimated_value, purchase_date,
+                             tracking_number, carrier)
+  values (_klant, 'personal', 'sea', 'Amazon', '112-0000001-0000001', 'Hardloopschoenen', 89.99,
+          _today - 2, '1Z999AA10000000001', 'UPS')
   returning id into _o_registered;
 
   insert into public.orders (customer_id, order_type, store_vendor, vendor_order_number,

@@ -133,7 +133,7 @@ describe("StatusChangeDialog after saving", () => {
           customerId: "c1",
           reason: "skipped",
           customerName: "Maria Pinas",
-          customerCode: "GR00042",
+          customerCode: "GR42",
           phone: "+597 8123456",
           references: ["ORD-2026-00001"],
           text: "Goedendag Maria,",

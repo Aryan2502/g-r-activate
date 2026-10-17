@@ -241,10 +241,10 @@ describe("labels", () => {
       auditRecordLabel(
         entry({
           table_name: "customers",
-          new_data: { customer_code: "GR00042", full_name: "Maria Pinas" },
+          new_data: { customer_code: "GR42", full_name: "Maria Pinas" },
         }),
       ),
-    ).toBe("GR00042 · Maria Pinas");
+    ).toBe("GR42 · Maria Pinas");
     expect(
       auditRecordLabel(entry({ table_name: "invoices", new_data: { invoice_number: null } })),
     ).toBe("Concept");
@@ -288,10 +288,10 @@ describe("labels", () => {
       auditRecordLabel(
         entry({
           table_name: "recovery_link",
-          new_data: { team: false, customer_code: "GR00042", full_name: "Maria Pinas" },
+          new_data: { team: false, customer_code: "GR42", full_name: "Maria Pinas" },
         }),
       ),
-    ).toBe("GR00042 · Maria Pinas");
+    ).toBe("GR42 · Maria Pinas");
     expect(
       auditRecordLabel(
         entry({

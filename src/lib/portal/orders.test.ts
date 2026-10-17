@@ -361,14 +361,13 @@ describe("order search and filters", () => {
     expect(matchesOrderSearch(orders[0]!, "--")).toBe(false);
   });
 
-  it("filters by stage, by the in-progress group and by order type", () => {
+  it("filters by stage and by the in-progress group", () => {
     const ids = (search: Parameters<typeof filterOrders>[2]) =>
       filterOrders(orders, statuses, search).map((o) => o.id);
     expect(ids({ stage: "ready_for_pickup" })).toEqual(["c"]);
     expect(ids({ stage: "in_progress" })).toEqual(["d", "b"]);
     expect(ids({ stage: "registered" })).toEqual(["a"]);
-    expect(ids({ type: "b2b" })).toEqual(["c"]);
-    expect(ids({ type: "personal", q: "ebay" })).toEqual(["b"]);
+    expect(ids({ stage: "in_progress", q: "ebay" })).toEqual(["b"]);
   });
 
   it("sorts by registration date, newest first by default", () => {
@@ -393,9 +392,9 @@ describe("search param schemas", () => {
     expect(
       orderListSearchSchema.parse({ q: " amazon ", stage: "nope", type: "b2b", sort: "sideways" }),
     ).toEqual({
+      // No order type filter for customers (SPEC §36): ?type= is dropped.
       q: "amazon",
       stage: undefined,
-      type: "b2b",
       sort: undefined,
     });
     expect(orderListSearchSchema.parse({ stage: "in_progress" }).stage).toBe("in_progress");

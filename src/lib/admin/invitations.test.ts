@@ -124,12 +124,12 @@ describe("WhatsApp sharing (SPEC §35.12)", () => {
     const text = invitationShareText({
       kind: "customer",
       fullName: "Maria Pinas",
-      customerCode: "GR00017",
+      customerCode: "GR17",
       email: "maria.pinas@example.com",
       link: "https://portal.example.com/invite/tok",
     });
     expect(text).toContain("Beste Maria,");
-    expect(text).toContain("GR00017");
+    expect(text).toContain("GR17");
     // The /invite page masks the address: the message names it in full.
     expect(text).toContain("U logt in met maria.pinas@example.com.");
     expect(text).toContain("7 dagen");

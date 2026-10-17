@@ -1442,3 +1442,65 @@ Settings are readable by authenticated users and writable by admins only. Every 
 - English UI.
 - Several logins per business customer.
 - Online card payments.
+
+# 36. Owner corrections after the first look at the app (2026-10-17)
+
+Decided by the owner after viewing the app; these win over §1–§35 where they differ.
+
+## 36.1 Customer codes without leading zeros
+
+- A customer code is `GR` followed by the customer number, without leading zeros: GR67,
+  GR100, GR1234 (replaces "GR + 5 digits, always" in §35.0 and §35.5). Numbers stay 1–99999.
+- Existing customers keep their number (GR00017 becomes GR17). Codes typed with zeros
+  ("GR00017", "gr 0017") still mean the same customer, so packages labelled with an old code
+  are found.
+- New sign-ups start at GR100 (the generator's start is unchanged).
+
+## 36.2 The address on the parcel: code, Air or Ocean, name
+
+- The customer writes the code **in front of** the name, followed by the service:
+  "GR67 Air Uw naam" for air freight, "GR67 Ocean Uw naam" for sea freight. The address is
+  G&R's US address; nothing goes on address line 2 (replaces "behind the name and on address
+  line 2" in §35.8).
+- Warehouse address templates get the placeholder `{SERVICE}` (Air/Ocean). Default name line
+  `{GR_CODE} {SERVICE} {FULL_NAME}`, default line 2 empty. With `{SERVICE}`, one address
+  shows a name line per enabled service that has no active address of its own.
+
+## 36.3 Sea freight
+
+- Sea freight (Ocean) is offered next to air freight; customers choose per order. The rate
+  per lb is set under Instellingen → Tarieven.
+- Homepage "Onze diensten": a "Zeevracht" card to the right of "Luchtvracht".
+
+## 36.4 Track & Trace code required
+
+- A customer registers an order with the Track & Trace code from the shop (required when
+  registering and when the customer changes the order). Staff may still create an order
+  without one.
+
+## 36.5 No personal/business choice for customers
+
+- Sign-up asks no account type and no company name: every self sign-up is personal.
+- "Order aanmelden" has no personal/business step: customer orders are personal. The order
+  list has no order type filter. Staff keep the business option (customer records, "Order
+  aanmaken voor klant"); an extra package of a staff-made B2B order stays B2B.
+- The homepage section "Particulier of zakelijk" is removed.
+
+## 36.6 Phone number
+
+- G&R's phone number is +597 7589695 everywhere (homepage "Klaar om te beginnen", footer,
+  invoices, e-mails); the seeded 5978897500 is replaced. Surinamese numbers display as
+  "+597 7589695" (no space inside the local number).
+
+## 36.7 Homepage texts ("Hoe het werkt")
+
+- Step 2 "Gebruik ons US-adres": "U krijgt een klantcode: GR gevolgd door een nummer. Laat de
+  winkel uw pakket naar het US-verzendadres van G&R Solutions sturen en zet uw klantcode vóór
+  uw naam. Zo weten wij dat het pakket van u is. Let op: geef ook meteen aan of het pakket per
+  Air (luchtvracht) of Ocean (zeevracht) moet." Example: Naam "GR67 Air Uw naam", Adres "Ons
+  US-adres"; "GR67 is een voorbeeld. Uw eigen klantcode en het volledige US-adres ziet u na
+  het inloggen in het klantportaal." (The owner wrote "GR gevolgd door 2 cijfers"; new codes
+  start at GR100, so the text says "een nummer".)
+- Step 3 "Meld uw order aan": "Registreer uw aankoop in het klantportaal. Dit doet u door de
+  Track & Trace code met ons te delen."
+- Steps 1, 4 and 5 and "Klaar om te beginnen" (apart from the phone number) are unchanged.

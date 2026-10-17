@@ -712,7 +712,7 @@ describe("Klant toevoegen (create_customer with the staff member's client)", () 
   it("takes a code as staff type it, and refuses it twice with the Dutch message", async () => {
     const dave = await addCustomer(userClient(db, staff.id), input({ code: "gr 17" }));
     expect(dave).toMatchObject({
-      customer_code: "GR00017",
+      customer_code: "GR17",
       status: "active",
       user_id: null,
       phone: "+5978001234",
@@ -722,7 +722,7 @@ describe("Klant toevoegen (create_customer with the staff member's client)", () 
       addCustomer(userClient(db, staff.id), input({ code: "17", fullName: "Iemand Anders" })),
       "23505",
     );
-    expect(taken.message).toBe("GR00017 is al toegewezen aan Dave Zonder Login");
+    expect(taken.message).toBe("GR17 is al toegewezen aan Dave Zonder Login");
   });
 
   it("numbers the customer itself without a code; peek_next_customer_number predicted it", async () => {
@@ -733,7 +733,7 @@ describe("Klant toevoegen (create_customer with the staff member's client)", () 
       userClient(db, staff.id),
       input({ fullName: "Nieuw Nummer" }),
     );
-    expect(customer.customer_code).toBe(`GR${String(next.data).padStart(5, "0")}`);
+    expect(customer.customer_code).toBe(`GR${next.data}`);
   });
 
   it("a customer cannot add customers (42501)", async () => {
@@ -756,7 +756,7 @@ describe("Klant uitnodigen (inviteCustomer with the staff member's client)", () 
     expect(result).toMatchObject({
       status: "invited",
       customerCreated: true,
-      customer: { customer_code: "GR00023", email: "john.doe@example.com", phone: null },
+      customer: { customer_code: "GR23", email: "john.doe@example.com", phone: null },
     });
     if (result.status !== "invited") throw new Error("not invited");
     expect(result.token).toBe(t1.last().token);
@@ -799,21 +799,21 @@ describe("Klant uitnodigen (inviteCustomer with the staff member's client)", () 
     await createAuthUser(db, { email: "cleo@example.com", meta: { full_name: "Cleo" } });
     const login = await inviteCustomer(
       staffDb,
-      newCustomer({ email: "cleo@example.com", code: "GR00099" }),
+      newCustomer({ email: "cleo@example.com", code: "GR99" }),
       t1.factory,
     );
     expect(login).toMatchObject({
       status: "conflict",
-      conflict: { kind: "has_login", requestedCode: "GR00099", canChangeCode: true },
+      conflict: { kind: "has_login", requestedCode: "GR99", canChangeCode: true },
     });
     const withOrders = await inviteCustomer(
       staffDb,
-      newCustomer({ email: "alice@example.com", code: "GR00099" }),
+      newCustomer({ email: "alice@example.com", code: "GR99" }),
       t1.factory,
     );
     expect(withOrders).toMatchObject({
       status: "conflict",
-      conflict: { kind: "has_login", requestedCode: "GR00099", canChangeCode: false },
+      conflict: { kind: "has_login", requestedCode: "GR99", canChangeCode: false },
     });
 
     // An existing record without a login, but another code than typed.
@@ -834,12 +834,12 @@ describe("Klant uitnodigen (inviteCustomer with the staff member's client)", () 
     );
     const other = await inviteCustomer(
       staffDb,
-      newCustomer({ email: "paula@example.com", code: "GR00055", fullName: "Paula" }),
+      newCustomer({ email: "paula@example.com", code: "GR55", fullName: "Paula" }),
       t1.factory,
     );
     expect(other).toMatchObject({
       status: "conflict",
-      conflict: { kind: "other_code", requestedCode: "GR00055", customer: { id: plain.id } },
+      conflict: { kind: "other_code", requestedCode: "GR55", customer: { id: plain.id } },
     });
     // Without a code the existing record is reused, not duplicated.
     const reused = await inviteCustomer(
@@ -958,11 +958,11 @@ describe("redemption (src/server/invitations.ts with the service role)", () => {
   }
 
   it("path a: no login yet → a confirmed login, linked to the existing GR code, terms recorded", async () => {
-    const invited = await invite("hugo@example.com", "Hugo Hendriks", "GR00031");
+    const invited = await invite("hugo@example.com", "Hugo Hendriks", "GR31");
     const service = adminClient(db);
     expect(await lookupInvitation(service, invited.token)).toMatchObject({
       status: "open",
-      customerCode: "GR00031",
+      customerCode: "GR31",
       existingAccount: false,
     });
 
@@ -989,7 +989,7 @@ describe("redemption (src/server/invitations.ts with the service role)", () => {
       [invited.customer.id],
     );
     expect(customer).toEqual({
-      customer_code: "GR00031",
+      customer_code: "GR31",
       user_id: outcome.userId,
       status: "active",
       terms_version: "1",
@@ -1006,7 +1006,7 @@ describe("redemption (src/server/invitations.ts with the service role)", () => {
         outcome.userId,
         async (tx) => (await tx.query("select customer_code from public.customers")).rows,
       ),
-    ).toEqual([{ customer_code: "GR00031" }]);
+    ).toEqual([{ customer_code: "GR31" }]);
     expect(await lookupInvitation(service, invited.token)).toEqual({
       status: "accepted",
       kind: "customer",
@@ -1295,7 +1295,7 @@ describe("Gegevens wijzigen and Code wijzigen", () => {
     await expectAppError(
       changeCustomerCode(userClient(db, staff.id), {
         customerId: nora.id,
-        code: "GR00041",
+        code: "GR41",
         reason: "x",
       }),
       "42501",
@@ -1305,7 +1305,7 @@ describe("Gegevens wijzigen and Code wijzigen", () => {
       code: "gr 41",
       reason: "Bestaande klant",
     });
-    expect(changed.customer_code).toBe("GR00041");
+    expect(changed.customer_code).toBe("GR41");
 
     // The readable timeline from the real audit rows (admins read audit_log).
     const audit = await asUser(
@@ -1330,7 +1330,7 @@ describe("Gegevens wijzigen and Code wijzigen", () => {
     });
     expect(timeline.map((e) => [e.kind, e.actorId, e.detail])).toEqual([
       ["created", staff.id, nora.customer_code],
-      ["code_changed", admin.id, `${nora.customer_code} → GR00041 · reden: Bestaande klant`],
+      ["code_changed", admin.id, `${nora.customer_code} → GR41 · reden: Bestaande klant`],
     ]);
 
     // With an order the code is frozen.
@@ -1348,7 +1348,7 @@ describe("Gegevens wijzigen and Code wijzigen", () => {
     await expectAppError(
       changeCustomerCode(userClient(db, admin.id), {
         customerId: nora.id,
-        code: "GR00042",
+        code: "GR42",
         reason: "x",
       }),
       "55000",
@@ -1679,8 +1679,8 @@ describe("team logins and invitations (P5 review)", () => {
   });
 });
 
-describe("SPEC §5 example: John Doe, john@example.com, GR00017", () => {
-  it("staff invite with the existing code, John accepts as GR00017; 'gr 17' for someone else is refused; no code → a new one", async () => {
+describe("SPEC §5 example: John Doe, john@example.com, GR17", () => {
+  it("staff invite with the existing code, John accepts as GR17; 'gr 17' for someone else is refused; no code → a new one", async () => {
     const own = await createDb();
     try {
       const ownAdmin = await createAuthUser(own, { email: "boss@example.com", confirmed: false });
@@ -1696,12 +1696,12 @@ describe("SPEC §5 example: John Doe, john@example.com, GR00017", () => {
       const t1 = tokens();
       const john = await inviteCustomer(
         asAdmin,
-        newCustomer({ fullName: "John Doe", email: "john@example.com", code: "GR00017" }),
+        newCustomer({ fullName: "John Doe", email: "john@example.com", code: "GR17" }),
         t1.factory,
       );
       expect(john).toMatchObject({
         status: "invited",
-        customer: { customer_code: "GR00017", status: "invited" },
+        customer: { customer_code: "GR17", status: "invited" },
       });
       if (john.status !== "invited") throw new Error("not invited");
 
@@ -1710,7 +1710,7 @@ describe("SPEC §5 example: John Doe, john@example.com, GR00017", () => {
         status: "open",
         kind: "customer",
         firstName: "John",
-        customerCode: "GR00017",
+        customerCode: "GR17",
         existingAccount: false,
       });
       const outcome = await redeemWithPassword(service, {
@@ -1727,7 +1727,7 @@ describe("SPEC §5 example: John Doe, john@example.com, GR00017", () => {
           async (tx) =>
             (await tx.query("select customer_code, status, full_name from public.customers")).rows,
         ),
-      ).toEqual([{ customer_code: "GR00017", status: "active", full_name: "John Doe" }]);
+      ).toEqual([{ customer_code: "GR17", status: "active", full_name: "John Doe" }]);
 
       const dup = await expectAppError(
         inviteCustomer(
@@ -1737,7 +1737,7 @@ describe("SPEC §5 example: John Doe, john@example.com, GR00017", () => {
         ),
         "23505",
       );
-      expect(dup.message).toBe("GR00017 is al toegewezen aan John Doe");
+      expect(dup.message).toBe("GR17 is al toegewezen aan John Doe");
 
       const piet = await inviteCustomer(
         asAdmin,
@@ -1745,8 +1745,8 @@ describe("SPEC §5 example: John Doe, john@example.com, GR00017", () => {
         t1.factory,
       );
       if (piet.status !== "invited") throw new Error("not invited");
-      expect(piet.customer.customer_code).toMatch(/^GR\d{5}$/);
-      expect(piet.customer.customer_code).not.toBe("GR00017");
+      expect(piet.customer.customer_code).toMatch(/^GR[1-9]\d*$/);
+      expect(piet.customer.customer_code).not.toBe("GR17");
     } finally {
       await own.close();
     }

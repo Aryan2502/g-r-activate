@@ -71,7 +71,7 @@ export function customerDisplayName(
 }
 
 /**
- * The customer picker's filter (cmdk): an exact GR code ("gr 42" → GR00042)
+ * The customer picker's filter (cmdk): an exact GR code ("gr 42" → GR42)
  * first, then name, company or phone, ignoring case and accents. `value` is
  * the customer code, `keywords` the other fields.
  */
@@ -336,15 +336,20 @@ export function normalizeTracking(value: string): string {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+/** The code of customer number 17: "GR17", without leading zeros (SPEC §36). */
+export function formatCustomerCode(customerNumber: number): string {
+  return `GR${customerNumber}`;
+}
+
 /**
- * "gr00017", " GR 17 " and "17" all mean GR00017 (private.parse_customer_code,
- * SPEC §35.5); null when the text is not a customer code.
+ * "gr00017", " GR 17 " and "17" all mean GR17 (private.parse_customer_code,
+ * SPEC §35.5, §36); null when the text is not a customer code.
  */
 export function parseCustomerCode(value: string): string | null {
   const m = /^\s*(?:g\s*r)?\s*(\d{1,5})\s*$/i.exec(value);
   if (!m?.[1]) return null;
   const n = Number(m[1]);
-  return n >= 1 ? `GR${String(n).padStart(5, "0")}` : null;
+  return n >= 1 ? formatCustomerCode(n) : null;
 }
 
 /** Lower case without accents, so "eneas" finds "Énéas". */
@@ -472,7 +477,7 @@ export interface ReceiveTarget {
   declared_weight_lbs: number | null;
   measured_weight_lbs: number | null;
   received_at: string | null;
-  /** "Maria Pinas (GR00042)". */
+  /** "Maria Pinas (GR42)". */
   customerLabel: string | null;
 }
 
@@ -757,7 +762,7 @@ export interface PeopleSources {
  * CSV exports). profiles.display_name is chosen by the login itself (every
  * customer may rewrite theirs), so it is shown as-is only for team members
  * (team_members(), blocked members included). A customer's login is named
- * from the customer record — "Klant GR00042 · Maria Pinas" — and any other
+ * from the customer record — "Klant GR42 · Maria Pinas" — and any other
  * login "Login <name>" (e.g. a former team member). Without this a customer
  * could call themselves "Maria" and appear as the admin Maria (P10 review).
  */
