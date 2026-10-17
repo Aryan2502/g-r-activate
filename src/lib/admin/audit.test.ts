@@ -248,6 +248,9 @@ describe("labels", () => {
     expect(
       auditRecordLabel(entry({ table_name: "invoices", new_data: { invoice_number: null } })),
     ).toBe("Concept");
+    expect(
+      auditRecordLabel(entry({ table_name: "order_labels", old_data: { label: "Ocean" } })),
+    ).toBe("Ocean");
     expect(auditRecordLabel(entry({ table_name: "payments", old_data: { amount: 1234.5 } }))).toBe(
       "Betaling 1.234,50",
     );
@@ -330,6 +333,19 @@ describe("auditRecordLink()", () => {
         }),
       ),
     ).toEqual({ to: "/admin/facturen/$id", id: invoiceId });
+  });
+
+  it("a label leads to its order, also after it was removed", () => {
+    const orderId = "a0000000-0000-4000-8000-000000000042";
+    expect(
+      auditRecordLink(
+        entry({
+          table_name: "order_labels",
+          action: "DELETE",
+          old_data: { order_id: orderId, label: "Air" },
+        }),
+      ),
+    ).toEqual({ to: "/admin/orders/$id", id: orderId });
   });
 
   it("links notes and reset links to the customer they are about", () => {

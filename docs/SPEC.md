@@ -1456,20 +1456,20 @@ Decided by the owner after viewing the app; these win over §1–§35 where they
   are found.
 - New sign-ups start at GR100 (the generator's start is unchanged).
 
-## 36.2 The address on the parcel: code, Air or Ocean, name
-
-- The customer writes the code **in front of** the name, followed by the service:
-  "GR67 Air Uw naam" for air freight, "GR67 Ocean Uw naam" for sea freight. The address is
-  G&R's US address; nothing goes on address line 2 (replaces "behind the name and on address
-  line 2" in §35.8).
-- Warehouse address templates get the placeholder `{SERVICE}` (Air/Ocean). Default name line
-  `{GR_CODE} {SERVICE} {FULL_NAME}`, default line 2 empty. With `{SERVICE}`, one address
-  shows a name line per enabled service that has no active address of its own.
+## 36.2 The address on the parcel: just the customer's name
+- Second decision (same day), replacing the first: customers do not write their GR code or
+  "Air"/"Ocean" on the parcel. The shop sends the parcel to G&R's US address in the
+  customer's own name; G&R recognises it by the Track & Trace code the customer registers
+  (§36.4). No wording about codes on parcels anywhere (homepage, portal, e-mails, order form).
+- Warehouse address templates: default name line `{FULL_NAME}`, default line 2 empty;
+  addresses that still have an earlier default get these. `{GR_CODE}` keeps working in a
+  template the owner wrote with it, but is no longer offered. No `{SERVICE}` placeholder.
 
 ## 36.3 Sea freight
 
-- Sea freight (Ocean) is offered next to air freight; customers choose per order. The rate
-  per lb is set under Instellingen → Tarieven.
+- Sea freight is offered next to air freight; customers choose luchtvracht or zeevracht per
+  order (no wording about it on the parcel). The rate per lb is set under Instellingen →
+  Tarieven.
 - Homepage "Onze diensten": a "Zeevracht" card to the right of "Luchtvracht".
 
 ## 36.4 Track & Trace code required
@@ -1494,13 +1494,20 @@ Decided by the owner after viewing the app; these win over §1–§35 where they
 
 ## 36.7 Homepage texts ("Hoe het werkt")
 
-- Step 2 "Gebruik ons US-adres": "U krijgt een klantcode: GR gevolgd door een nummer. Laat de
-  winkel uw pakket naar het US-verzendadres van G&R Solutions sturen en zet uw klantcode vóór
-  uw naam. Zo weten wij dat het pakket van u is. Let op: geef ook meteen aan of het pakket per
-  Air (luchtvracht) of Ocean (zeevracht) moet." Example: Naam "GR67 Air Uw naam", Adres "Ons
-  US-adres"; "GR67 is een voorbeeld. Uw eigen klantcode en het volledige US-adres ziet u na
-  het inloggen in het klantportaal." (The owner wrote "GR gevolgd door 2 cijfers"; new codes
-  start at GR100, so the text says "een nummer".)
+- Step 2 "Gebruik ons US-adres": "Laat de winkel uw pakket naar het US-verzendadres van G&R
+  Solutions sturen, gewoon op uw eigen naam. Het volledige US-adres ziet u na het inloggen in
+  het klantportaal." No example box, no customer code (§36.2).
 - Step 3 "Meld uw order aan": "Registreer uw aankoop in het klantportaal. Dit doet u door de
   Track & Trace code met ons te delen."
 - Steps 1, 4 and 5 and "Klaar om te beginnen" (apart from the phone number) are unchanged.
+
+## 36.8 Order labels
+- The team (staff and admins) can put labels on orders: free text (max 30 characters) and a
+  colour from a fixed palette (grijs, bruin, rood, oranje, geel, groen, petrol, blauw), e.g.
+  "Air" in blue and "Ocean" in teal. No preset labels or templates: a label exists because an
+  order carries it; labels already in use are offered again with one click.
+- An order can carry several labels, each once (ignoring case). Labels are added and removed,
+  never edited; adding and removing is in the audit log. Customers never see labels.
+- On the order page (under the customer) and in the order list (under the status, in the
+  table and the cards); the list filters on a label, and a selection of orders gets a label
+  in one go ("Label toevoegen" in the selection bar).

@@ -4,7 +4,7 @@ import type { InvitationKind } from "@/lib/admin/invitations";
 import { invitationLink } from "@/lib/admin/invitations";
 import { invitationEmailKey, welcomeEmailKey } from "@/lib/email/keys";
 import type { EmailOutcome } from "@/lib/email/outcome";
-import { addressServices, fullAddressText } from "@/lib/portal/warehouse";
+import { fullAddressText } from "@/lib/portal/warehouse";
 import { sendEmail, toEmailOutcome } from "@/server/email";
 import { invitationEmail, welcomeEmail } from "@/server/email-templates/accounts";
 import {
@@ -132,7 +132,6 @@ export async function onInvitationRedeemed(
   let fullName: string | null = null;
   let customerCode: string | null = null;
   const addresses: { title: string; lines: string[] }[] = [];
-  let serviceInName = false;
   if (event.kind === "customer" && event.customerId) {
     const { data: customer, error } = await db
       .from("customers")
@@ -151,23 +150,15 @@ export async function onInvitationRedeemed(
       .order("service_type")
       .order("label");
     if (addressError) throw addressError;
-    const { data: rates, error: ratesError } = await db
-      .from("service_rates")
-      .select("service_type")
-      .eq("enabled", true);
-    if (ratesError) throw ratesError;
-    const enabled = rates.map((r) => r.service_type);
-    const person = { fullName: customer.full_name, customerCode: customer.customer_code };
-    // A name template with {SERVICE} gives one address per service (SPEC §36).
     for (const address of rows) {
-      serviceInName ||= address.recipient_name_template.includes("{SERVICE}");
-      for (const serviceType of addressServices(address, enabled, rows)) {
-        const service = SERVICE_TITLES[serviceType] ?? serviceType;
-        addresses.push({
-          title: address.label?.trim() ? `${address.label.trim()} (${service})` : service,
-          lines: fullAddressText(address, person, serviceType).split("\n"),
-        });
-      }
+      const service = SERVICE_TITLES[address.service_type] ?? address.service_type;
+      addresses.push({
+        title: address.label?.trim() ? `${address.label.trim()} (${service})` : service,
+        lines: fullAddressText(address, {
+          fullName: customer.full_name,
+          customerCode: customer.customer_code,
+        }).split("\n"),
+      });
     }
   } else {
     const { data: profile } = await db
@@ -186,7 +177,6 @@ export async function onInvitationRedeemed(
     customerCode,
     email: event.email,
     addresses,
-    serviceInName,
   });
   const result = await sendEmail({
     ...content,

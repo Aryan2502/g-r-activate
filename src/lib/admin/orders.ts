@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Constants, type Database } from "@/integrations/supabase/types";
 import { adminKeys } from "@/lib/admin/keys";
+import type { OrderLabel } from "@/lib/admin/order-labels";
 import { t } from "@/lib/i18n";
 import { isAwaitingReceipt, type AdminStatusMap } from "@/lib/admin/statuses";
 import {
@@ -327,6 +328,8 @@ export const adminOrderSearchSchema = z.object({
   cancellation: searchFlag,
   /** Only orders G&R has not received yet. */
   awaitingReceipt: searchFlag,
+  /** Only orders with this label (SPEC §36; ignoring case). */
+  label: searchText,
   sort: z.enum(ADMIN_ORDER_SORTS).optional().catch(undefined),
 });
 export type AdminOrderSearch = z.infer<typeof adminOrderSearchSchema>;
@@ -438,14 +441,17 @@ export interface AdminOrderView extends Omit<AdminOrderListItem, "customer"> {
   billing: OrderBilling;
   cancellationTask: CancellationTask | null;
   duplicateTracking: boolean;
+  /** The team's labels on this order (SPEC §36), oldest first. */
+  labels: readonly OrderLabel[];
 }
 
-/** Joins the list with statuses, billing and open cancellation requests. */
+/** Joins the list with statuses, billing, open cancellation requests and labels. */
 export function buildOrderViews(
   orders: readonly AdminOrderListItem[],
   statuses: AdminStatusMap,
   billing: BillingData | undefined,
   cancellations: ReadonlyMap<string, CancellationTask> | undefined,
+  labels?: ReadonlyMap<string, readonly OrderLabel[]>,
 ): AdminOrderView[] {
   const duplicates = duplicateTrackingOrderIds(orders, statuses);
   return orders.map((o) => ({
@@ -454,6 +460,7 @@ export function buildOrderViews(
     billing: orderBilling(o.id, billing),
     cancellationTask: cancellations?.get(o.id) ?? null,
     duplicateTracking: duplicates.has(o.id),
+    labels: labels?.get(o.id) ?? [],
   }));
 }
 
@@ -526,7 +533,8 @@ export function hasAdminFilters(search: AdminOrderSearch): boolean {
     search.type ||
     search.openInvoice ||
     search.cancellation ||
-    search.awaitingReceipt,
+    search.awaitingReceipt ||
+    search.label,
   );
 }
 
@@ -536,10 +544,12 @@ export function filterAdminOrders(
   statuses: AdminStatusMap,
   search: AdminOrderSearch,
 ): AdminOrderView[] {
-  const { q, stage, type, openInvoice, cancellation, awaitingReceipt, sort } = search;
+  const { q, stage, type, openInvoice, cancellation, awaitingReceipt, label, sort } = search;
+  const labelKey = label?.trim().toLowerCase();
   const result = orders.filter(
     (o) =>
       (!q || matchesAdminSearch(o, q)) &&
+      (!labelKey || o.labels.some((l) => l.label.trim().toLowerCase() === labelKey)) &&
       (!type || o.order_type === type) &&
       (!stage || matchesStageFilter(o.stage, stage)) &&
       (!openInvoice || o.billing.hasOpenInvoice) &&

@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
 import {
-  addressServices,
   fillAddressTemplate,
   fullAddressText,
   personalAddressLines,
@@ -12,7 +11,7 @@ import {
 
 const person = { fullName: "Maria Pinas", customerCode: "GR42" };
 
-// The column defaults before SPEC §36; the street is example data, not G&R's address.
+// The column defaults before SPEC §36 (still supported); the street is example data, not G&R's address.
 const address: WarehouseAddress = {
   id: "w1",
   label: "Miami",
@@ -48,44 +47,14 @@ describe("fillAddressTemplate()", () => {
   it("leaves unknown placeholders visible", () => {
     expect(fillAddressTemplate("{GR_CODE} {UNIT}", person)).toBe("GR42 {UNIT}");
   });
-
-  it("writes Air or Ocean for {SERVICE} (SPEC §36)", () => {
-    const template = "{GR_CODE} {SERVICE} {FULL_NAME}";
-    expect(fillAddressTemplate(template, person, "air")).toBe("GR42 Air Maria Pinas");
-    expect(fillAddressTemplate(template, person, "sea")).toBe("GR42 Ocean Maria Pinas");
-    expect(fillAddressTemplate(template, person)).toBe("GR42 Maria Pinas");
-  });
 });
 
-// The column defaults since SPEC §36: "GR67 Air Naam", nothing on line 2.
-const serviceAddress: WarehouseAddress = {
+// The column defaults since SPEC §36: the customer's own name, nothing on line 2.
+const plainAddress: WarehouseAddress = {
   ...address,
-  recipient_name_template: "{GR_CODE} {SERVICE} {FULL_NAME}",
+  recipient_name_template: "{FULL_NAME}",
   address_line2_template: "",
 };
-
-describe("addressServices()", () => {
-  it("gives one address a name line for every enabled service, its own first", () => {
-    expect(addressServices(serviceAddress, ["air", "sea"], [serviceAddress])).toEqual([
-      "air",
-      "sea",
-    ]);
-    expect(addressServices({ ...serviceAddress, service_type: "sea" }, ["air", "sea"], [])).toEqual(
-      ["sea", "air"],
-    );
-    expect(addressServices(serviceAddress, ["air"], [serviceAddress])).toEqual(["air"]);
-  });
-
-  it("leaves a service with its own active address to that address", () => {
-    const sea = { ...serviceAddress, id: "w2", service_type: "sea" as const };
-    expect(addressServices(serviceAddress, ["air", "sea"], [serviceAddress, sea])).toEqual(["air"]);
-    expect(addressServices(sea, ["air", "sea"], [serviceAddress, sea])).toEqual(["sea"]);
-  });
-
-  it("gives a template without {SERVICE} one name line", () => {
-    expect(addressServices(address, ["air", "sea"], [address])).toEqual(["air"]);
-  });
-});
 
 describe("personalAddressLines()", () => {
   it("lists the fields a web shop asks for, personalised", () => {
@@ -100,15 +69,11 @@ describe("personalAddressLines()", () => {
     ]);
   });
 
-  it("shows a name line per service and no empty line 2 (SPEC §36)", () => {
-    expect(personalAddressLines(serviceAddress, person, ["air", "sea"]).slice(0, 3)).toEqual([
-      { field: "recipient", service: "air", value: "GR42 Air Maria Pinas" },
-      { field: "recipient", service: "sea", value: "GR42 Ocean Maria Pinas" },
+  it("with the default templates: just the name, no empty line 2 (SPEC §36)", () => {
+    expect(personalAddressLines(plainAddress, person).slice(0, 2)).toEqual([
+      { field: "recipient", value: "Maria Pinas" },
       { field: "line1", value: "123 Example Street" },
     ]);
-    expect(
-      personalAddressLines(serviceAddress, person).filter((l) => l.field === "recipient"),
-    ).toEqual([{ field: "recipient", service: "air", value: "GR42 Air Maria Pinas" }]);
   });
 
   it("includes the phone when set", () => {
@@ -126,11 +91,10 @@ describe("fullAddressText()", () => {
     );
   });
 
-  it("copies the name for the chosen service", () => {
-    expect(fullAddressText(serviceAddress, person, "sea")).toBe(
-      ["GR42 Ocean Maria Pinas", "123 Example Street", "Miami, FL 33101", "USA"].join("\n"),
+  it("copies the default address with just the name", () => {
+    expect(fullAddressText(plainAddress, person)).toBe(
+      ["Maria Pinas", "123 Example Street", "Miami, FL 33101", "USA"].join("\n"),
     );
-    expect(fullAddressText(serviceAddress, person).split("\n")[0]).toBe("GR42 Air Maria Pinas");
   });
 
   it("skips empty lines", () => {

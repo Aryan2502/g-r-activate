@@ -503,6 +503,7 @@ begin
       ('ziet een statuswijziging die niet voor klanten zichtbaar is',
        $q$select count(*) from public.shipment_status_history where to_status = 'rls_intern'$q$),
       ('leest interne notities', $q$select count(*) from public.internal_notes$q$),
+      ('leest orderlabels', $q$select count(*) from public.order_labels$q$),
       ('leest het auditlog', $q$select count(*) from public.audit_log$q$),
       ('leest uitnodigingen', $q$select count(*) from public.invitations$q$),
       ('leest e-maillogs', $q$select count(*) from public.email_logs$q$),
@@ -622,6 +623,10 @@ begin
        $q$insert into public.payments (invoice_id, amount, method) values (pg_temp.rls_id('factuur {mij}'), 1, 'cash')$q$),
       ('schrijft een interne notitie',
        $q$insert into public.internal_notes (customer_id, body) values (pg_temp.rls_id('klant {mij}'), 'RLS')$q$),
+      ('zet een label op de eigen order',
+       $q$insert into public.order_labels (order_id, label, color) values (pg_temp.rls_id('order {mij}1'), 'RLS', 'blue')$q$),
+      ('haalt een label van de eigen order',
+       $q$delete from public.order_labels where order_id = pg_temp.rls_id('order {mij}1')$q$),
       ('maakt een uitnodiging',
        $q$insert into public.invitations (kind, customer_id, email, token_hash)
           values ('customer', pg_temp.rls_id('klant D'), 'rls-klant-d@example.com', repeat('0', 64))$q$),
@@ -765,6 +770,8 @@ begin
       ('mist interne notities',
        $q$select count(*) from public.internal_notes where customer_id = any (pg_temp.rls_ids('klanten'))$q$,
        pg_temp.rls_verwacht('team.notities')),
+      ('mist orderlabels',
+       $q$select count(*) from public.order_labels where order_id = any (pg_temp.rls_ids('orders'))$q$, 2),
       ('mist uitnodigingen',
        $q$select count(*) from public.invitations where id = pg_temp.rls_id('uitnodiging D')$q$, 1),
       ('mist e-maillogs',
@@ -921,6 +928,8 @@ select * from public.change_order_status(
 insert into public.internal_notes (id, customer_id, order_id, body)
 values (pg_temp.rls_id('notitie A'), pg_temp.rls_id('klant A'), pg_temp.rls_id('order A1'), 'RLS-controle: interne notitie A'),
        (pg_temp.rls_id('notitie B'), pg_temp.rls_id('klant B'), pg_temp.rls_id('order B1'), 'RLS-controle: interne notitie B');
+insert into public.order_labels (order_id, label, color)
+values (pg_temp.rls_id('order A1'), 'RLS-label A', 'blue'), (pg_temp.rls_id('order B1'), 'RLS-label B', 'green');
 insert into public.invoices (id, customer_id, currency)
 values (pg_temp.rls_id('factuur A'), pg_temp.rls_id('klant A'), 'USD'),
        (pg_temp.rls_id('concept A'), pg_temp.rls_id('klant A'), 'USD'),

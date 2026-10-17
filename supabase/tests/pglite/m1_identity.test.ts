@@ -2351,8 +2351,8 @@ describe("company settings and reference data", () => {
          values ('Luchtvracht', 'air', '1 Test Street', 'Testville', 'FL', '00000') returning *`,
         );
         expect(a).toMatchObject({
-          // §36: "GR67 Air Naam" / "GR67 Ocean Naam", nothing on line 2.
-          recipient_name_template: "{GR_CODE} {SERVICE} {FULL_NAME}",
+          // §36: just the customer's name, nothing on line 2.
+          recipient_name_template: "{FULL_NAME}",
           address_line2_template: "",
           is_active: true,
           created_by: p.admin.id,

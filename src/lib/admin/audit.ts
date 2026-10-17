@@ -61,6 +61,7 @@ export const AUDIT_TABLES = [
   "customer_number_seq",
   "invoice_number_counters",
   "internal_notes",
+  "order_labels",
   "recovery_link",
 ] as const;
 export type AuditTable = (typeof AUDIT_TABLES)[number];
@@ -297,6 +298,9 @@ export function auditRecordLabel(
       label = body && body.length > 60 ? `${body.slice(0, 59)}…` : body;
       break;
     }
+    case "order_labels":
+      label = str(data["label"]);
+      break;
     case "recovery_link":
       // A customer login ("GR42 · Maria Pinas"), else a team login.
       label =
@@ -329,6 +333,10 @@ export function auditRecordLink(
       return id && !deleted ? { to: "/admin/klanten/$id", id } : null;
     case "orders":
       return id && !deleted ? { to: "/admin/orders/$id", id } : null;
+    case "order_labels": {
+      const orderId = ref("order_id");
+      return orderId ? { to: "/admin/orders/$id", id: orderId } : null;
+    }
     case "shipments":
       return id && !deleted ? { to: "/admin/zendingen/$id", id } : null;
     case "invoices":

@@ -304,6 +304,33 @@ describe("filterAdminOrders()", () => {
   it("hasAdminFilters() ignores the sort", () => {
     expect(hasAdminFilters({ sort: "oldest" })).toBe(false);
     expect(hasAdminFilters({ openInvoice: true })).toBe(true);
+    expect(hasAdminFilters({ label: "Air" })).toBe(true);
+  });
+
+  it("filters on a label, ignoring case (SPEC §36)", () => {
+    const label = (orderId: string, text: string) => ({
+      id: `l-${orderId}-${text}`,
+      order_id: orderId,
+      label: text,
+      color: "blue" as const,
+      created_at: "2026-10-17T10:00:00Z",
+    });
+    const labelled = buildOrderViews(
+      [registered, actionNotReceived, ready],
+      statuses,
+      billing,
+      cancellations,
+      new Map([
+        [registered.id, [label(registered.id, "Air")]],
+        [ready.id, [label(ready.id, "Ocean"), label(ready.id, "Spoed")]],
+      ]),
+    );
+    const byLabel = (value: string) =>
+      filterAdminOrders(labelled, statuses, { label: value }).map((o) => o.id);
+    expect(byLabel("air")).toEqual([registered.id]);
+    expect(byLabel("SPOED")).toEqual([ready.id]);
+    expect(byLabel("Zee")).toEqual([]);
+    expect(labelled.find((o) => o.id === actionNotReceived.id)?.labels).toEqual([]);
   });
 });
 
@@ -317,6 +344,7 @@ describe("adminOrderSearchSchema", () => {
         openInvoice: "true",
         cancellation: "yes",
         awaitingReceipt: true,
+        label: " Air ",
         sort: "customer",
       }),
     ).toEqual({
@@ -324,6 +352,7 @@ describe("adminOrderSearchSchema", () => {
       type: "b2b",
       openInvoice: true,
       awaitingReceipt: true,
+      label: "Air",
       sort: "customer",
     });
     expect(adminOrderSearchSchema.parse({ q: "  " })).toEqual({});

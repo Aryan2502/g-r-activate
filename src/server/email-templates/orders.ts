@@ -37,9 +37,6 @@ export function accessBlocks(access: PortalAccess): EmailBlock[] {
 const ORDER_TYPES: Record<string, string> = { personal: "Persoonlijk", b2b: "Zakelijk (B2B)" };
 const SERVICE_TYPES: Record<string, string> = { air: "Luchtvracht", sea: "Zeevracht" };
 
-/** What the customer writes behind the code on the parcel (SPEC §36). */
-const SERVICE_WORDS: Record<string, string> = { air: "Air", sea: "Ocean" };
-
 export interface ConfirmedOrder {
   id: string;
   reference: string;
@@ -103,7 +100,7 @@ export function orderConfirmationEmail(input: OrderConfirmationInput): EmailCont
     { type: "details", rows: orderRows(order) },
     {
       type: "paragraph",
-      text: `Laat het pakket bezorgen op ons US-adres, met ${[customer.customerCode, SERVICE_WORDS[order.serviceType]].filter(Boolean).join(" ")} vóór uw naam, zoals in het klantportaal. Wij laten het u weten zodra het pakket in ons magazijn is ontvangen.`,
+      text: "Laat het pakket op uw eigen naam bezorgen op ons US-adres (zie het klantportaal). Wij laten het u weten zodra het pakket in ons magazijn is ontvangen.",
     },
   ];
   if (!order.trackingNumber) {

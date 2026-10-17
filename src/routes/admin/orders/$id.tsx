@@ -30,6 +30,7 @@ import { toast } from "sonner";
 
 import { Callout } from "@/components/admin/Callout";
 import { InternalNotes } from "@/components/admin/InternalNotes";
+import { OrderLabelsBar } from "@/components/admin/OrderLabels";
 import { useOrderDialogs, type OrderDialogs } from "@/components/admin/OrderDialogs";
 import { ShipmentChooserDialog } from "@/components/admin/ShipmentChooserDialog";
 import { StaffOrderDocuments } from "@/components/admin/StaffOrderDocuments";
@@ -272,6 +273,7 @@ function OrderView({
             </span>
           </p>
         ) : null}
+        <OrderLabelsBar userId={userId} orderId={order.id} />
         <div className="mt-5 flex flex-wrap gap-2">
           <Button onClick={() => dialogs.changeStatus([target])}>
             <ArrowRightLeft aria-hidden />

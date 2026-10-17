@@ -118,6 +118,8 @@ export const adminKeys = {
   orders: (userId: string) => ["admin", userId, "orders"] as const,
   orderList: (userId: string) => ["admin", userId, "orders", "list"] as const,
   orderBilling: (userId: string) => ["admin", userId, "orders", "billing"] as const,
+  /** Every order label (staff only; SPEC §36). */
+  orderLabels: (userId: string) => ["admin", userId, "orders", "labels"] as const,
   cancellationTasks: (userId: string) => ["admin", userId, "orders", "cancellation-tasks"] as const,
   orderCounts: (userId: string) => ["admin", userId, "orders", "counts"] as const,
   /** Dashboard: orders registered in the last 30 days and running orders. */

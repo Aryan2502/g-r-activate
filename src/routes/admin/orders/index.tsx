@@ -14,6 +14,7 @@ import {
   Plane,
   Scale,
   Search,
+  Tag,
   TriangleAlert,
   XCircle,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
 import { Callout } from "@/components/admin/Callout";
 import { ExportCsvButton } from "@/components/admin/ExportCsvButton";
 import { InvoiceSummary, PaymentSummary } from "@/components/admin/OrderBilling";
+import { AddLabelDialog, LabelChip, OrderLabelList } from "@/components/admin/OrderLabels";
 import { useOrderDialogs, type OrderDialogs } from "@/components/admin/OrderDialogs";
 import { OrderRowActions } from "@/components/admin/OrderRowActions";
 import { SelectionBar } from "@/components/admin/SelectionBar";
@@ -61,6 +63,12 @@ import {
   type AdminOrderView,
 } from "@/lib/admin/orders";
 import { exportOrders } from "@/lib/admin/exports";
+import {
+  labelsByOrder,
+  labelsInUse,
+  orderLabelsQueryOptions,
+  type LabelInUse,
+} from "@/lib/admin/order-labels";
 import { newInvoiceSearch } from "@/lib/admin/invoice-builder";
 import {
   DEFAULT_OPERATIONAL_SETTINGS,
@@ -103,6 +111,10 @@ function AdminOrdersPage() {
   const settings = useQuery(operationalSettingsQueryOptions(auth.userId));
   const billing = useQuery(orderBillingQueryOptions(auth.userId));
   const cancellations = useQuery(openCancellationTasksQueryOptions(auth.userId));
+  // Labels are extra: the list works without them (also before their migration).
+  const labels = useQuery(orderLabelsQueryOptions(auth.userId));
+  const labelMap = useMemo(() => labelsByOrder(labels.data?.labels ?? []), [labels.data]);
+  const inUse = useMemo(() => labelsInUse(labels.data?.labels ?? []), [labels.data]);
 
   const header = (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -160,7 +172,15 @@ function AdminOrdersPage() {
         userId={auth.userId}
         isAdmin={auth.role === "admin"}
         search={search}
-        views={buildOrderViews(orders.data, statuses.data, billing.data, cancellations.data)}
+        views={buildOrderViews(
+          orders.data,
+          statuses.data,
+          billing.data,
+          cancellations.data,
+          labelMap,
+        )}
+        labelsInUse={inUse}
+        labelsAvailable={labels.data?.available ?? false}
         statuses={statuses.data}
         settings={settings.data ?? DEFAULT_OPERATIONAL_SETTINGS}
         billingUnknown={!billing.data}
@@ -194,6 +214,8 @@ function OrdersBoard({
   billingUnknown,
   cancellationsUnknown,
   sideErrors,
+  labelsInUse,
+  labelsAvailable,
 }: {
   userId: string;
   /** "Exporteer CSV" is for admins (SPEC §35.15). */
@@ -206,12 +228,17 @@ function OrdersBoard({
   billingUnknown: boolean;
   cancellationsUnknown: boolean;
   sideErrors: ReactNode;
+  /** The team's labels in use (filter options), SPEC §36. */
+  labelsInUse: readonly LabelInUse[];
+  /** False until the labels migration has run: no label actions then. */
+  labelsAvailable: boolean;
 }) {
   const t = useT();
   const dialogs = useOrderDialogs({ userId, statuses, settings });
   const searchRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [choosing, setChoosing] = useState(false);
+  const [labelling, setLabelling] = useState(false);
   const visible = useMemo(
     () => filterAdminOrders(views, statuses, search),
     [views, statuses, search],
@@ -250,6 +277,7 @@ function OrdersBoard({
         inputRef={searchRef}
         billingUnknown={billingUnknown}
         cancellationsUnknown={cancellationsUnknown}
+        labelsInUse={labelsInUse}
         findings={
           // Right under the search field: on a phone the result and its
           // "Ontvangen" button must not sit below the filters (P4 review).
@@ -321,6 +349,12 @@ function OrdersBoard({
               {t("admin.order.shipment.add")}
             </Button>
             <GenerateInvoiceButton orders={selectedVisible} />
+            {labelsAvailable ? (
+              <Button size="sm" variant="outline" onClick={() => setLabelling(true)}>
+                <Tag aria-hidden />
+                {t("admin.labels.add")}
+              </Button>
+            ) : null}
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
               {t("admin.orders.clearSelection")}
             </Button>
@@ -334,6 +368,13 @@ function OrdersBoard({
         statuses={statuses}
         open={choosing}
         onOpenChange={setChoosing}
+        onDone={() => setSelected(new Set())}
+      />
+      <AddLabelDialog
+        userId={userId}
+        orderIds={selectedVisible.map((o) => o.id)}
+        open={labelling}
+        onOpenChange={setLabelling}
         onDone={() => setSelected(new Set())}
       />
     </>
@@ -376,6 +417,7 @@ function ClearFiltersButton() {
           openInvoice: undefined,
           cancellation: undefined,
           awaitingReceipt: undefined,
+          label: undefined,
         })
       }
     >
@@ -393,6 +435,7 @@ function Filters({
   findings,
   billingUnknown,
   cancellationsUnknown,
+  labelsInUse,
 }: {
   search: AdminOrderSearch;
   inputRef: RefObject<HTMLInputElement | null>;
@@ -400,12 +443,21 @@ function Filters({
   findings: ReactNode;
   billingUnknown: boolean;
   cancellationsUnknown: boolean;
+  labelsInUse: readonly LabelInUse[];
 }) {
   const t = useT();
   const id = useId();
   const setSearch = useSetSearch();
   const [query, setQuery] = useState(search.q ?? "");
   const selectOnMouseUp = useRef(false);
+  // A label from the URL that no order carries any more stays selectable.
+  const wanted = search.label?.trim().toLowerCase();
+  const labelOptions: readonly LabelInUse[] =
+    wanted && !labelsInUse.some((l) => l.key === wanted)
+      ? [...labelsInUse, { key: wanted, label: search.label ?? wanted, color: "grey", count: 0 }]
+      : labelsInUse;
+  const selectedLabel = wanted ? labelOptions.find((l) => l.key === wanted) : undefined;
+  const showLabels = labelOptions.length > 0;
 
   // Ready for the scanner on arrival (desktop: a phone would pop its keyboard).
   useEffect(() => {
@@ -476,7 +528,12 @@ function Filters({
 
       {findings}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div
+        className={cn(
+          "grid gap-3",
+          showLabels ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3",
+        )}
+      >
         <div className="space-y-1.5">
           <Label htmlFor={`${id}-stage`}>{t("admin.orders.stageFilter")}</Label>
           <Select
@@ -524,6 +581,27 @@ function Filters({
             </SelectContent>
           </Select>
         </div>
+        {showLabels ? (
+          <div className="space-y-1.5">
+            <Label htmlFor={`${id}-label`}>{t("admin.labels.filter")}</Label>
+            <Select
+              value={selectedLabel?.key ?? ALL}
+              onValueChange={(v) => setSearch({ label: v === ALL ? undefined : v })}
+            >
+              <SelectTrigger id={`${id}-label`} className="h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t("admin.labels.allLabels")}</SelectItem>
+                {labelOptions.map((l) => (
+                  <SelectItem key={l.key} value={l.key}>
+                    <LabelChip label={l.label} color={l.color} />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
         <div className="space-y-1.5">
           <Label htmlFor={`${id}-sort`}>{t("admin.orders.sort")}</Label>
           <Select
@@ -951,6 +1029,7 @@ function OrdersTable({
               </td>
               <td className="px-1.5 py-3">
                 <OrderStatusBadge status={resolveStatus(order.status, statuses)} />
+                <OrderLabelList labels={order.labels} className="mt-1.5" />
               </td>
               <td className="px-1.5 py-3">
                 <InvoiceSummary billing={order.billing} />
@@ -1024,6 +1103,7 @@ function OrderCards({
             <OrderMarkers order={order} />
             <div className="mt-3">
               <OrderStatusBadge status={resolveStatus(order.status, statuses)} />
+              <OrderLabelList labels={order.labels} className="mt-1.5" />
             </div>
             {/* Two columns at every width: three short rows instead of six (P4 review). */}
             <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 text-sm">

@@ -114,16 +114,12 @@ describe('onInvitationRedeemed ("welkom")', () => {
     const admin = fakeDb({
       company_settings: company,
       customers: [{ id: ALICE, full_name: "Alice Jansen", customer_code: "GR42" }],
-      service_rates: [
-        { service_type: "air", enabled: true },
-        { service_type: "sea", enabled: true },
-      ],
       warehouse_addresses: [
         {
           id: "w1",
           label: "Miami",
           service_type: "air",
-          recipient_name_template: "{GR_CODE} {SERVICE} {FULL_NAME}",
+          recipient_name_template: "{FULL_NAME}",
           address_line1: "8000 NW 25th St",
           address_line2_template: "",
           city: "Doral",
@@ -165,15 +161,10 @@ describe('onInvitationRedeemed ("welkom")', () => {
       customerId: ALICE,
       subject: "Welkom bij G&R SOLUTIONS N.V.",
     });
-    // One US address, a name for Air and one for Ocean (SPEC §36).
     expect(mail.text).toContain("Miami (Luchtvracht)");
-    expect(mail.text).toContain("GR42 Air Alice Jansen\n8000 NW 25th St\nDoral, FL 33122\nUSA");
-    expect(mail.text).toContain("Miami (Zeevracht)");
-    expect(mail.text).toContain("GR42 Ocean Alice Jansen\n8000 NW 25th St\nDoral, FL 33122\nUSA");
+    expect(mail.text).toContain("Alice Jansen\n8000 NW 25th St\nDoral, FL 33122\nUSA");
     expect(mail.text).not.toContain("Oud");
-    expect(mail.text).toContain(
-      "Zet altijd uw klantcode GR42 vóór uw naam, met Air (luchtvracht) of Ocean (zeevracht) erachter, precies zoals hierboven.",
-    );
+    expect(mail.text).toContain("Track & Trace code");
     expect(mail.html).toContain(`href="${APP}/portal"`);
   });
 

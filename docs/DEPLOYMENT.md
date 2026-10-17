@@ -19,12 +19,12 @@ only when its check passes.
       host); _Confirm email_ ON; minimum password length 8; CAPTCHA off.
 - [ ] **First admin** (§4): sign up, run the SQL, land on `/admin`.
 - [ ] **Migrations** (§2.1): the migrations workflow is green for the newest commit and
-      `supabase_migrations.schema_migrations` lists all nine files (the newest
-      `20261017090000 | owner_corrections`).
+      `supabase_migrations.schema_migrations` lists all ten files (the newest
+      `20261017140000 | order_labels`).
 - [ ] **Settings** (`/admin/instellingen`): company details (phone +597 7589695), the three
-      bank accounts, the US warehouse address (one address serves Air and Ocean: keep the
-      name line `{GR_CODE} {SERVICE} {FULL_NAME}`), rates per lb for air **and** sea
-      freight, pickup hours, terms and prohibited goods. Leave
+      bank accounts, the US warehouse address (the name line is just `{FULL_NAME}`: customers
+      write no code on the parcel), rates per lb for air **and** sea freight, pickup hours,
+      terms and prohibited goods. Leave
       the numbering (invoice counter, next customer code) for after the reset: the reset
       puts both back. Check: the dashboard's "Nog in te stellen" list is empty.
 - [ ] **E-mail** (§5, §6): Resend domain verified; `RESEND_API_KEY`, `EMAIL_FROM`,
@@ -209,19 +209,21 @@ Applied migrations are never edited; every change is a new file (SPEC §35.3).
 to the project by the workflow: the three P2a foundation files,
 `20261007090000_order_hardening.sql`, `20261007120000_p4_order_guards.sql`,
 `20261007150000_p5_customers.sql`, `20261008090000_p8_reminders.sql` and
-`20261008120000_p10_review_hardening.sql`. The ninth,
-`20261017090000_owner_corrections.sql` (SPEC §36: customer codes without leading zeros,
-the phone number +597 7589695, sea freight switched on, the US address name line
-"GR67 Air Naam" / "GR67 Ocean Naam"), is applied by the workflow when it reaches `main`.
-Check in the SQL editor (nine rows, the newest `20261017090000 | owner_corrections`):
+`20261008120000_p10_review_hardening.sql`. The ninth and tenth are applied by the workflow
+when they reach `main` (SPEC §36): `20261017090000_owner_corrections.sql` (customer codes
+without leading zeros, the phone number +597 7589695, sea freight switched on) and
+`20261017140000_order_labels.sql` (the US address name line becomes just the customer's
+name; the `order_labels` table for the team's labels). Check in the SQL editor (ten rows,
+the newest `20261017140000 | order_labels`):
 
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 ```
 
-The app works before and after that migration is applied (until it runs, codes still show
-with zeros, e.g. GR00100, sea freight stays off and the US address keeps its old name
-line). After any new
+The app works before and after these migrations are applied (until they run, codes still
+show with zeros, e.g. GR00100, sea freight stays off, the US address keeps its old name
+line and the order pages say "Labels werken zodra de databasemigratie is uitgevoerd").
+After any new
 migration: let the workflow run, check the row appears, then run
 `supabase/tests/rls_checks.sql` again (§8.1).
 

@@ -126,7 +126,7 @@ function NewOrderPage() {
           <p className="flex items-start gap-1.5">
             <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
             <span>
-              {t("portal.newOrder.addressHint", { code: customer.customer_code })}{" "}
+              {t("portal.newOrder.addressHint")}{" "}
               <Link
                 to={paths.portal}
                 className="font-semibold text-primary underline underline-offset-4"

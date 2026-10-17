@@ -31,9 +31,8 @@ stappen blijven voor u.
 - [ ] De go-live-checklist van `docs/DEPLOYMENT.md` is afgerond tot en met "RLS check"; u
       bent beheerder (§4).
 - [ ] Op `/admin/instellingen` staan: een tarief per lb voor luchtvracht (bijv. 4,50) en voor
-      zeevracht, de bankrekening in USD, een actief US-adres met naamregel
-      `{GR_CODE} {SERVICE} {FULL_NAME}` (de standaard; zo ziet de klant "GR67 Air …" en
-      "GR67 Ocean …"), afhaaladres en -tijden. De factuurteller
+      zeevracht, de bankrekening in USD, een actief US-adres (naamregel `{FULL_NAME}`, de
+      standaard: alleen de naam van de klant, SPEC §36), afhaaladres en -tijden. De factuurteller
       en de volgende klantcode stelt u pas ná de reset in (zie F): de reset zet ze terug.
 - [ ] Twee e-mailadressen die u zelf leest, bijvoorbeeld `uwnaam+klant1@gmail.com` en
       `uwnaam+klant2@gmail.com` (Gmail levert `+…`-adressen gewoon af), en een telefoon met
@@ -145,11 +144,9 @@ from public.audit_log order by id desc limit 20;
 - [ ] **Doen:** bekijk `/portal`.
 - **Verwacht:** "Welkom, TEST" (het portaal groet met het eerste woord van de naam; met de
   naam "TEST Klant Een" uit A1 is dat "TEST"); de eerste kaart **Uw persoonlijk
-  US-verzendadres** met **Naam bij luchtvracht** "GR… Air TEST Klant Een" en **Naam bij
-  zeevracht** "GR… Ocean TEST Klant Een", kopieerknoppen (ook **Kopieer adres voor
-  luchtvracht** / **voor zeevracht**) en de regel "Neem de naam precies over zoals
-  hierboven: eerst uw klantcode GR…, dan Air (luchtvracht) of Ocean (zeevracht), dan uw
-  naam. …" (SPEC §36; het US-adres moet in de instellingen staan); de tegels Orders (0),
+  US-verzendadres** met **Naam** "TEST Klant Een" (geen code, geen Air/Ocean: SPEC §36),
+  het US-adres, kopieerknoppen en **Kopieer volledig adres** (het US-adres moet in de
+  instellingen staan); de tegels Orders (0),
   Openstaande facturen, Zendingen onderweg, Klaar voor afhalen; "Nog geen orders" met
   **Order aanmelden**.
 - **Bewijs:** het scherm; de cijfers komen uit de database (er staat nog niets).
@@ -160,8 +157,8 @@ from public.audit_log order by id desc limit 20;
 ### A5. Klant meldt een persoonlijke order aan
 
 - [ ] **Doen:** **Order aanmelden** → `/portal/orders/nieuw` (geen keuze particulier/zakelijk
-      meer, SPEC §36). Vul in: Verzendwijze **Luchtvracht** ("Op het pakket: Air achter uw
-      klantcode"; **Zeevracht** kan ook), Winkel / webshop "Amazon", Ordernummer van de
+      meer, SPEC §36). Vul in: Verzendwijze **Luchtvracht** (**Zeevracht** kan ook), Winkel /
+      webshop "Amazon", Ordernummer van de
       winkel "TEST-111", Omschrijving "TEST schoenen", Aantal 1, Geschatte waarde 49,99
       USD, Aankoopdatum vandaag, **Track & Trace code** "TEST1Z999". Kies bij **Documenten
       (optioneel)** een PDF. Vink "Mijn zending bevat geen verboden goederen" aan →
@@ -350,8 +347,8 @@ from public.audit_log order by id desc limit 20;
 - [ ] **Doen:** open de link (bij voorkeur op de telefoon) → `/invite/<token>`.
 - **Verwacht:** "Welkom bij G&R Activate, TEST" (het eerste woord van de naam "TEST Jan
   Bestaand"), het e-mailadres gemaskeerd, **Uw
-  klantcode GR17** met "Zet hem bij elke bestelling vóór uw naam, met Air of Ocean
-  erachter: GR17 Air Uw naam.", "Deze link is geldig tot …". Kies een wachtwoord (minimaal 8) →
+  klantcode GR17** met "Deze code blijft bij u. U vindt hem ook in het klantportaal.", "Deze
+  link is geldig tot …". Kies een wachtwoord (minimaal 8) →
   **Account activeren** → "Uw account is geactiveerd." en het dashboard `/portal`. In
   inbox 2 de welkomstmail met het persoonlijke US-adres.
 - **Extra:** open dezelfde link nog eens → "Deze uitnodiging is al gebruikt".
@@ -364,8 +361,8 @@ from public.audit_log order by id desc limit 20;
 ### B5. De bestaande GR-code blijft
 
 - [ ] **Doen:** bekijk `/portal` als Jan; bekijk `/admin/klanten` en zoek "17".
-- **Verwacht:** overal GR17; het US-adres op het dashboard bevat "GR17 Air TEST Jan
-  Bestaand" en "GR17 Ocean TEST Jan Bestaand".
+- **Verwacht:** overal GR17; het US-adres op het dashboard staat op naam van "TEST Jan
+  Bestaand" (zonder code).
 - **Bewijs:** vraag "Klantdossier": nog steeds `customer_code = GR17`.
 - **Status:** geverifieerd met stubs/PGlite (`customers_contract.test.ts`: John accepteert
   als GR17).
@@ -421,6 +418,24 @@ persoonlijk. Een zakelijke (B2B) order maakt G&R zelf aan voor de klant.
 - **Status:** geverifieerd met stubs/PGlite (`admin_contract.test.ts`;
   `src/lib/admin/statuses.test.ts` `needsB2bCustomsWarning()`: waarschuwt vanaf de douane,
   blokkeert nooit).
+
+### C5. Orderlabels (SPEC §36)
+
+- [ ] **Doen:** open een order van klant 1 → onder de klantnaam **Label toevoegen** → typ
+      "Air", kies **Blauw** → **Label toevoegen**. Daarna op `/admin/orders`: vink twee
+      orders aan → in de selectiebalk **Label toevoegen** → klik op het label "Air" bij
+      **Labels in gebruik**. Zet ook "Ocean" (kleur Petrol) op een andere order.
+- **Verwacht:** het label staat als gekleurd plaatje op de orderpagina en in de lijst onder
+  de status; de melding "Label ‘Air’ toegevoegd …" telt alleen de orders die het label nog
+  niet hadden; het filter **Label** → "Air" toont alleen die orders. Het kruisje op het label op
+  de orderpagina haalt het weg ("Label ‘Air’ verwijderd."). Als klant 1 in het portaal: geen
+  labels te zien.
+- **Bewijs:** vraag in de SQL editor
+  `select order_id, label, color from public.order_labels;` en `/admin/audit` (tabel
+  "Orderlabels": toegevoegd en verwijderd, met wie).
+- **Status:** geverifieerd met stubs/PGlite (`order_labels.test.ts`: alleen het team,
+  dubbel label genegeerd, audit; `src/lib/admin/order-labels.test.ts`, `orders.test.ts`
+  filter) en in de browser tegen een lokale Supabase-stack; live: eigenaar test.
 
 ---
 
