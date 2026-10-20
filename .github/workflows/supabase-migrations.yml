@@ -39,9 +39,12 @@ jobs:
             exit 1
           fi
 
+      # A fixed version: "latest" asks the GitHub API, which the shared
+      # runners sometimes hit the rate limit of. 2.120.0 is the version the
+      # migrations were tested with locally.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.120.0
 
       - name: Link project
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
