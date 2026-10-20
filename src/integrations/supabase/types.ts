@@ -812,6 +812,44 @@ export type Database = {
           },
         ]
       }
+      order_labels: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          label_key: string
+          order_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          label_key?: string
+          order_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          label_key?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_labels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           cancellation_requested_at: string | null
