@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Plus, Tag, X } from "lucide-react";
 import { toast } from "sonner";
@@ -21,8 +21,10 @@ import {
   LABEL_COLOR_STYLES,
   LABEL_MAX_LENGTH,
   addOrderLabels,
+  findLabelInUse,
   labelInputSchema,
   labelsInUse,
+  matchLabelsInUse,
   orderLabelsQueryOptions,
   removeOrderLabel,
   type LabelColor,
@@ -103,8 +105,9 @@ export function OrderLabelList({
 }
 
 /**
- * "Label toevoegen": pick a label already in use, or type one and pick a
- * colour. Works for one order (order page) and for a selection (list).
+ * "Label toevoegen": pick a label already in use (the text box searches them),
+ * or type a new one and pick a colour. Works for one order (order page) and
+ * for a selection (list).
  */
 export function AddLabelDialog({
   userId,
@@ -167,7 +170,12 @@ function AddLabelForm({
   const [text, setText] = useState("");
   const [color, setColor] = useState<LabelColor>("blue");
   const [error, setError] = useState<string | null>(null);
-  const inUse = labelsInUse(labels.data?.labels ?? []).slice(0, 16);
+  const inUse = useMemo(() => labelsInUse(labels.data?.labels ?? []), [labels.data]);
+  // The text box searches the labels in use; typing one of them (in any case)
+  // adds that label as it is, with its own text and colour.
+  const shown = matchLabelsInUse(inUse, text);
+  const existing = findLabelInUse(inUse, text);
+  const shownColor = existing?.color ?? color;
 
   const add = useMutation({
     mutationFn: (input: { label: string; color: LabelColor }) =>
@@ -200,7 +208,9 @@ function AddLabelForm({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const parsed = labelInputSchema.safeParse({ label: text, color });
+    const parsed = labelInputSchema.safeParse(
+      existing ? { label: existing.label, color: existing.color } : { label: text, color },
+    );
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? t("admin.labels.form.textRequired"));
       return;
@@ -211,32 +221,6 @@ function AddLabelForm({
 
   return (
     <form noValidate onSubmit={submit} className="min-w-0 space-y-5">
-      {inUse.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium" id={`${id}-in-use`}>
-            {t("admin.labels.form.inUse")}
-          </p>
-          <ul aria-labelledby={`${id}-in-use`} className="flex flex-wrap gap-2">
-            {inUse.map((l) => (
-              <li key={l.key}>
-                <button
-                  type="button"
-                  disabled={add.isPending}
-                  onClick={() => add.mutate({ label: l.label, color: l.color })}
-                  className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
-                >
-                  <LabelChip
-                    label={l.label}
-                    color={l.color}
-                    className="cursor-pointer px-2.5 py-1 text-sm hover:brightness-95"
-                  />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <div className="space-y-1.5">
         <Label htmlFor={`${id}-text`}>{t("admin.labels.form.text")}</Label>
         <Input
@@ -255,23 +239,62 @@ function AddLabelForm({
         />
       </div>
 
+      {shown.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium" id={`${id}-in-use`}>
+            {t("admin.labels.form.inUse")}
+          </p>
+          <ul
+            aria-labelledby={`${id}-in-use`}
+            className="-m-1 flex max-h-48 flex-wrap gap-2 overflow-y-auto p-1"
+          >
+            {shown.map((l) => (
+              <li key={l.key}>
+                <button
+                  type="button"
+                  disabled={add.isPending}
+                  onClick={() => add.mutate({ label: l.label, color: l.color })}
+                  className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+                >
+                  <LabelChip
+                    label={l.label}
+                    color={l.color}
+                    className="cursor-pointer px-2.5 py-1 text-sm hover:brightness-95"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : text.trim() ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {t("admin.labels.form.newLabel", { label: text.trim() })}
+        </p>
+      ) : null}
+
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">{t("admin.labels.form.color")}</legend>
+        {existing ? (
+          <p className="text-xs text-muted-foreground">{t("admin.labels.form.existingColor")}</p>
+        ) : null}
         <div role="radiogroup" className="flex flex-wrap gap-2">
           {LABEL_COLORS.map((c) => {
             const name = t(`admin.labels.colors.${c}`);
+            const checked = shownColor === c;
             return (
               <button
                 key={c}
                 type="button"
                 role="radio"
-                aria-checked={color === c}
+                aria-checked={checked}
                 aria-label={name}
                 title={name}
+                disabled={Boolean(existing)}
                 onClick={() => setColor(c)}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-full border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  color === c ? "border-foreground" : "border-transparent",
+                  "flex size-9 items-center justify-center rounded-full border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed",
+                  checked ? "border-foreground" : "border-transparent",
+                  existing && !checked && "opacity-40",
                 )}
                 style={{ background: LABEL_COLOR_STYLES[c].background }}
               >
@@ -279,7 +302,7 @@ function AddLabelForm({
                   className="flex size-6 items-center justify-center rounded-full"
                   style={{ background: LABEL_COLOR_STYLES[c].color }}
                 >
-                  {color === c ? <Check className="size-3.5 text-white" aria-hidden /> : null}
+                  {checked ? <Check className="size-3.5 text-white" aria-hidden /> : null}
                 </span>
               </button>
             );
@@ -290,10 +313,13 @@ function AddLabelForm({
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{t("admin.labels.form.preview")}:</span>
         <LabelChip
-          label={text.trim() || t("admin.labels.form.textPlaceholder")}
-          color={color}
+          label={existing?.label ?? (text.trim() || t("admin.labels.form.textPlaceholder"))}
+          color={shownColor}
           className="px-2.5 py-1 text-sm"
         />
+        {existing ? (
+          <span className="text-xs font-medium">{t("admin.labels.form.existing")}</span>
+        ) : null}
       </div>
 
       {error ? (

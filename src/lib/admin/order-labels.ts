@@ -118,6 +118,29 @@ export function labelsInUse(labels: readonly OrderLabel[]): LabelInUse[] {
     .map(({ key, label, color, count }) => ({ key, label, color, count }));
 }
 
+/**
+ * The labels in use whose text contains the typed text, ignoring case and
+ * accents, still most used first; all of them while nothing is typed. The
+ * search of "Label toevoegen".
+ */
+export function matchLabelsInUse(
+  inUse: readonly LabelInUse[],
+  query: string,
+): readonly LabelInUse[] {
+  const q = fold(query.trim());
+  return q ? inUse.filter((l) => fold(l.label).includes(q)) : inUse;
+}
+
+/**
+ * The label in use that the typed text names, ignoring case and surrounding
+ * spaces (as `label_key`): "Label toevoegen" then adds that label with its
+ * own text and colour instead of a near-copy.
+ */
+export function findLabelInUse(inUse: readonly LabelInUse[], text: string): LabelInUse | undefined {
+  const key = labelKey(text);
+  return key ? inUse.find((l) => l.key === key) : undefined;
+}
+
 /** Whether an order carries the label (the `?label=` filter, ignoring case). */
 export function hasLabel(labels: readonly OrderLabel[] | undefined, key: string): boolean {
   return Boolean(labels?.some((l) => labelKey(l.label) === labelKey(key)));

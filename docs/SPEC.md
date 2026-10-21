@@ -1510,6 +1510,10 @@ Decided by the owner after viewing the app; these win over §1–§35 where they
   colour from a fixed palette (grijs, bruin, rood, oranje, geel, groen, petrol, blauw), e.g.
   "Air" in blue and "Ocean" in teal. No preset labels or templates: a label exists because an
   order carries it; labels already in use are offered again with one click.
+- "Label toevoegen" lists every label in use (most used first) to pick with one click; the
+  text box searches them (ignoring case and accents). Typing a label in use in another case
+  ("air") adds that label with its own text and colour ("Air", blue); only a text that is not
+  in use yet makes a new label, with a colour of choice.
 - An order can carry several labels, each once (ignoring case). Labels are added and removed,
   never edited; adding and removing is in the audit log. Customers never see labels.
 - On the order page (under the customer) and in the order list (under the status, in the

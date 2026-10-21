@@ -6,10 +6,12 @@ const {
   LABEL_COLORS,
   addOrderLabels,
   fetchOrderLabels,
+  findLabelInUse,
   hasLabel,
   labelInputSchema,
   labelsByOrder,
   labelsInUse,
+  matchLabelsInUse,
   removeOrderLabel,
 } = await import("./order-labels");
 type OrderLabel = import("./order-labels").OrderLabel;
@@ -43,6 +45,32 @@ describe("labelsInUse()", () => {
       { key: "ocean", label: "Ocean", color: "green", count: 1 },
     ]);
     expect(labelsInUse([])).toEqual([]);
+  });
+
+  it("matchLabelsInUse() keeps the labels containing the typed text, ignoring case and accents", () => {
+    const inUse = labelsInUse([...labels, L("7", "e", "Spöed groot", "orange", "13")]);
+    expect(matchLabelsInUse(inUse, "")).toBe(inUse);
+    expect(matchLabelsInUse(inUse, "   ")).toBe(inUse);
+    expect(matchLabelsInUse(inUse, " SPOED ").map((l) => l.label)).toEqual([
+      "Spoed",
+      "Spöed groot",
+    ]);
+    expect(matchLabelsInUse(inUse, "cea").map((l) => l.label)).toEqual(["Ocean"]);
+    expect(matchLabelsInUse(inUse, "Zee")).toEqual([]);
+    expect(matchLabelsInUse([], "air")).toEqual([]);
+  });
+
+  it("findLabelInUse() finds the label the text names, ignoring case and surrounding spaces", () => {
+    const inUse = labelsInUse(labels);
+    expect(findLabelInUse(inUse, "  OCEAN ")).toEqual({
+      key: "ocean",
+      label: "Ocean",
+      color: "green",
+      count: 1,
+    });
+    expect(findLabelInUse(inUse, "oce")).toBeUndefined();
+    expect(findLabelInUse(inUse, "   ")).toBeUndefined();
+    expect(findLabelInUse([], "Air")).toBeUndefined();
   });
 
   it("hasLabel() ignores case and surrounding spaces", () => {

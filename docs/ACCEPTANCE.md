@@ -427,10 +427,15 @@ persoonlijk. Een zakelijke (B2B) order maakt G&R zelf aan voor de klant.
 - [ ] **Doen:** open een order van klant 1 → onder de klantnaam **Label toevoegen** → typ
       "Air", kies **Blauw** → **Label toevoegen**. Daarna op `/admin/orders`: vink twee
       orders aan → in de selectiebalk **Label toevoegen** → klik op het label "Air" bij
-      **Labels in gebruik**. Zet ook "Ocean" (kleur Petrol) op een andere order.
+      **Eerder gebruikt: kies er een**. Zet ook "Ocean" (kleur Petrol) op een andere order.
+      Open daarna op een derde order **Label toevoegen** → typ "oc" (alleen "Ocean" blijft
+      over) → klik erop. Open het nog eens → typ "air" (kleine letters) → Enter.
 - **Verwacht:** het label staat als gekleurd plaatje op de orderpagina en in de lijst onder
   de status; de melding "Label ‘Air’ toegevoegd …" telt alleen de orders die het label nog
-  niet hadden; het filter **Label** → "Air" toont alleen die orders. Het kruisje op het label op
+  niet hadden; bij typen tonen de eerder gebruikte labels alleen wat de tekst bevat, en
+  zonder treffer staat er "Nieuw label: ‘…’"; "air" toont "Bestaand label" met de kleur
+  Blauw vast en voegt "Air" in Blauw toe (geen tweede label "air"); het filter
+  **Label** → "Air" toont alleen die orders. Het kruisje op het label op
   de orderpagina haalt het weg ("Label ‘Air’ verwijderd."). Als klant 1 in het portaal: geen
   labels te zien.
 - **Bewijs:** vraag in de SQL editor
@@ -438,7 +443,8 @@ persoonlijk. Een zakelijke (B2B) order maakt G&R zelf aan voor de klant.
   "Orderlabels": toegevoegd en verwijderd, met wie).
 - **Status:** geverifieerd met stubs/PGlite (`order_labels.test.ts`: alleen het team,
   dubbel label genegeerd, audit; `src/lib/admin/order-labels.test.ts`, `orders.test.ts`
-  filter) en in de browser tegen een lokale Supabase-stack; live: eigenaar test.
+  filter) en in de browser tegen een lokale Supabase-stack; zoeken en een bestaand label
+  kiezen (2026-10-21) met `src/components/admin/OrderLabels.test.tsx`; live: eigenaar test.
 
 ---
 

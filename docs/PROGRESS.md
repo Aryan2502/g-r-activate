@@ -189,6 +189,14 @@ axe 0 overtredingen op alle publieke en auth-pagina's.
   onder de status (tabel en kaarten), filter **Label** (`?label=`), en **Label toevoegen**
   in de selectiebalk; het auditlog toont "Orderlabels" met de tekst en een link naar de
   order.
+- **Eerder gebruikt label kiezen (2026-10-21, op verzoek van de eigenaar):** "Label
+  toevoegen" toont alle labels in gebruik (geen maximum van 16 meer, meest gebruikt eerst)
+  onder "Eerder gebruikt: kies er een"; het tekstvak zoekt erin (hoofdletters en accenten
+  tellen niet), zonder treffer "Nieuw label: ‘…’". Een bestaand label in andere
+  hoofdletters ("air") voegt dat label toe met de eigen tekst en kleur ("Air", blauw;
+  "Bestaand label", kleur vast). `matchLabelsInUse()` en `findLabelInUse()` in
+  `order-labels.ts` (+ test); `OrderLabels.test.tsx` (kiezen, zoeken, bestaand label,
+  nieuw label met eigen kleur).
 - **Browsercontrole tegen een lokale Supabase-stack:** label toevoegen op de orderpagina,
   in bulk op twee orders ("toegevoegd aan 2 orders"; een order die het label al had wordt
   overgeslagen), filter `?label=ocean`, verwijderen, auditregels met wie; via de echte

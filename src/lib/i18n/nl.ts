@@ -1142,9 +1142,13 @@ export const nl = {
       form: {
         titleOne: "Label toevoegen",
         titleMany: "Label toevoegen aan {count} orders",
-        intro: "Kies een label dat al gebruikt wordt, of typ een nieuw label en kies een kleur.",
-        inUse: "Labels in gebruik",
-        text: "Label",
+        intro:
+          "Kies een label dat al eerder is gebruikt, of typ om te zoeken. Een nieuw label krijgt een kleur naar keuze.",
+        inUse: "Eerder gebruikt: kies er een",
+        newLabel: "Nieuw label: ‘{label}’. Kies hieronder een kleur.",
+        existing: "Bestaand label",
+        existingColor: "Een bestaand label houdt dezelfde kleur.",
+        text: "Zoek of typ een nieuw label",
         textPlaceholder: "Bijvoorbeeld Air",
         textRequired: "Typ een label.",
         textTooLong: "Een label heeft maximaal {max} tekens.",
